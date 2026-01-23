@@ -34,4 +34,6 @@ Before committing, always show:
 Never commit competition data, runs, artifacts, or secrets (see `.gitignore`).
 
 Commit message:
-- `handoff: <short description> [agentNN]`
+- `agentNN: handoff(<area>): <short description>`
+- Derive `agentNN` from `agent_logs/current.md` (field `id:`). If missing, stop and ask the human.
+- Choose `<area>` from: `workflow`, `docs`, `orchestrator`, `competitions`, `prompts`, `ci`, `misc`.

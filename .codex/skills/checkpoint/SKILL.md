@@ -30,7 +30,10 @@ Before committing, show:
 - `git diff --cached --stat`
 
 ## 4) Commit (auto message)
-- Create a message `checkpoint: <short summary>` derived from staged paths.
+- Create a structured message that includes the agent id:
+  - `agentNN: checkpoint(<area>): <short summary>`
+  - Derive `agentNN` from `agent_logs/current.md` (field `id:`). If missing, stop and ask the human.
+  - Choose `<area>` from: `workflow`, `docs`, `orchestrator`, `competitions`, `prompts`, `ci`, `misc`.
 - Run `git commit -m "<message>"`.
 
 ## 5) Postflight (must do; show output)
