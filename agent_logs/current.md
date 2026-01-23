@@ -15,10 +15,12 @@
 - Added `.codex/skills/` procedures for `Onboard` / `checkpoint` / `handoff`.
 - Added local context enrichments and synced `agents.md` + `business_context.md` via `context-manager-1`.
 - Updated `prd.md` to add Phase 6 (security hardening) and clarify Phases 1–5 as non-secure.
+- Created `v1` branch and drafted Phase 1–3 low-level design: `docs/plan/v1.md`.
 
 ## Result
 - Repo is ready for multi-agent work with stable onboarding/handoff docs and strict git hygiene.
+- LLD is ready to implement Phase 1 prepare/validate/score and Phase 3 Kilo CLI harness.
 
 ## Next
-- Create a checkpoint commit on `v0`.
-- Create branch `v1` and start Phase 1 low-level design (LLD).
+- If requested: checkpoint commit on `v1` for the LLD doc.
+- Start Phase 1 implementation: pick first competition, implement prepare/validate/score against fixtures.

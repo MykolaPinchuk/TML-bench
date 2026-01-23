@@ -12,6 +12,7 @@ Keep this file short. Update it only when something important changes.
 - `agent_logs/current.md` — live execution log for this cycle.
 - `prd.md` — product requirements / architecture / phased plan.
 - `docs/adr/0001-agentic-workflow-protocol.md` — durable workflow decision.
+- `docs/plan/v1.md` — low-level design for Phases 1–3.
 
 ## Where results live
 - `agent_logs/` — per-cycle logs and index.
