@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v0 (setup): establish the agentic workflow scaffolding and guardrails for TML-bench.
+v1 (Phase 1): implement deterministic competition preparation, strict submission validation, and private-holdout scoring (functionality only; not secure).
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -14,13 +14,20 @@ v0 (setup): establish the agentic workflow scaffolding and guardrails for TML-be
 ### Done (with evidence)
 - PRD exists: `prd.md`.
 - Agentic workflow scaffolding (this set of files): `repo_workflow.md`, `onboarding.md`, `HANDOFF.md`, `REPO_MAP.md`, `agent_logs/`.
+- Phase 1 LLD written: `docs/plan/v1.md`.
+- Phase 1 core implemented + tested:
+  - `orchestrator/schemas.py`, `orchestrator/prepare_lib.py`, `orchestrator/validate.py`, `orchestrator/score.py`
+  - toy competition for fixtures: `competitions/toy_regression/`
+  - tests: `tests/test_prepare_validate_score.py` (run: `pytest -q`)
 
 ### Next (ordered)
-1) Create branch `v1` (Phase 1) and write LLD for prepare/validate/score contracts.
-2) Implement Phase 1 scaffolding (competition spec + deterministic split + validator + scorer).
+1) Select the first real competition/task id (tabular, small, post-cutoff) and add `competitions/<id>/spec.yaml` + `prepare_competition.py`.
+2) Extend `prepare_holdout_from_train` to support `split.strategy: group|time` if needed by the selected task.
+3) Start Phase 2 scaffolding (runs workspace template + result record) once Phase 1 is stable for one real task.
 
 ### Open questions
-- None yet (blocked on selecting the first competition/task for Phase 1).
+- Which competition/task is first for Phase 1?
+- Do we require multiclass support in v1, or start with regression/binary only?
 
 ## Repro / smoke check
 - Commands run:

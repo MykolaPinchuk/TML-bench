@@ -21,6 +21,9 @@ Keep this file short. Update it only when something important changes.
 
 ## Hot paths (last 1–2 cycles)
 - `prd.md` — PRD updates and phase definitions.
+- `docs/plan/v1.md` — Phase 1–3 low-level design.
+- `orchestrator/` — Phase 1 core (prepare/validate/score).
+- `competitions/` — per-task specs and preparation scripts.
 
 ## Notes
 - If you create a new "important" dir or entrypoint, add it above so future agents find it quickly.
