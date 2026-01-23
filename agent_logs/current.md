@@ -16,11 +16,16 @@
 - Added local context enrichments and synced `agents.md` + `business_context.md` via `context-manager-1`.
 - Updated `prd.md` to add Phase 6 (security hardening) and clarify Phases 1–5 as non-secure.
 - Created `v1` branch and drafted Phase 1–3 low-level design: `docs/plan/v1.md`.
+- Implemented Phase 1 core library modules: `orchestrator/schemas.py`, `orchestrator/prepare_lib.py`, `orchestrator/validate.py`, `orchestrator/score.py`.
+- Added a toy competition spec + prepare script for local testing: `competitions/toy_regression/`.
+- Added pytest coverage for prepare determinism and validate+score roundtrip: `tests/test_prepare_validate_score.py`.
 
 ## Result
 - Repo is ready for multi-agent work with stable onboarding/handoff docs and strict git hygiene.
 - LLD is ready to implement Phase 1 prepare/validate/score and Phase 3 Kilo CLI harness.
+- `pytest -q` passes locally for the Phase 1 core (2 tests).
 
 ## Next
 - If requested: checkpoint commit on `v1` for the LLD doc.
 - Start Phase 1 implementation: pick first competition, implement prepare/validate/score against fixtures.
+- Decide the first real competition ID and implement its `competitions/<id>/prepare_competition.py` using the generic `prepare_holdout_from_train`.
