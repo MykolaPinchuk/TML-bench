@@ -18,6 +18,7 @@ def main() -> int:
     spec = load_spec(args.spec)
     prepare_holdout_from_train(
         spec=spec,
+        spec_path=Path(args.spec),
         raw_train_csv=Path(args.raw_train),
         public_dir=Path(args.public_dir),
         private_dir=Path(args.private_dir),
@@ -32,4 +33,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

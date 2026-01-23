@@ -68,7 +68,11 @@ def _require(d: dict[str, Any], key: str, typ: type, *, ctx: str) -> Any:
         raise ValueError(f"Missing required field {ctx}.{key}")
     val = d[key]
     if not isinstance(val, typ):
-        raise ValueError(f"Expected {ctx}.{key} to be {typ.__name__}, got {type(val).__name__}")
+        if isinstance(typ, tuple):
+            want = "|".join(t.__name__ for t in typ)
+        else:
+            want = typ.__name__
+        raise ValueError(f"Expected {ctx}.{key} to be {want}, got {type(val).__name__}")
     return val
 
 
@@ -88,12 +92,16 @@ def load_spec(path: str | Path) -> CompetitionSpec:
         name=_require(metric_raw, "name", str, ctx="metric"),
         higher_is_better=bool(metric_raw.get("higher_is_better", False)),
     )
+    if metric.name not in ("rmse", "mae", "logloss", "auc"):
+        raise ValueError(f"Invalid metric.name: {metric.name}")
 
     submission = SubmissionSpec(
         filename=_require(submission_raw, "filename", str, ctx="submission"),
         prediction_column=submission_raw.get("prediction_column"),
         prediction_columns=submission_raw.get("prediction_columns"),
     )
+    if submission.prediction_columns is not None and not all(isinstance(x, str) for x in submission.prediction_columns):
+        raise ValueError("submission.prediction_columns must be a list of strings")
 
     split = SplitSpec(
         strategy=_require(split_raw, "strategy", str, ctx="split"),
@@ -126,4 +134,3 @@ def load_spec(path: str | Path) -> CompetitionSpec:
         raise ValueError("split.test_size must be between 0 and 1")
 
     return spec
-

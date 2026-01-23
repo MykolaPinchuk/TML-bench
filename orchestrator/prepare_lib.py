@@ -42,6 +42,7 @@ def _write_manifest(public_dir: Path, *, spec_hash: str, competition_id: str) ->
 def prepare_holdout_from_train(
     *,
     spec: CompetitionSpec,
+    spec_path: Path | None = None,
     raw_train_csv: Path,
     public_dir: Path,
     private_dir: Path,
@@ -107,6 +108,5 @@ def prepare_holdout_from_train(
     }
     (private_dir / "split.json").write_text(json.dumps(split_meta, indent=2, sort_keys=True), encoding="utf-8")
 
-    spec_hash = sha256_file(Path(raw_train_csv).parent / "spec.yaml") if (Path(raw_train_csv).parent / "spec.yaml").exists() else ""
-    _write_manifest(public_dir, spec_hash=spec_hash or "unknown", competition_id=spec.id)
-
+    spec_hash = sha256_file(spec_path) if spec_path is not None else "unknown"
+    _write_manifest(public_dir, spec_hash=spec_hash, competition_id=spec.id)

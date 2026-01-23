@@ -33,6 +33,7 @@ def test_prepare_is_deterministic(tmp_path: Path) -> None:
 
     prepare_holdout_from_train(
         spec=spec,
+        spec_path=spec_path,
         raw_train_csv=raw_train,
         public_dir=out1_pub,
         private_dir=out1_priv,
@@ -40,6 +41,7 @@ def test_prepare_is_deterministic(tmp_path: Path) -> None:
     )
     prepare_holdout_from_train(
         spec=spec,
+        spec_path=spec_path,
         raw_train_csv=raw_train,
         public_dir=out2_pub,
         private_dir=out2_priv,
@@ -69,7 +71,14 @@ def test_validate_and_score_roundtrip(tmp_path: Path) -> None:
     spec = load_spec("competitions/toy_regression/spec.yaml")
     public_dir = tmp_path / "public"
     private_dir = tmp_path / "private"
-    prepare_holdout_from_train(spec=spec, raw_train_csv=raw_train, public_dir=public_dir, private_dir=private_dir, readme_task_md="x")
+    prepare_holdout_from_train(
+        spec=spec,
+        spec_path=Path("competitions/toy_regression/spec.yaml"),
+        raw_train_csv=raw_train,
+        public_dir=public_dir,
+        private_dir=private_dir,
+        readme_task_md="x",
+    )
 
     test_public = pd.read_csv(public_dir / "test_public.csv")
     submission = pd.DataFrame({spec.id_column: test_public[spec.id_column].values, "y": np.zeros(len(test_public))})
@@ -85,4 +94,3 @@ def test_validate_and_score_roundtrip(tmp_path: Path) -> None:
     sr = score_submission(spec=spec, private_dir=private_dir, normalized_submission_csv=normalized_path)
     assert np.isfinite(sr.score_raw)
     assert sr.metric_name == "rmse"
-
