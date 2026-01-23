@@ -1,6 +1,20 @@
 # TML-bench
 
-Tabular ML-agent benchmark + leaderboard.
+TML-bench is a **small, strict, tabular-only benchmark** for evaluating autonomous “ML agents” (run via **Kilo**) on Kaggle-style tasks under standardized scaffolding.
+
+This repo’s end goal is an auditable leaderboard with per-run artifacts and private-holdout scoring. In early phases, the focus is correctness and repeatable automation (not security).
+
+## What exists today
+- Phase 1 core building blocks for the benchmark protocol:
+  - deterministic public/holdout split prep
+  - strict submission validation + normalization
+  - private-holdout scoring (outside the agent workspace)
+  - unit tests (`pytest -q`)
+
+## Read me next (humans)
+- `docs/overview.md` — high-level description of what we’re building and why.
+- `prd.md` — full PRD (phases, architecture, requirements).
+- `HANDOFF.md` — current slice + next steps.
 
 ## For agents
 Start here (in order):
@@ -16,3 +30,11 @@ Start here (in order):
 - `Onboard` — deterministic onboarding
 - `checkpoint` — safe checkpoint commit
 - `handoff` / `wrap up` — update handoff docs, rotate logs, and create a safe handoff commit
+
+## Quick sanity check (no Kaggle required)
+- Run tests: `pytest -q`
+- (Optional) Generate a toy competition split (writes to `./tmp/`, ignored):
+  - `python competitions/toy_regression/prepare_competition.py --raw-train /path/to/train.csv --public-dir tmp/public --private-dir tmp/private`
+
+## Data policy
+- Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).
