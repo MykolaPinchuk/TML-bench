@@ -29,6 +29,8 @@ Per competition we generate:
 - `public/sample_submission.csv`
 - `private/holdout_labels.parquet` (labels only; never given to agent)
 
+Policy: `competitions/<id>/prepare_competition.py` is the canonical way to generate `public/` and `private/` (no manual edits).
+
 A run is “successful” when:
 - `submission.csv` exists,
 - schema matches `sample_submission.csv`,
