@@ -19,6 +19,7 @@
 - Implemented Phase 1 core library modules: `orchestrator/schemas.py`, `orchestrator/prepare_lib.py`, `orchestrator/validate.py`, `orchestrator/score.py`.
 - Added a toy competition spec + prepare script for local testing: `competitions/toy_regression/`.
 - Added pytest coverage for prepare determinism and validate+score roundtrip: `tests/test_prepare_validate_score.py`.
+- Tightened spec parsing validation and included `spec.yaml` hash in `public_manifest.json`.
 
 ## Result
 - Repo is ready for multi-agent work with stable onboarding/handoff docs and strict git hygiene.
