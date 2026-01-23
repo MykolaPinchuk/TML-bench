@@ -22,6 +22,7 @@
 - Tightened spec parsing validation and included `spec.yaml` hash in `public_manifest.json`.
 - Made the repo landing page human-friendly: `README.md` + `docs/overview.md`.
 - Added first real competition scaffold: `competitions/playground-series-s6e1/` (spec + prepare script + task README template).
+- Added a host-side sklearn baseline runner to exercise the Phase 1 protocol end-to-end: `scripts/run_baseline.py`, `orchestrator/baseline_sklearn.py`.
 
 ## Result
 - Repo is ready for multi-agent work with stable onboarding/handoff docs and strict git hygiene.

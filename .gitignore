@@ -42,6 +42,9 @@ runs/**
 artifacts/
 outputs/
 
+# Scratch
+tmp/
+
 # Results store (never commit)
 results/**
 !results/

@@ -36,5 +36,11 @@ Start here (in order):
 - (Optional) Generate a toy competition split (writes to `./tmp/`, ignored):
   - `python competitions/toy_regression/prepare_competition.py --raw-train /path/to/train.csv --public-dir tmp/public --private-dir tmp/private`
 
+## First real task (Kaggle)
+1) Prepare the competition:
+   - `KAGGLE_CONFIG_DIR=secrets python competitions/playground-series-s6e1/prepare_competition.py --download`
+2) Run a host-side baseline (writes `submission.csv` + normalized copy):
+   - `python scripts/run_baseline.py --competition-dir competitions/playground-series-s6e1 --out tmp/submission.csv`
+
 ## Data policy
 - Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).
