@@ -1,0 +1,7 @@
+# TML-bench context
+
+This repo builds a small, strict, tabular-only benchmark for autonomous “ML agents” (Kilo scaffold), producing reproducible run artifacts and per-task leaderboards for OSS models.
+
+Key constraints:
+- No general web search for the agent (policy in early phases; hard enforcement in Phase 6).
+- Holdout scoring uses private labels not visible to the agent.

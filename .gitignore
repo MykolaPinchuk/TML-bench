@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Environments
+.venv/
+venv/
+ENV/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS / editor
+.DS_Store
+
+# Secrets (never commit)
+.env
+.envrc
+.direnv/
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Repo-local secrets (never commit)
+secrets/**
+!secrets/
+!secrets/README.md
+
+# Competition data (never commit)
+competitions/**/private/**
+competitions/**/public/**
+competitions/**/raw/**
+competitions/**/downloads/**
+
+# Runs and artifacts (never commit)
+runs/**
+artifacts/
+outputs/
+
+# Results store (never commit)
+results/**
+!results/
+!results/README.md
+!results/leaderboard.json
+!results/leaderboard.csv
+!results/leaderboard.html
+
+*.sqlite
+*.db
+
+# Common ML artifacts
+*.pkl
+*.joblib
+*.parquet
+*.feather
+*.arrow
+*.npz
+*.pt
+*.ckpt
+
+# Notebooks (default: keep out)
+*.ipynb
+.ipynb_checkpoints/

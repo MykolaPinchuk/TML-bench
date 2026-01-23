@@ -6,6 +6,7 @@ Modern “coding agents” can produce strong Kaggle-style tabular baselines qui
 
 * Existing agent benchmarks often focus on code correctness or synthetic tasks, not end-to-end tabular DS work (data loading, preprocessing, model training, submission formatting, iteration).
 * Existing Kaggle-like benchmarks (e.g., MLE-bench) are broad and expensive, vary in scaffolding, and are harder to reproduce cheaply for repeated runs.
+* Most of existing DS/ML benchmarks are not contamination-proof.
 * For OSS models, there is no widely trusted, reproducible, budget-controlled leaderboard that measures: “Given a fixed scaffold, no web access, and a fixed runtime, how well does an autonomous agent solve a recent tabular Kaggle-style task?”
 
 This project builds a **small, strict, reproducible, tabular-only benchmark** that can be run repeatedly across OSS models using a single universal scaffold: **Kilo Code**.
@@ -14,7 +15,7 @@ The intended use is both practical (choose models/settings for autonomous tabula
 
 ---
 
-## 2) Objective and target state (Phase 5)
+## 2) Objective and target state (Phase 6)
 
 ### Target state summary
 
@@ -34,10 +35,11 @@ will execute autonomous agent runs end-to-end and produce:
 ### Key properties of the target state
 
 1. **Universal scaffold**: all models run in the same Kilo-based harness.
-2. **No web search**: agent containers have no general internet; egress allowlist only to the LLM API endpoints (because remote inference is required).
+2. **No web search**: agent containers have no general internet; egress allowlist only to the LLM API endpoints (because remote inference is required). (Enforced in Phase 6; best-effort policy before then.)
 3. **Private holdout scoring**: labels and scoring code are not mounted into the agent environment.
 4. **Low compute**: only tabular tasks; few competitions; fixed time budgets; repeatable runs.
 5. **Auditable and reproducible**: pinned environments, deterministic splits, full artifacts retained.
+6. **No contamination. Post-knowledge cutoff data/competitions.
 
 ---
 
@@ -279,6 +281,8 @@ Important: the scoring code and holdout labels are never accessible to the agent
 * **Untrusted**: agent container filesystem + execution
 * **Trusted**: orchestrator + scorer + private data directory
 
+Note: in Phases 1–5, this “untrusted vs trusted” boundary is primarily by convention and workflow (best-effort). Hard enforcement (mount isolation + egress restrictions) is introduced in Phase 6.
+
 Mount policy (Phase 4+):
 
 * `public/` mounted read-only into container
@@ -287,12 +291,12 @@ Mount policy (Phase 4+):
 
 ### 10.3 Network policy
 
-* Deny all outbound traffic from agent container except allowlist to:
+Target (Phase 6): deny all outbound traffic from the agent container except allowlist to:
 
-  * Chutes base URL `https://llm.chutes.ai/v1/` (OpenAI-compatible), if using Chutes proxy ([LiteLLM][3])
-  * NanoGPT base URL `https://nano-gpt.com/api/v1` (OpenAI-compatible), if using NanoGPT ([LiteLLM][4])
-* No inbound network.
-* No browser tools.
+* Chutes base URL `https://llm.chutes.ai/v1/` (OpenAI-compatible), if using Chutes proxy ([LiteLLM][3])
+* NanoGPT base URL `https://nano-gpt.com/api/v1` (OpenAI-compatible), if using NanoGPT ([LiteLLM][4])
+
+Before Phase 6: enforce “no web search / no retrieval” via prompt policy and run workflow, but treat results as non-secure.
 
 ---
 
@@ -315,6 +319,7 @@ Benchmark policy:
 
 * MCP disabled by default.
 * If later enabled, only allow a local, non-network MCP server with fixed behavior (and document it in benchmark version).
+* Hard enforcement (container + config lockdown) is a Phase 6 requirement; earlier phases rely on configuration and prompt policy.
 
 ### 11.3 Standardized prompt template
 
@@ -491,7 +496,7 @@ Controls for auditing:
 
 You have Phase 0 completed: interactive POC in Kilo VSCode extension with data already present.
 
-### Phase 1 — Reproducible scoring + validation (no CLI, no Docker)
+### Phase 1 — Reproducible scoring + validation (no agent automation, no Docker)
 
 **Goal:** lock down the evaluation logic first.
 
@@ -513,7 +518,13 @@ Acceptance criteria:
 
 ### Phase 2 — VSCode-based harness wrapper (semi-automated runs)
 
-**Goal:** get repeated runs + leaderboard while still using VSCode manually for execution.
+**Goal:** get repeated runs + leaderboard while still using VSCode manually for execution (functionality only; not secure).
+
+Execution mode:
+
+* Use Kilo VSCode agent optionally for interactive iteration/debugging.
+* Use per-run workspaces (`runs/<run_id>/workspace/`) that include only `public/` inputs plus an empty `work/` area for outputs.
+* Enforce constraints “politely” (prompt policy + workflow discipline), not via isolation.
 
 Deliverables:
 
@@ -527,38 +538,38 @@ Acceptance criteria:
 
 ### Phase 3 — Kilo CLI batch execution on host (no Docker)
 
-**Goal:** replace VSCode UI with Kilo CLI to make full batch possible.
+**Goal:** replace VSCode UI with Kilo CLI to make full batch possible (functionality only; not secure).
 
 Deliverables:
 
 * `run_one.py` drives Kilo CLI in autonomous mode and captures structured output. (Kilo supports `--auto` and `--json` for programmatic integration.) ([Kilo][1])
 * `sweep.py` loops over seeds and runs-per-model.
 * Backoff/retry for transient API errors.
+* Wall-clock timeout enforcement per run.
 
 Acceptance criteria:
 
 * A single command performs: run → validate → score → record.
 * Repeatability across runs is stable.
 
-### Phase 4 — Docker isolation + egress allowlist + private holdout isolation
+### Phase 4 — Reproducibility packaging + baselines
 
-**Goal:** enforce integrity and reproducibility via containerization.
+**Goal:** reduce drift and improve debuggability without attempting security.
 
 Deliverables:
 
-* Docker image with pinned dependencies + pinned Kilo version.
-* Orchestrator launches container with strict mounts and restricted network.
-* Private scorer runs outside container.
+* Pinned dependencies (lockfile) and pinned Kilo version.
+* Baseline runner per competition (non-agent) to sanity-check data/scoring.
+* Stronger artifact/provenance capture (spec hash, prompt hash, public data hashes).
 
 Acceptance criteria:
 
-* Agent cannot read private holdout labels (verified by mount layout).
-* Agent has no general internet access (verified by network policy test).
-* Same run config produces comparable results across machines.
+* Same run config produces comparable results across machines (within expected variance).
+* Baseline achieves stable, reproducible scores for each competition.
 
 ### Phase 5 — Multi-competition benchmark + public leaderboard artifact
 
-**Goal:** full benchmark (5 tasks), model sweep, publishable output.
+**Goal:** full benchmark (5 tasks), model sweep, publishable output (results still non-secure until Phase 6).
 
 Deliverables:
 
@@ -571,6 +582,23 @@ Acceptance criteria:
 
 * One command produces the full leaderboard deterministically given the same inputs and model APIs.
 * All artifacts required to audit any score are retained.
+
+### Phase 6 — Security hardening (isolation + strict rules)
+
+**Goal:** enforce benchmark integrity controls so results can be treated as security-relevant.
+
+Deliverables:
+
+* Docker isolation with strict mounts (`public/` ro, `work/` rw, `private/` not mounted).
+* Egress allowlist (deny all outbound except model API endpoints).
+* Locked-down Kilo configuration (MCP disabled; no side-channel tools).
+* Resource limits (CPU/RAM/disk) and explicit network/egress tests.
+
+Acceptance criteria:
+
+* Agent cannot read private holdout labels (verified by mount layout tests).
+* Agent has no general internet access (verified by network policy tests).
+* The same run config produces comparable results across machines (within expected variance).
 
 ---
 
