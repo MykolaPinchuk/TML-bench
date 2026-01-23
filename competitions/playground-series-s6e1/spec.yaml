@@ -1,0 +1,25 @@
+id: playground-series-s6e1
+task_type: regression
+
+target_column: exam_score
+id_column: id
+
+metric:
+  name: rmse
+  higher_is_better: false
+
+submission:
+  filename: submission.csv
+  prediction_column: exam_score
+
+split:
+  strategy: random
+  test_size: 0.2
+  seed: 1337
+
+budgets:
+  time_seconds: 900
+
+prepare:
+  raw_train_path: raw/train.csv
+
