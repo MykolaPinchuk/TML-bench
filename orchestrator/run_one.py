@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import replace
 import hashlib
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -38,6 +39,26 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _read_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write_json(path: Path, obj: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _load_kilo_run_meta(run_dir: Path) -> dict | None:
+    p = run_dir / "artifacts" / "kilo_run.json"
+    if not p.exists():
+        return None
+    try:
+        obj = _read_json(p)
+    except Exception:
+        return None
+    return obj if isinstance(obj, dict) else None
 
 
 def _write_and_maybe_record(
@@ -252,6 +273,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     submission_sha256 = _sha256_file(submission_art)
     normalized_submission_sha256 = _sha256_file(normalized_art)
 
+    kilo_meta = _load_kilo_run_meta(run_dir)
+
     result = make_result(
         competition_id=args.competition_id,
         status="success",
@@ -269,10 +292,12 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     )
 
     # Overwrite run_id to match directory name.
-    notes = {
+    notes: dict = {
         "submission_sha256": submission_sha256,
         "normalized_submission_sha256": normalized_submission_sha256,
     }
+    if kilo_meta is not None:
+        notes["kilo"] = kilo_meta
     result = replace(
         result,
         run_id=run_id,
@@ -370,6 +395,17 @@ def cmd_auto(args: argparse.Namespace) -> int:
         timeout_seconds=kilo_timeout,
         stdout_path=kilo_stdout,
         stderr_path=kilo_stderr,
+    )
+    _write_json(
+        artifacts_dir / "kilo_run.json",
+        {
+            "argv": kr.argv,
+            "returncode": kr.returncode,
+            "duration_seconds": kr.duration_seconds,
+            "provider_id": args.provider,
+            "model_id": args.model_id,
+            "timeout_seconds": kilo_timeout,
+        },
     )
     try:
         cleaned_events = write_clean_jsonl(src_jsonl=kilo_stdout, dst_jsonl=kilo_clean)
