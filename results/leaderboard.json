@@ -10,9 +10,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.6872879334,
-    "runtime_seconds":411.993459,
-    "budget_time_seconds":600
+    "score_raw":8.687287933383228,
+    "runtime_seconds":411.993458999999973,
+    "budget_time_seconds":600,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
   },
   {
     "run_id":"playground-series-s6e1_34c2b7fda243",
@@ -25,9 +27,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.744254343,
-    "runtime_seconds":371.471525,
-    "budget_time_seconds":600
+    "score_raw":8.744254343047949,
+    "runtime_seconds":371.471524999999986,
+    "budget_time_seconds":600,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
   },
   {
     "run_id":"playground-series-s6e1_54dd6009d53d",
@@ -40,9 +44,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8003634732,
-    "runtime_seconds":59.83366,
-    "budget_time_seconds":180
+    "score_raw":8.800363473206167,
+    "runtime_seconds":59.833660000000002,
+    "budget_time_seconds":180,
+    "submission_sha256":"95a73cf61ad42617\u2026",
+    "normalized_submission_sha256":"491c46e4fe9f0645\u2026"
   },
   {
     "run_id":"playground-series-s6e1_4ef11356d2e4",
@@ -55,9 +61,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8011543558,
-    "runtime_seconds":71.763755,
-    "budget_time_seconds":180
+    "score_raw":8.801154355758822,
+    "runtime_seconds":71.763755000000003,
+    "budget_time_seconds":180,
+    "submission_sha256":"8dc6f733f6e50954\u2026",
+    "normalized_submission_sha256":"702e691858192e39\u2026"
   },
   {
     "run_id":"playground-series-s6e1_27c41b70a805",
@@ -70,9 +78,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8011543558,
-    "runtime_seconds":145.466501,
-    "budget_time_seconds":180
+    "score_raw":8.801154355758822,
+    "runtime_seconds":145.466500999999994,
+    "budget_time_seconds":180,
+    "submission_sha256":"8dc6f733f6e50954\u2026",
+    "normalized_submission_sha256":"702e691858192e39\u2026"
   },
   {
     "run_id":"playground-series-s6e1_7263ee8bfc0c",
@@ -85,9 +95,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8011543558,
-    "runtime_seconds":68.408636,
-    "budget_time_seconds":180
+    "score_raw":8.801154355758822,
+    "runtime_seconds":68.408636000000001,
+    "budget_time_seconds":180,
+    "submission_sha256":"8dc6f733f6e50954\u2026",
+    "normalized_submission_sha256":"702e691858192e39\u2026"
   },
   {
     "run_id":"playground-series-s6e1_ae22edea50fd",
@@ -100,9 +112,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8100562658,
-    "runtime_seconds":34.375125,
-    "budget_time_seconds":180
+    "score_raw":8.810056265802647,
+    "runtime_seconds":34.375124999999997,
+    "budget_time_seconds":180,
+    "submission_sha256":"0b8e2737a1f1f7d0\u2026",
+    "normalized_submission_sha256":"19a144047d36120f\u2026"
   },
   {
     "run_id":"playground-series-s6e1_5af29623df1f",
@@ -115,9 +129,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8100562658,
-    "runtime_seconds":52.725913,
-    "budget_time_seconds":180
+    "score_raw":8.810056265802647,
+    "runtime_seconds":52.725912999999998,
+    "budget_time_seconds":180,
+    "submission_sha256":"0b8e2737a1f1f7d0\u2026",
+    "normalized_submission_sha256":"19a144047d36120f\u2026"
   },
   {
     "run_id":"playground-series-s6e1_86285db87971",
@@ -130,9 +146,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8100562658,
-    "runtime_seconds":70.295362,
-    "budget_time_seconds":180
+    "score_raw":8.810056265802647,
+    "runtime_seconds":70.295361999999997,
+    "budget_time_seconds":180,
+    "submission_sha256":"0b8e2737a1f1f7d0\u2026",
+    "normalized_submission_sha256":"19a144047d36120f\u2026"
   },
   {
     "run_id":"playground-series-s6e1_a1d120a00ad3",
@@ -145,9 +163,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8100562658,
+    "score_raw":8.810056265802647,
     "runtime_seconds":14.157202,
-    "budget_time_seconds":180
+    "budget_time_seconds":180,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
   },
   {
     "run_id":"playground-series-s6e1_ca0aa041f276",
@@ -160,9 +180,11 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8100562658,
-    "runtime_seconds":57.896401,
-    "budget_time_seconds":180
+    "score_raw":8.810056265802647,
+    "runtime_seconds":57.896400999999997,
+    "budget_time_seconds":180,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
   },
   {
     "run_id":"playground-series-s6e1_5f29f9bb3990",
@@ -175,9 +197,45 @@
     "temperature":null,
     "max_tokens":null,
     "metric_name":"rmse",
-    "score_raw":8.8100562658,
+    "score_raw":8.810056265802647,
     "runtime_seconds":48.102497,
-    "budget_time_seconds":180
+    "budget_time_seconds":180,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
+  },
+  {
+    "run_id":"pss6e1_meta_test",
+    "created_at":"2026-01-23T19:50:02-08:00",
+    "competition_id":"playground-series-s6e1",
+    "status":"success",
+    "provider":"chutes",
+    "model_id":"deepseek-v3.1-terminus",
+    "mode":"coder",
+    "temperature":null,
+    "max_tokens":null,
+    "metric_name":"rmse",
+    "score_raw":8.81146841283458,
+    "runtime_seconds":3.60441,
+    "budget_time_seconds":600,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
+  },
+  {
+    "run_id":"pss6e1_time_test",
+    "created_at":"2026-01-23T19:08:04-08:00",
+    "competition_id":"playground-series-s6e1",
+    "status":"success",
+    "provider":null,
+    "model_id":null,
+    "mode":null,
+    "temperature":null,
+    "max_tokens":null,
+    "metric_name":"rmse",
+    "score_raw":8.81146841283458,
+    "runtime_seconds":4.987415,
+    "budget_time_seconds":600,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
   },
   {
     "run_id":"playground-series-s6e1_99fabfb0c913",
@@ -191,8 +249,10 @@
     "max_tokens":null,
     "metric_name":null,
     "score_raw":null,
-    "runtime_seconds":185.529991,
-    "budget_time_seconds":180
+    "runtime_seconds":185.529990999999995,
+    "budget_time_seconds":180,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
   },
   {
     "run_id":"playground-series-s6e1_3f21e863341e",
@@ -206,7 +266,9 @@
     "max_tokens":null,
     "metric_name":null,
     "score_raw":null,
-    "runtime_seconds":185.176431,
-    "budget_time_seconds":180
+    "runtime_seconds":185.176431000000008,
+    "budget_time_seconds":180,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null
   }
 ]
