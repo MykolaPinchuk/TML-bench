@@ -3,9 +3,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+from orchestrator.db import insert_run
+from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, write_root_leaderboard
+from orchestrator.result import read_result_json
 from orchestrator.run_one import cmd_auto
+from orchestrator.run_workspace import default_run_id
 
 
 def _repo_root() -> Path:
@@ -52,6 +57,12 @@ def main() -> int:
     ap.add_argument("--only-provider", default=None, help="If set, only run models from this provider id.")
     ap.add_argument("--max-models", type=int, default=None, help="If set, limit to the first N models selected.")
     ap.add_argument("--max-runs", type=int, default=None, help="If set, stop after N total runs (across all models).")
+    ap.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="If >1, run multiple headless runs in parallel. DB/leaderboard updates are done once at the end.",
+    )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -76,6 +87,8 @@ def main() -> int:
 
     if args.runs_per_model < 1:
         raise ValueError("--runs-per-model must be >= 1")
+    if args.concurrency < 1:
+        raise ValueError("--concurrency must be >= 1")
 
     planned = [(m["provider"], m["model_id"]) for m in models for _ in range(args.runs_per_model)]
     if args.max_runs is not None:
@@ -91,37 +104,101 @@ def main() -> int:
             print(f"- {provider} :: {model_id}")
         return 0
 
+    def _run_one(*, provider: str, model_id: str, run_id: str) -> tuple[str, int]:
+        ns = argparse.Namespace(
+            competition_id=args.competition_id,
+            run_id=run_id,
+            # In parallel mode, avoid sqlite write contention by recording to DB once at the end.
+            db_path=args.db_path if args.concurrency <= 1 else None,
+            per_competition=args.per_competition,
+            provider=provider,
+            model_id=model_id,
+            mode=None,
+            temperature=None,
+            max_tokens=None,
+            kilo_timeout_seconds=args.kilo_timeout_seconds,
+        )
+        rc = int(cmd_auto(ns))
+        return run_id, rc
+
     failures = 0
-    run_n = 0
-    for m in models:
-        for rep in range(args.runs_per_model):
+    run_ids: list[str] = []
+
+    if args.concurrency <= 1:
+        run_n = 0
+        for m in models:
+            for rep in range(args.runs_per_model):
+                if args.max_runs is not None and run_n >= args.max_runs:
+                    break
+                run_n += 1
+                run_id = default_run_id(competition_id=args.competition_id)
+                run_ids.append(run_id)
+                print(f"\n=== run {run_n}/{len(planned)}: {m['provider']} :: {m['model_id']} (rep {rep+1}) ===")
+                try:
+                    _, rc = _run_one(provider=m["provider"], model_id=m["model_id"], run_id=run_id)
+                except Exception as e:  # noqa: BLE001
+                    failures += 1
+                    print(f"error: {type(e).__name__}: {e}")
+                    continue
+                if rc != 0:
+                    failures += 1
+                    print(f"nonzero exit: {rc}")
             if args.max_runs is not None and run_n >= args.max_runs:
                 break
-            run_n += 1
-            print(f"\n=== run {run_n}/{len(planned)}: {m['provider']} :: {m['model_id']} (rep {rep+1}) ===")
-            ns = argparse.Namespace(
-                competition_id=args.competition_id,
-                run_id=None,
-                db_path=args.db_path,
-                per_competition=args.per_competition,
-                provider=m["provider"],
-                model_id=m["model_id"],
-                mode=None,
-                temperature=None,
-                max_tokens=None,
-                kilo_timeout_seconds=args.kilo_timeout_seconds,
+    else:
+        tasks: list[tuple[str, str, str]] = []
+        run_n = 0
+        for m in models:
+            for rep in range(args.runs_per_model):
+                if args.max_runs is not None and run_n >= args.max_runs:
+                    break
+                run_n += 1
+                run_id = default_run_id(competition_id=args.competition_id)
+                tasks.append((m["provider"], m["model_id"], run_id))
+            if args.max_runs is not None and run_n >= args.max_runs:
+                break
+
+        print(f"concurrency: {args.concurrency} (DB/leaderboard updated after runs complete)")
+        for i, (provider, model_id, run_id) in enumerate(tasks, start=1):
+            print(f"- scheduled {i}/{len(tasks)}: {provider} :: {model_id} (run_id {run_id})")
+
+        with ThreadPoolExecutor(max_workers=int(args.concurrency)) as ex:
+            futs = [ex.submit(_run_one, provider=p, model_id=m, run_id=r) for (p, m, r) in tasks]
+            for fut in as_completed(futs):
+                try:
+                    run_id, rc = fut.result()
+                except Exception as e:  # noqa: BLE001
+                    failures += 1
+                    print(f"error: {type(e).__name__}: {e}")
+                    continue
+                run_ids.append(run_id)
+                if rc != 0:
+                    failures += 1
+                    print(f"nonzero exit: {rc} (run_id {run_id})")
+
+        # Import results into DB/leaderboards once, deterministically.
+        if args.db_path:
+            dbp = Path(args.db_path)
+            for run_id in run_ids:
+                result_path = repo_root / "runs" / run_id / "result.json"
+                if not result_path.exists():
+                    continue
+                rr = read_result_json(result_path)
+                insert_run(dbp, rr)
+
+            lb_paths = LeaderboardPaths(
+                json_path=repo_root / "results" / "leaderboard.json",
+                csv_path=repo_root / "results" / "leaderboard.csv",
+                html_path=repo_root / "results" / "leaderboard.html",
             )
-            try:
-                rc = int(cmd_auto(ns))
-            except Exception as e:  # noqa: BLE001
-                failures += 1
-                print(f"error: {type(e).__name__}: {e}")
-                continue
-            if rc != 0:
-                failures += 1
-                print(f"nonzero exit: {rc}")
-        if args.max_runs is not None and run_n >= args.max_runs:
-            break
+            df = build_leaderboard(
+                db_path=dbp,
+                out_paths=lb_paths,
+                competition_id=args.competition_id if args.per_competition else None,
+            )
+            write_root_leaderboard(df=df, repo_root=repo_root)
+            print(f"updated leaderboard under: {(repo_root / 'results')}")
+            print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 
     if failures:
         print(f"\ncompleted with failures={failures}")
