@@ -34,6 +34,7 @@ def _is_git_dirty(repo_root: Path) -> bool | None:
 class ModelConfig:
     provider: str
     model_id: str
+    mode: str | None = None
     temperature: float | None = None
     max_tokens: int | None = None
 
@@ -69,6 +70,7 @@ class RunResult:
     metric_name: str | None = None
 
     local_validation_metric: float | None = None
+    runtime_seconds: float | None = None
 
     model: ModelConfig | None = None
     budget: BudgetConfig | None = None
@@ -92,6 +94,38 @@ def write_result_json(result: RunResult, out_path: str | Path) -> None:
     out_path.write_text(json.dumps(asdict(result), indent=2, sort_keys=True), encoding="utf-8")
 
 
+def read_result_json(path: str | Path) -> RunResult:
+    path = Path(path)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+
+    model_raw = raw.get("model")
+    budget_raw = raw.get("budget")
+    artifacts_raw = raw.get("artifacts")
+    versions_raw = raw.get("versions")
+
+    model = ModelConfig(**model_raw) if isinstance(model_raw, dict) else None
+    budget = BudgetConfig(**budget_raw) if isinstance(budget_raw, dict) else None
+    artifacts = Artifacts(**artifacts_raw) if isinstance(artifacts_raw, dict) else None
+    versions = Versions(**versions_raw) if isinstance(versions_raw, dict) else None
+
+    return RunResult(
+        run_id=str(raw["run_id"]),
+        created_at=str(raw["created_at"]),
+        competition_id=str(raw["competition_id"]),
+        status=str(raw["status"]),
+        score_raw=raw.get("score_raw"),
+        score_normalized=raw.get("score_normalized"),
+        metric_name=raw.get("metric_name"),
+        local_validation_metric=raw.get("local_validation_metric"),
+        runtime_seconds=raw.get("runtime_seconds"),
+        model=model,
+        budget=budget,
+        seed=raw.get("seed"),
+        artifacts=artifacts,
+        versions=versions,
+    )
+
+
 def default_benchmark_version() -> str:
     return os.environ.get("TML_BENCHMARK_VERSION", "v1-dev")
 
@@ -104,6 +138,9 @@ def make_result(
     score_raw: float | None,
     score_normalized: float | None,
     local_validation_metric: float | None,
+    runtime_seconds: float | None,
+    budget_time_seconds: int | None,
+    model: ModelConfig | None = None,
     submission_path: Path | None,
     normalized_submission_path: Path | None,
     repo_root: Path,
@@ -119,10 +156,12 @@ def make_result(
         score_raw=score_raw,
         score_normalized=score_normalized,
         local_validation_metric=local_validation_metric,
+        runtime_seconds=runtime_seconds,
+        model=model,
+        budget=BudgetConfig(time_seconds=budget_time_seconds) if budget_time_seconds is not None else None,
         artifacts=Artifacts(
             submission_path=str(submission_path) if submission_path else None,
             normalized_submission_path=str(normalized_submission_path) if normalized_submission_path else None,
         ),
         versions=build_versions(repo_root=repo_root, benchmark_version=default_benchmark_version()),
     )
-

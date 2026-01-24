@@ -14,6 +14,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/adr/0001-agentic-workflow-protocol.md` — durable workflow decision.
 - `docs/adr/0002-canonical-competition-prep.md` — policy: `prepare_competition.py` is the canonical generator for `public/` + `private/`.
 - `docs/plan/v1.md` — low-level design for Phases 1–3.
+- `orchestrator/run_one.py` — Phase 2 manual run workflow (create workspace → finalize with validate/score).
 
 ## Where results live
 - `agent_logs/` — per-cycle logs and index.

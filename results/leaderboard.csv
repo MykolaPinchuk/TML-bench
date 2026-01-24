@@ -1,0 +1,3 @@
+run_id,created_at,competition_id,status,provider,model_id,mode,temperature,max_tokens,metric_name,score_raw,runtime_seconds,budget_time_seconds
+playground-series-s6e1_fc58c9432171,2026-01-24T03:43:52+00:00,playground-series-s6e1,success,chutes,DeepSeek V3.1 Terminus,coder,,,rmse,8.687287933383228,411.993459,600
+playground-series-s6e1_34c2b7fda243,2026-01-24T03:29:41+00:00,playground-series-s6e1,success,chutes,GLM 4.7 TEE,coder,,,rmse,8.744254343047949,371.471525,600

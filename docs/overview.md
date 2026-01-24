@@ -22,6 +22,12 @@ Many existing “agent benchmarks” test code correctness or synthetic tasks, n
 
 Interpret results accordingly until Phase 6 exists.
 
+## Manual agent runs (Phase 2)
+In Phase 2, the agent is run manually (VSCode + Kilo) in a per-run workspace:
+- `python -m orchestrator.run_one create --competition-id <id>` creates `runs/<run_id>/workspace/`
+- you run Kilo inside that workspace and produce `submission.csv`
+- `python -m orchestrator.run_one finalize --competition-id <id> --run-id <run_id>` validates, scores (private holdout), and records results
+
 ## Core protocol (Phase 1)
 Per competition we generate:
 - `public/train_public.csv` (features + labels)
