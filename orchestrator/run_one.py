@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from orchestrator.db import insert_run
-from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard
+from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, write_root_leaderboard
 from orchestrator.prompting import render_prompt
 from orchestrator.result import ModelConfig, make_result, write_result_json
 from orchestrator.run_state import init_run_state, read_run_state, set_run_metadata, start_timer, write_run_state
@@ -232,12 +232,14 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             csv_path=repo_root / "results" / "leaderboard.csv",
             html_path=repo_root / "results" / "leaderboard.html",
         )
-        build_leaderboard(
+        df = build_leaderboard(
             db_path=db_path,
             out_paths=lb_paths,
             competition_id=args.competition_id if args.per_competition else None,
         )
+        write_root_leaderboard(df=df, repo_root=repo_root)
         print(f"updated leaderboard under: {lb_paths.json_path.parent}")
+        print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 
     return 0
 

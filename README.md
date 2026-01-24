@@ -12,6 +12,7 @@ This repo’s end goal is an auditable leaderboard with per-run artifacts and pr
   - unit tests (`pytest -q`)
 
 ## Read me next (humans)
+- `LEADERBOARD.md` — current committed leaderboard snapshot.
 - `docs/overview.md` — high-level description of what we’re building and why.
 - `prd.md` — full PRD (phases, architecture, requirements).
 - `HANDOFF.md` — current slice + next steps.
@@ -53,7 +54,7 @@ Start here (in order):
 4) Finalize (validate + private score + record to sqlite + update `results/leaderboard.*`):
    - `python -m orchestrator.run_one finalize --competition-id playground-series-s6e1 --run-id <run_id>`
 
-Note: the run time budget is recorded at `create` and enforced at `finalize` (timeouts are marked `status=timeout`).
+Note: the run time budget is recorded at `create` and enforced at `finalize` (timeouts are marked `status=timeout`). Finalize also updates `LEADERBOARD.md` / `LEADERBOARD.html` at repo root.
 
 ## Data policy
 - Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).
