@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from orchestrator.db import ensure_db, fetch_runs
+from orchestrator.db import ensure_db, fetch_runs, insert_run
+from orchestrator.result import read_result_json
 
 
 @dataclass(frozen=True)
@@ -107,19 +108,26 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
                 "budget_time_seconds": "budget_time_seconds",
             }
         )
-        best = best[
-            [
-                "competition_id",
-                "provider",
-                "model_id",
-                "mode",
-                "metric_name",
-                "best_score_raw",
-                "best_runtime_seconds",
-                "budget_time_seconds",
-                "best_run_id",
-            ]
+        if "submission_sha256" in best.columns:
+            best = best.rename(columns={"submission_sha256": "best_submission_sha256"})
+        if "normalized_submission_sha256" in best.columns:
+            best = best.rename(columns={"normalized_submission_sha256": "best_normalized_submission_sha256"})
+
+        best_cols = [
+            "competition_id",
+            "provider",
+            "model_id",
+            "mode",
+            "metric_name",
+            "best_score_raw",
+            "best_runtime_seconds",
+            "budget_time_seconds",
+            "best_run_id",
         ]
+        for extra in ["best_submission_sha256", "best_normalized_submission_sha256"]:
+            if extra in best.columns:
+                best_cols.append(extra)
+        best = best[best_cols]
         md += "## Best by model (per competition)\n\n"
         md += _df_to_markdown_table(best)
         md += "\n## All runs\n\n"
@@ -156,20 +164,27 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
                 "runtime_seconds": "best_runtime_seconds",
             }
         )
+        if "submission_sha256" in best.columns:
+            best = best.rename(columns={"submission_sha256": "best_submission_sha256"})
+        if "normalized_submission_sha256" in best.columns:
+            best = best.rename(columns={"normalized_submission_sha256": "best_normalized_submission_sha256"})
+
         html += "<h2>Best by model (per competition)</h2>\n"
-        html += best[
-            [
-                "competition_id",
-                "provider",
-                "model_id",
-                "mode",
-                "metric_name",
-                "best_score_raw",
-                "best_runtime_seconds",
-                "budget_time_seconds",
-                "best_run_id",
-            ]
-        ].to_html(index=False, escape=True)
+        best_cols = [
+            "competition_id",
+            "provider",
+            "model_id",
+            "mode",
+            "metric_name",
+            "best_score_raw",
+            "best_runtime_seconds",
+            "budget_time_seconds",
+            "best_run_id",
+        ]
+        for extra in ["best_submission_sha256", "best_normalized_submission_sha256"]:
+            if extra in best.columns:
+                best_cols.append(extra)
+        html += best[best_cols].to_html(index=False, escape=True)
         html += "\n<h2>All runs</h2>\n"
 
     html += df.to_html(index=False, escape=True)
@@ -199,6 +214,8 @@ def build_leaderboard(
         "score_raw",
         "runtime_seconds",
         "budget_time_seconds",
+        "submission_sha256",
+        "normalized_submission_sha256",
     ]
     if df_full.empty:
         df = pd.DataFrame(columns=keep)
@@ -219,12 +236,25 @@ def build_leaderboard(
         if "_created_at_dt" in df.columns:
             df = df.drop(columns=["_created_at_dt"])
 
+    def _short_sha(x: object) -> object:
+        if x is None:
+            return None
+        s = str(x).strip()
+        if not s:
+            return ""
+        return s[:16] + "…"
+
+    if "submission_sha256" in df.columns:
+        df["submission_sha256"] = df["submission_sha256"].map(_short_sha)
+    if "normalized_submission_sha256" in df.columns:
+        df["normalized_submission_sha256"] = df["normalized_submission_sha256"].map(_short_sha)
+
     out_paths.json_path.parent.mkdir(parents=True, exist_ok=True)
     out_paths.csv_path.parent.mkdir(parents=True, exist_ok=True)
     out_paths.html_path.parent.mkdir(parents=True, exist_ok=True)
 
-    out_paths.json_path.write_text(df.to_json(orient="records", indent=2), encoding="utf-8")
-    df.to_csv(out_paths.csv_path, index=False, quoting=csv.QUOTE_MINIMAL)
+    out_paths.json_path.write_text(df.to_json(orient="records", indent=2, double_precision=15), encoding="utf-8")
+    df.to_csv(out_paths.csv_path, index=False, quoting=csv.QUOTE_MINIMAL, float_format="%.15g")
 
     out_paths.html_path.write_text(df.to_html(index=False, escape=True), encoding="utf-8")
 
@@ -239,16 +269,43 @@ def main() -> int:
     parser.add_argument("--competition-id", default=None)
     parser.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to --competition-id.")
     parser.add_argument("--write-root", action="store_true", help="If set, write LEADERBOARD.md/html at repo root.")
+    parser.add_argument(
+        "--import-results",
+        action="store_true",
+        help="If set, (re)import all `runs/*/result.json` into the DB before generating the leaderboard.",
+    )
+    parser.add_argument("--runs-root", default="runs", help="Path to the runs/ directory for --import-results.")
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[1]
+    db_path = Path(args.db_path)
+
+    if args.import_results:
+        runs_root = Path(args.runs_root)
+        imported = 0
+        for run_dir in sorted(runs_root.glob("*")):
+            if not run_dir.is_dir():
+                continue
+            result_path = run_dir / "result.json"
+            if not result_path.exists():
+                continue
+            try:
+                rr = read_result_json(result_path)
+            except Exception:
+                continue
+            if args.per_competition and args.competition_id and rr.competition_id != args.competition_id:
+                continue
+            insert_run(db_path, rr)
+            imported += 1
+        print(f"imported results into DB: {imported}")
+
     out_paths = LeaderboardPaths(
         json_path=repo_root / "results" / "leaderboard.json",
         csv_path=repo_root / "results" / "leaderboard.csv",
         html_path=repo_root / "results" / "leaderboard.html",
     )
     df = build_leaderboard(
-        db_path=Path(args.db_path),
+        db_path=db_path,
         out_paths=out_paths,
         competition_id=args.competition_id if args.per_competition else None,
     )
