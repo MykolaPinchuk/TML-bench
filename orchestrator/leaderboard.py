@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from orchestrator.db import fetch_runs
+from orchestrator.db import ensure_db, fetch_runs
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,40 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
         "- Source DB (not committed): `results/results.sqlite`\n"
         "- Also generated: `results/leaderboard.json`, `results/leaderboard.csv`, `results/leaderboard.html`\n\n"
     )
+    if not df.empty and {"competition_id", "provider", "model_id", "mode", "score_raw", "run_id"}.issubset(set(df.columns)):
+        df_sorted = df.copy()
+        df_sorted["score_raw"] = pd.to_numeric(df_sorted["score_raw"], errors="coerce")
+        df_sorted = df_sorted.sort_values(
+            by=["competition_id", "score_raw", "created_at"],
+            ascending=[True, True, False],
+            na_position="last",
+        )
+        group_cols = ["competition_id", "provider", "model_id", "mode"]
+        best = df_sorted.groupby(group_cols, dropna=False).head(1).copy()
+        best = best.rename(
+            columns={
+                "run_id": "best_run_id",
+                "score_raw": "best_score_raw",
+                "runtime_seconds": "best_runtime_seconds",
+                "budget_time_seconds": "budget_time_seconds",
+            }
+        )
+        best = best[
+            [
+                "competition_id",
+                "provider",
+                "model_id",
+                "mode",
+                "metric_name",
+                "best_score_raw",
+                "best_runtime_seconds",
+                "budget_time_seconds",
+                "best_run_id",
+            ]
+        ]
+        md += "## Best by model (per competition)\n\n"
+        md += _df_to_markdown_table(best)
+        md += "\n## All runs\n\n"
     md += _df_to_markdown_table(df)
     md_path.write_text(md, encoding="utf-8")
 
@@ -56,6 +90,39 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
         "<li>Also generated: <code>results/leaderboard.json</code>, <code>results/leaderboard.csv</code>, <code>results/leaderboard.html</code></li>"
         "</ul>\n"
     )
+    if not df.empty and {"competition_id", "provider", "model_id", "mode", "score_raw", "run_id"}.issubset(set(df.columns)):
+        df_sorted = df.copy()
+        df_sorted["score_raw"] = pd.to_numeric(df_sorted["score_raw"], errors="coerce")
+        df_sorted = df_sorted.sort_values(
+            by=["competition_id", "score_raw", "created_at"],
+            ascending=[True, True, False],
+            na_position="last",
+        )
+        group_cols = ["competition_id", "provider", "model_id", "mode"]
+        best = df_sorted.groupby(group_cols, dropna=False).head(1).copy()
+        best = best.rename(
+            columns={
+                "run_id": "best_run_id",
+                "score_raw": "best_score_raw",
+                "runtime_seconds": "best_runtime_seconds",
+            }
+        )
+        html += "<h2>Best by model (per competition)</h2>\n"
+        html += best[
+            [
+                "competition_id",
+                "provider",
+                "model_id",
+                "mode",
+                "metric_name",
+                "best_score_raw",
+                "best_runtime_seconds",
+                "budget_time_seconds",
+                "best_run_id",
+            ]
+        ].to_html(index=False, escape=True)
+        html += "\n<h2>All runs</h2>\n"
+
     html += df.to_html(index=False, escape=True)
     html_path.write_text(html, encoding="utf-8")
 
@@ -66,6 +133,7 @@ def build_leaderboard(
     out_paths: LeaderboardPaths,
     competition_id: str | None = None,
 ) -> pd.DataFrame:
+    ensure_db(db_path)
     rows = fetch_runs(db_path, competition_id=competition_id)
     df_full = pd.DataFrame(rows)
     keep = [
@@ -76,6 +144,8 @@ def build_leaderboard(
         "provider",
         "model_id",
         "mode",
+        "temperature",
+        "max_tokens",
         "metric_name",
         "score_raw",
         "runtime_seconds",

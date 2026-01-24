@@ -94,6 +94,38 @@ def write_result_json(result: RunResult, out_path: str | Path) -> None:
     out_path.write_text(json.dumps(asdict(result), indent=2, sort_keys=True), encoding="utf-8")
 
 
+def read_result_json(path: str | Path) -> RunResult:
+    path = Path(path)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+
+    model_raw = raw.get("model")
+    budget_raw = raw.get("budget")
+    artifacts_raw = raw.get("artifacts")
+    versions_raw = raw.get("versions")
+
+    model = ModelConfig(**model_raw) if isinstance(model_raw, dict) else None
+    budget = BudgetConfig(**budget_raw) if isinstance(budget_raw, dict) else None
+    artifacts = Artifacts(**artifacts_raw) if isinstance(artifacts_raw, dict) else None
+    versions = Versions(**versions_raw) if isinstance(versions_raw, dict) else None
+
+    return RunResult(
+        run_id=str(raw["run_id"]),
+        created_at=str(raw["created_at"]),
+        competition_id=str(raw["competition_id"]),
+        status=str(raw["status"]),
+        score_raw=raw.get("score_raw"),
+        score_normalized=raw.get("score_normalized"),
+        metric_name=raw.get("metric_name"),
+        local_validation_metric=raw.get("local_validation_metric"),
+        runtime_seconds=raw.get("runtime_seconds"),
+        model=model,
+        budget=budget,
+        seed=raw.get("seed"),
+        artifacts=artifacts,
+        versions=versions,
+    )
+
+
 def default_benchmark_version() -> str:
     return os.environ.get("TML_BENCHMARK_VERSION", "v1-dev")
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from orchestrator.db import insert_run
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, write_root_leaderboard
 from orchestrator.prompting import render_prompt
-from orchestrator.result import ModelConfig, make_result, write_result_json
+from orchestrator.result import ModelConfig, make_result, read_result_json, write_result_json
 from orchestrator.run_state import init_run_state, read_run_state, set_run_metadata, start_timer, write_run_state
 from orchestrator.run_workspace import copy_public_inputs, create_run_dirs, default_run_id
 from orchestrator.schemas import load_spec
@@ -244,6 +244,65 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_annotate(args: argparse.Namespace) -> int:
+    repo_root = _repo_root()
+    run_id = args.run_id
+    run_dir = repo_root / "runs" / run_id
+    state_path = run_dir / "run_state.json"
+    if not state_path.exists():
+        raise FileNotFoundError(f"Missing run_state.json: {state_path}")
+
+    state = read_run_state(state_path)
+    state = set_run_metadata(
+        state,
+        provider=args.provider,
+        model_id=args.model_id,
+        mode=args.mode,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+    )
+    write_run_state(state_path, state)
+    print(f"updated: {state_path}")
+
+    result_path = run_dir / "result.json"
+    if not result_path.exists():
+        print(f"note: no result.json found at {result_path}; nothing to update in DB/leaderboard")
+        return 0
+
+    result = read_result_json(result_path)
+    model = None
+    if state.provider and state.model_id:
+        model = ModelConfig(
+            provider=state.provider,
+            model_id=state.model_id,
+            mode=state.mode,
+            temperature=state.temperature,
+            max_tokens=state.max_tokens,
+        )
+    result = replace(result, model=model)
+    write_result_json(result, result_path)
+    print(f"updated: {result_path}")
+
+    if args.db_path:
+        db_path = Path(args.db_path)
+        insert_run(db_path, result)
+        lb_paths = LeaderboardPaths(
+            json_path=repo_root / "results" / "leaderboard.json",
+            csv_path=repo_root / "results" / "leaderboard.csv",
+            html_path=repo_root / "results" / "leaderboard.html",
+        )
+        df = build_leaderboard(
+            db_path=db_path,
+            out_paths=lb_paths,
+            competition_id=result.competition_id if args.per_competition else None,
+        )
+        write_root_leaderboard(df=df, repo_root=repo_root)
+        print(f"updated leaderboard under: {lb_paths.json_path.parent}")
+        print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
+
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -273,6 +332,17 @@ def main() -> int:
     p_fin.add_argument("--temperature", type=float, default=None)
     p_fin.add_argument("--max-tokens", type=int, default=None)
     p_fin.set_defaults(func=cmd_finalize)
+
+    p_ann = sub.add_parser("annotate", help="Update a run's model metadata and refresh the leaderboard.")
+    p_ann.add_argument("--run-id", required=True)
+    p_ann.add_argument("--db-path", default="results/results.sqlite")
+    p_ann.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this run's competition only.")
+    p_ann.add_argument("--provider", default=None)
+    p_ann.add_argument("--model-id", default=None)
+    p_ann.add_argument("--mode", default=None)
+    p_ann.add_argument("--temperature", type=float, default=None)
+    p_ann.add_argument("--max-tokens", type=int, default=None)
+    p_ann.set_defaults(func=cmd_annotate)
 
     args = parser.parse_args()
     return int(args.func(args))
