@@ -353,8 +353,11 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_prompt = (
         f"Read {paths.instructions_path.name} and follow it exactly. "
         "Do not ask questions. "
-        "Use `train_model.py` as your main working file; you may edit it. "
-        "Start by running `python train_model.py` to produce an initial `submission.csv`, then iterate to improve your local validation score within the budget. "
+        "Use `train_model.py` as your main working file. "
+        "Step 1 (no edits): run `python train_model.py` exactly as provided and ensure it writes `submission.csv`. "
+        "If it fails to run or fails to write `submission.csv`, make the smallest possible fix to `train_model.py` and rerun until it works. "
+        "Step 2 (one quick iteration): make exactly one small improvement edit to `train_model.py` (keep the existing preprocessing/pipeline; only adjust model choice/hyperparameters) and rerun. "
+        "Keep whichever version gives the best local validation metric while still producing `submission.csv`. "
         "Do not install packages."
     )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
