@@ -20,6 +20,8 @@ You have access only to:
    - same ID set (the `id` column)
 4) Do not use web browsing or external data sources.
 5) Keep work within the time budget: {{time_budget_seconds}} seconds.
+6) Stay within this workspace. Do not read or write outside the workspace directory.
+7) Do not paste or dump large `.csv` files into the chat/context window.
 
 ## Output and reporting
 
