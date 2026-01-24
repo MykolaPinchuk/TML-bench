@@ -28,3 +28,6 @@
 - First attempt via `python -m orchestrator.sweep ... --provider nanogpt --model deepseek/deepseek-v3.2 --kilo-timeout-seconds 180` timed out without producing `submission.csv`.
 - Added `orchestrator/agent_templates/train_model_fast.py` and made `run_one auto` copy it into the workspace and instruct Kilo to run it first.
 - Verified success: `python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --provider nanogpt --model-id deepseek/deepseek-v3.2 --kilo-timeout-seconds 180` produced a valid submission and result.
+
+### 2026-01-24 (Pacific) — Phase 3 checkpoint
+- Checkpoint before adding parallel sweep execution (concurrency) so sweeps can run faster without corrupting the sqlite leaderboard DB.
