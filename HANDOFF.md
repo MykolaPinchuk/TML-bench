@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v2 (Phase 2): manual Kilo VSCode runs with repeatable run workspaces + host-side finalize (validate/score/record) + committed leaderboard snapshots.
+v3 (Phase 3): batch execution harness (headless), starting with a Kilo CLI capability spike.
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -32,8 +32,15 @@ v2 (Phase 2): manual Kilo VSCode runs with repeatable run workspaces + host-side
     - under `results/`: `results/leaderboard.json`, `results/leaderboard.csv`, `results/leaderboard.html`
 
 ### Next (ordered)
-1) Human: push `v2` and merge `v2 -> master` when ready.
-2) Phase 3 (v3) should start with a short Kilo CLI capability spike (verify whether headless/batch is feasible and how to capture artifacts), then update the Phase 3 design accordingly.
+1) Kilo CLI capability spike:
+   - verify whether Kilo can be run headlessly (no VSCode) against a workspace directory
+   - confirm how to supply prompt deterministically
+   - confirm what artifacts are available (stdout/stderr, transcript, structured JSON if any)
+   - confirm we can enforce a hard wall-clock timeout (kill process) reliably
+2) If the spike is a “go”, implement Phase 3 automation:
+   - `python -m orchestrator.run_one auto ...` (headless run → validate → score → record → leaderboards)
+   - `python -m orchestrator.sweep ...` for batching over model configs
+3) If the spike is a “no-go”, revise Phase 3 before implementing sweeps (fallback options are listed in `docs/plan/v3.md`).
 
 ### Open questions
 - Kilo CLI: can we reliably run headlessly, pass prompt/workspace, and capture a transcript/structured output?
