@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from orchestrator.db import insert_run
@@ -29,9 +30,21 @@ def test_insert_and_leaderboard(tmp_path: Path) -> None:
         repo_root=Path("."),
         run_id_prefix="toy_regression",
     )
+    run = replace(
+        run,
+        artifacts=replace(
+            run.artifacts,
+            notes={
+                "submission_sha256": "a" * 64,
+                "normalized_submission_sha256": "b" * 64,
+            },
+        ),
+    )
     insert_run(db_path, run)
 
     df = build_leaderboard(db_path=db_path, out_paths=out_paths, competition_id="toy_regression")
     assert len(df) == 1
     assert df.iloc[0]["competition_id"] == "toy_regression"
     assert float(df.iloc[0]["score_raw"]) == 1.23
+    assert df.iloc[0]["submission_sha256"] == ("a" * 16 + "…")
+    assert df.iloc[0]["normalized_submission_sha256"] == ("b" * 16 + "…")
