@@ -1,3 +1,15 @@
 run_id,created_at,competition_id,status,provider,model_id,mode,temperature,max_tokens,metric_name,score_raw,runtime_seconds,budget_time_seconds
-playground-series-s6e1_fc58c9432171,2026-01-24T03:43:52+00:00,playground-series-s6e1,success,chutes,DeepSeek V3.1 Terminus,coder,,,rmse,8.687287933383228,411.993459,600
-playground-series-s6e1_34c2b7fda243,2026-01-24T03:29:41+00:00,playground-series-s6e1,success,chutes,GLM 4.7 TEE,coder,,,rmse,8.744254343047949,371.471525,600
+playground-series-s6e1_fc58c9432171,2026-01-23T19:43:52-08:00,playground-series-s6e1,success,chutes,DeepSeek V3.1 Terminus,coder,,,rmse,8.687287933383228,411.993459,600
+playground-series-s6e1_34c2b7fda243,2026-01-23T19:29:41-08:00,playground-series-s6e1,success,chutes,GLM 4.7 TEE,coder,,,rmse,8.744254343047949,371.471525,600
+playground-series-s6e1_54dd6009d53d,2026-01-24T12:43:31-08:00,playground-series-s6e1,success,nanogpt,deepseek/deepseek-v3.2,,,,rmse,8.800363473206167,59.83366,180
+playground-series-s6e1_4ef11356d2e4,2026-01-24T12:59:47-08:00,playground-series-s6e1,success,nanogpt,deepseek/deepseek-v3.2,,,,rmse,8.801154355758822,71.763755,180
+playground-series-s6e1_27c41b70a805,2026-01-24T12:58:00-08:00,playground-series-s6e1,success,chutes,zai-org/GLM-4.6-FP8,,,,rmse,8.801154355758822,145.466501,180
+playground-series-s6e1_7263ee8bfc0c,2026-01-24T12:55:20-08:00,playground-series-s6e1,success,chutes,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,,,,rmse,8.801154355758822,68.408636,180
+playground-series-s6e1_ae22edea50fd,2026-01-24T13:05:59-08:00,playground-series-s6e1,success,nanogpt,qwen/qwen3-next-80b-a3b-thinking,,,,rmse,8.810056265802647,34.375125,180
+playground-series-s6e1_5af29623df1f,2026-01-24T13:02:53-08:00,playground-series-s6e1,success,nanogpt,mistralai/devstral-2-123b-instruct-2512,,,,rmse,8.810056265802647,52.725913,180
+playground-series-s6e1_86285db87971,2026-01-24T12:53:54-08:00,playground-series-s6e1,success,chutes,deepseek-ai/DeepSeek-V3.1-Terminus,,,,rmse,8.810056265802647,70.295362,180
+playground-series-s6e1_a1d120a00ad3,2026-01-24T12:13:53-08:00,playground-series-s6e1,success,nanogpt,deepseek/deepseek-v3.2,,,,rmse,8.810056265802647,14.157202,180
+playground-series-s6e1_ca0aa041f276,2026-01-24T12:13:19-08:00,playground-series-s6e1,success,chutes,deepseek-ai/DeepSeek-V3.1-Terminus,,,,rmse,8.810056265802647,57.896401,180
+playground-series-s6e1_5f29f9bb3990,2026-01-24T12:09:35-08:00,playground-series-s6e1,success,nanogpt,deepseek/deepseek-v3.2,,,,rmse,8.810056265802647,48.102497,180
+playground-series-s6e1_99fabfb0c913,2026-01-24T12:40:15-08:00,playground-series-s6e1,timeout,nanogpt,deepseek/deepseek-v3.2,,,,,,185.529991,180
+playground-series-s6e1_3f21e863341e,2026-01-24T12:06:09-08:00,playground-series-s6e1,timeout,nanogpt,deepseek/deepseek-v3.2,,,,,,185.176431,180
