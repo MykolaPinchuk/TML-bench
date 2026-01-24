@@ -23,6 +23,8 @@ ENV/
 *.key
 id_rsa
 id_ed25519
+kaggle.json
+kaggle*.json
 
 # Repo-local secrets (never commit)
 secrets/**
@@ -39,6 +41,9 @@ competitions/**/downloads/**
 runs/**
 artifacts/
 outputs/
+
+# Scratch
+tmp/
 
 # Results store (never commit)
 results/**

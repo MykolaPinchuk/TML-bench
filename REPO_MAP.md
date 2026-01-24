@@ -12,6 +12,8 @@ Keep this file short. Update it only when something important changes.
 - `agent_logs/current.md` — live execution log for this cycle.
 - `prd.md` — product requirements / architecture / phased plan.
 - `docs/adr/0001-agentic-workflow-protocol.md` — durable workflow decision.
+- `docs/adr/0002-canonical-competition-prep.md` — policy: `prepare_competition.py` is the canonical generator for `public/` + `private/`.
+- `docs/plan/v1.md` — low-level design for Phases 1–3.
 
 ## Where results live
 - `agent_logs/` — per-cycle logs and index.
@@ -20,6 +22,9 @@ Keep this file short. Update it only when something important changes.
 
 ## Hot paths (last 1–2 cycles)
 - `prd.md` — PRD updates and phase definitions.
+- `docs/plan/v1.md` — Phase 1–3 low-level design.
+- `orchestrator/` — Phase 1 core (prepare/validate/score).
+- `competitions/` — per-task specs and preparation scripts.
 
 ## Notes
 - If you create a new "important" dir or entrypoint, add it above so future agents find it quickly.

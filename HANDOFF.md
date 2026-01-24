@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v0 (setup): establish the agentic workflow scaffolding and guardrails for TML-bench.
+v1 (Phase 1): deterministic competition preparation, strict submission validation, and private-holdout scoring (functionality only; not secure). Phase 1 is complete for one real competition (`playground-series-s6e1`).
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -14,13 +14,25 @@ v0 (setup): establish the agentic workflow scaffolding and guardrails for TML-be
 ### Done (with evidence)
 - PRD exists: `prd.md`.
 - Agentic workflow scaffolding (this set of files): `repo_workflow.md`, `onboarding.md`, `HANDOFF.md`, `REPO_MAP.md`, `agent_logs/`.
+- Phase 1 LLD written: `docs/plan/v1.md`.
+- Phase 1 core implemented + tested:
+  - `orchestrator/schemas.py`, `orchestrator/prepare_lib.py`, `orchestrator/validate.py`, `orchestrator/score.py`
+  - toy competition for fixtures: `competitions/toy_regression/`
+  - tests: `tests/test_prepare_validate_score.py` (run: `pytest -q`)
+- Real competition wired in (Kaggle):
+  - `competitions/playground-series-s6e1/spec.yaml`, `competitions/playground-series-s6e1/prepare_competition.py`
+  - canonical prep policy: `docs/adr/0002-canonical-competition-prep.md`
+  - Phase 1 smoke: `KAGGLE_CONFIG_DIR=secrets python scripts/smoke_phase1.py --competition-id playground-series-s6e1`
 
 ### Next (ordered)
-1) Create branch `v1` (Phase 1) and write LLD for prepare/validate/score contracts.
-2) Implement Phase 1 scaffolding (competition spec + deterministic split + validator + scorer).
+1) Human: PR/merge `v1` into main/master.
+2) Start `v2` (Phase 2): run workspace templating and a semi-automated `run_one` that supports manual Kilo VSCode runs + host-side validate/score + result recording.
+3) First manual agent run: run Kilo VSCode agent on `playground-series-s6e1` and score it via the orchestrator utilities.
 
 ### Open questions
-- None yet (blocked on selecting the first competition/task for Phase 1).
+- Which competition/task is first for Phase 1?
+- Do we require multiclass support in v1, or start with regression/binary only?
+  (Resolved for Phase 1: `playground-series-s6e1` regression only. Multiclass can wait.)
 
 ## Repro / smoke check
 - Commands run:

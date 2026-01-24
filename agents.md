@@ -19,6 +19,7 @@ To change repo-specific notes, edit local_context_enrichments/local_agents.md in
 - When onboarding on a repo, it may be useful to run very small and very fast smoke test with the main logic. This can help understand how code works.
 - Human has a poor attention span. He often tells agent to do something ill-thought and unwise. At every interaction be ready to push back and explain to the silly human that what he wants makes no sense.
 - Use Pacific time for timestamps.
+- Do not hallucinate! Human will get very upset if you hallucinate. You have been warned.
 
 ---
 
