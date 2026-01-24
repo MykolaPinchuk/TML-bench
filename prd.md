@@ -540,9 +540,18 @@ Acceptance criteria:
 
 **Goal:** replace VSCode UI with Kilo CLI to make full batch possible (functionality only; not secure).
 
+Important note:
+
+* The exact Kilo CLI interface and its ability to run headlessly is **unverified** at the time of writing.
+* Phase 3 must start with a short “CLI capability spike” to confirm the invocation, how to pass a prompt/workspace, and how to capture structured outputs/transcripts.
+* If Kilo CLI is not workable/stable, Phase 3 deliverables must be revised (e.g., keep Phase 2 manual runs for longer, or use an alternative automation harness) before building a large sweep system.
+
 Deliverables:
 
-* `run_one.py` drives Kilo CLI in autonomous mode and captures structured output. (Kilo supports `--auto` and `--json` for programmatic integration.) ([Kilo][1])
+* CLI capability spike:
+  * document the working Kilo CLI invocation (or lack of it) and what artifacts are available (JSON transcript, logs, exit codes).
+  * confirm how to enforce a wall-clock timeout (process kill) reliably.
+* `run_one.py` drives Kilo CLI (headless) and captures structured output/transcript **if** supported.
 * `sweep.py` loops over seeds and runs-per-model.
 * Backoff/retry for transient API errors.
 * Wall-clock timeout enforcement per run.
@@ -560,7 +569,12 @@ Deliverables:
 
 * Pinned dependencies (lockfile) and pinned Kilo version.
 * Baseline runner per competition (non-agent) to sanity-check data/scoring.
-* Stronger artifact/provenance capture (spec hash, prompt hash, public data hashes).
+* Stronger provenance capture (at least):
+  * spec hash
+  * rendered prompt hash (base + override + parameters)
+  * public data manifest hashes
+  * Kilo version + config hash (or equivalent)
+  * model identity fields (provider, model_id, mode, temperature, max_tokens)
 
 Acceptance criteria:
 
@@ -574,7 +588,9 @@ Acceptance criteria:
 Deliverables:
 
 * `competitions/` registry with 5 tasks and documented selection rationale.
-* `leaderboard.html` + `leaderboard.json` generated from DB.
+* A model-centric leaderboard artifact generated from DB (at minimum per-competition best-by-model):
+  * `leaderboard.html`
+  * `leaderboard.json`
 * `REPRODUCIBILITY.md` with exact rerun instructions and version pins.
 * Versioning scheme for benchmark releases (v1, v1.1, etc.).
 
