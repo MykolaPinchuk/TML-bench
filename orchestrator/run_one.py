@@ -5,8 +5,10 @@ from dataclasses import replace
 import shutil
 import sys
 from pathlib import Path
+from datetime import datetime, timezone
 
 from orchestrator.db import insert_run
+from orchestrator.kilo_cli import run_kilo, write_clean_jsonl
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, write_root_leaderboard
 from orchestrator.prompting import render_prompt
 from orchestrator.result import ModelConfig, make_result, read_result_json, write_result_json
@@ -23,6 +25,33 @@ def _repo_root() -> Path:
 
 def _competition_dir(repo_root: Path, competition_id: str) -> Path:
     return repo_root / "competitions" / competition_id
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _write_and_maybe_record(
+    *,
+    repo_root: Path,
+    competition_id: str,
+    result_path: Path,
+    result,
+    db_path: str | None,
+    per_competition: bool,
+) -> None:
+    write_result_json(result, result_path)
+    if not db_path:
+        return
+    dbp = Path(db_path)
+    insert_run(dbp, result)
+    lb_paths = LeaderboardPaths(
+        json_path=repo_root / "results" / "leaderboard.json",
+        csv_path=repo_root / "results" / "leaderboard.csv",
+        html_path=repo_root / "results" / "leaderboard.html",
+    )
+    df = build_leaderboard(db_path=dbp, out_paths=lb_paths, competition_id=competition_id if per_competition else None)
+    write_root_leaderboard(df=df, repo_root=repo_root)
 
 
 def cmd_create(args: argparse.Namespace) -> int:
@@ -113,8 +142,6 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         raise FileNotFoundError(f"Missing submission: {submission_in}")
 
     # End time is derived from submission mtime to avoid counting finalize delay.
-    from datetime import datetime, timezone
-
     end_dt = datetime.fromtimestamp(submission_in.stat().st_mtime, tz=timezone.utc)
     runtime_seconds = state.elapsed_seconds(now=end_dt)
 
@@ -156,7 +183,14 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         )
         result = replace(result, run_id=run_id)
         result_path = run_dir / "result.json"
-        write_result_json(result, result_path)
+        _write_and_maybe_record(
+            repo_root=repo_root,
+            competition_id=args.competition_id,
+            result_path=result_path,
+            result=result,
+            db_path=args.db_path,
+            per_competition=args.per_competition,
+        )
         print(f"timeout: runtime_seconds={runtime_seconds:.1f} > budget_seconds={budget_seconds}; wrote: {result_path}")
         return 3
 
@@ -184,7 +218,14 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             run_id_prefix=args.competition_id,
         )
         result_path = run_dir / "result.json"
-        write_result_json(result, result_path)
+        _write_and_maybe_record(
+            repo_root=repo_root,
+            competition_id=args.competition_id,
+            result_path=result_path,
+            result=result,
+            db_path=args.db_path,
+            per_competition=args.per_competition,
+        )
         print(f"invalid submission; wrote: {result_path}")
         for e in vr.errors:
             print(f"- {e.code}: {e.message}")
@@ -218,30 +259,148 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     result = replace(result, run_id=run_id)
 
     result_path = run_dir / "result.json"
-    write_result_json(result, result_path)
+    _write_and_maybe_record(
+        repo_root=repo_root,
+        competition_id=args.competition_id,
+        result_path=result_path,
+        result=result,
+        db_path=args.db_path,
+        per_competition=args.per_competition,
+    )
     print(f"wrote: {result_path}")
     print(f"private_holdout_{sr.metric_name}: {sr.score_raw}")
     if runtime_seconds is not None:
         print(f"runtime_seconds: {runtime_seconds:.1f} (budget {budget_seconds}s)")
-
     if args.db_path:
-        db_path = Path(args.db_path)
-        insert_run(db_path, result)
-        lb_paths = LeaderboardPaths(
-            json_path=repo_root / "results" / "leaderboard.json",
-            csv_path=repo_root / "results" / "leaderboard.csv",
-            html_path=repo_root / "results" / "leaderboard.html",
-        )
-        df = build_leaderboard(
-            db_path=db_path,
-            out_paths=lb_paths,
-            competition_id=args.competition_id if args.per_competition else None,
-        )
-        write_root_leaderboard(df=df, repo_root=repo_root)
-        print(f"updated leaderboard under: {lb_paths.json_path.parent}")
+        print(f"updated leaderboard under: {(repo_root / 'results')}")
         print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 
     return 0
+
+
+def cmd_auto(args: argparse.Namespace) -> int:
+    repo_root = _repo_root()
+    competition_dir = _competition_dir(repo_root, args.competition_id)
+    spec = load_spec(competition_dir / "spec.yaml")
+
+    run_id = args.run_id or default_run_id(competition_id=args.competition_id)
+    runs_root = repo_root / "runs"
+    paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
+
+    copy_public_inputs(competition_dir=competition_dir, workspace_dir=paths.workspace_dir)
+    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=spec.budgets.time_seconds)
+    state = read_run_state(state_path)
+    state = set_run_metadata(
+        state,
+        provider=args.provider,
+        model_id=args.model_id,
+        mode=args.mode,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+    )
+    state = start_timer(state)
+    write_run_state(state_path, state)
+
+    prompt = render_prompt(
+        base_prompt_path=repo_root / "prompts" / "base_prompt.md",
+        override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
+        time_budget_seconds=spec.budgets.time_seconds,
+    )
+    paths.instructions_path.write_text(prompt, encoding="utf-8")
+
+    artifacts_dir = paths.artifacts_dir
+    kilo_stdout = artifacts_dir / "kilo_stdout.jsonl"
+    kilo_stderr = artifacts_dir / "kilo_stderr.log"
+    kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
+
+    kilo_prompt = f"Read {paths.instructions_path.name} and follow it exactly. Do not ask questions. When done, ensure submission.csv exists in the workspace root."
+    budget_seconds = int(spec.budgets.time_seconds)
+    kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
+
+    kr = run_kilo(
+        workspace_dir=paths.workspace_dir,
+        prompt=kilo_prompt,
+        provider_id=args.provider,
+        model_id=args.model_id,
+        timeout_seconds=kilo_timeout,
+        stdout_path=kilo_stdout,
+        stderr_path=kilo_stderr,
+    )
+    try:
+        cleaned_events = write_clean_jsonl(src_jsonl=kilo_stdout, dst_jsonl=kilo_clean)
+    except Exception:  # noqa: BLE001
+        cleaned_events = 0
+
+    submission_in = paths.workspace_dir / "submission.csv"
+    if submission_in.exists():
+        args2 = argparse.Namespace(
+            competition_id=args.competition_id,
+            run_id=paths.run_id,
+            db_path=args.db_path,
+            per_competition=args.per_competition,
+            provider=args.provider,
+            model_id=args.model_id,
+            mode=args.mode,
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+        )
+        return cmd_finalize(args2)
+
+    runtime_seconds = state.elapsed_seconds(now=_now_utc()) if state.started_at is not None else None
+    status = "timeout" if kr.returncode == 124 else "runtime_error"
+    model = ModelConfig(
+        provider=args.provider,
+        model_id=args.model_id,
+        mode=args.mode,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+    )
+    result = make_result(
+        competition_id=args.competition_id,
+        status=status,
+        metric_name=None,
+        score_raw=None,
+        score_normalized=None,
+        local_validation_metric=None,
+        runtime_seconds=runtime_seconds,
+        budget_time_seconds=budget_seconds,
+        model=model,
+        submission_path=None,
+        normalized_submission_path=None,
+        repo_root=repo_root,
+        run_id_prefix=args.competition_id,
+    )
+    result = replace(
+        result,
+        run_id=paths.run_id,
+        artifacts=replace(
+            result.artifacts,
+            notes={
+                "kilo": {
+                    "returncode": kr.returncode,
+                    "timeout_seconds": kilo_timeout,
+                    "duration_seconds": kr.duration_seconds,
+                    "stdout_path": str(kilo_stdout),
+                    "stderr_path": str(kilo_stderr),
+                    "clean_jsonl_events": cleaned_events,
+                    "argv": kr.argv,
+                }
+            },
+        )
+        if result.artifacts is not None
+        else None,
+    )
+    result_path = paths.run_dir / "result.json"
+    _write_and_maybe_record(
+        repo_root=repo_root,
+        competition_id=args.competition_id,
+        result_path=result_path,
+        result=result,
+        db_path=args.db_path,
+        per_competition=args.per_competition,
+    )
+    print(f"{status}: no submission.csv produced; wrote: {result_path}")
+    return 4 if status == "runtime_error" else 3
 
 
 def cmd_annotate(args: argparse.Namespace) -> int:
@@ -284,20 +443,15 @@ def cmd_annotate(args: argparse.Namespace) -> int:
     print(f"updated: {result_path}")
 
     if args.db_path:
-        db_path = Path(args.db_path)
-        insert_run(db_path, result)
-        lb_paths = LeaderboardPaths(
-            json_path=repo_root / "results" / "leaderboard.json",
-            csv_path=repo_root / "results" / "leaderboard.csv",
-            html_path=repo_root / "results" / "leaderboard.html",
+        _write_and_maybe_record(
+            repo_root=repo_root,
+            competition_id=result.competition_id,
+            result_path=result_path,
+            result=result,
+            db_path=args.db_path,
+            per_competition=args.per_competition,
         )
-        df = build_leaderboard(
-            db_path=db_path,
-            out_paths=lb_paths,
-            competition_id=result.competition_id if args.per_competition else None,
-        )
-        write_root_leaderboard(df=df, repo_root=repo_root)
-        print(f"updated leaderboard under: {lb_paths.json_path.parent}")
+        print(f"updated leaderboard under: {(repo_root / 'results')}")
         print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 
     return 0
@@ -332,6 +486,19 @@ def main() -> int:
     p_fin.add_argument("--temperature", type=float, default=None)
     p_fin.add_argument("--max-tokens", type=int, default=None)
     p_fin.set_defaults(func=cmd_finalize)
+
+    p_auto = sub.add_parser("auto", help="Headless run: create → start → run Kilo CLI → finalize.")
+    p_auto.add_argument("--competition-id", required=True)
+    p_auto.add_argument("--run-id", default=None)
+    p_auto.add_argument("--db-path", default="results/results.sqlite")
+    p_auto.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this competition only.")
+    p_auto.add_argument("--provider", required=True, help="Kilo provider id (e.g. chutes, nanogpt).")
+    p_auto.add_argument("--model-id", required=True, help="Model id to pass to Kilo (provider-specific).")
+    p_auto.add_argument("--mode", default=None)
+    p_auto.add_argument("--temperature", type=float, default=None)
+    p_auto.add_argument("--max-tokens", type=int, default=None)
+    p_auto.add_argument("--kilo-timeout-seconds", type=int, default=None, help="Optional override for Kilo CLI timeout.")
+    p_auto.set_defaults(func=cmd_auto)
 
     p_ann = sub.add_parser("annotate", help="Update a run's model metadata and refresh the leaderboard.")
     p_ann.add_argument("--run-id", required=True)

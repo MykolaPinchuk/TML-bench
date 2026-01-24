@@ -92,6 +92,11 @@ def main() -> int:
         help="Which provider id to set as the default for Kilo CLI invocations without --provider.",
     )
     ap.add_argument("--dry-run", action="store_true", help="Show what would change without writing.")
+    ap.add_argument(
+        "--enable-exec",
+        action="store_true",
+        help="Expand Kilo CLI command allowlist for benchmark runs (enables python/pip/pytest/etc).",
+    )
     args = ap.parse_args()
 
     keys = _load_provider_keys(Path(args.keys_file))
@@ -108,6 +113,7 @@ def main() -> int:
     config.setdefault("telemetry", True)
     config.setdefault("provider", "default")
     config.setdefault("providers", [])
+    config.setdefault("autoApproval", {})
     if not isinstance(config["providers"], list):
         raise TypeError(f"Invalid Kilo config: providers must be a list (path: {config_path})")
 
@@ -150,6 +156,54 @@ def main() -> int:
 
     if args.set_default_provider != "keep":
         config["provider"] = "chutes" if args.set_default_provider == "chutes" else "nanogpt"
+
+    if args.enable_exec:
+        auto = config.get("autoApproval") or {}
+        if not isinstance(auto, dict):
+            raise TypeError(f"Invalid Kilo config: autoApproval must be an object (path: {config_path})")
+        exec_cfg = auto.get("execute") or {}
+        if not isinstance(exec_cfg, dict):
+            raise TypeError(f"Invalid Kilo config: autoApproval.execute must be an object (path: {config_path})")
+
+        exec_cfg["enabled"] = True
+        allowed = exec_cfg.get("allowed") or []
+        if not isinstance(allowed, list):
+            allowed = []
+        allowed_set = {str(x) for x in allowed if isinstance(x, (str, int, float))}
+        allowed_set.update(
+            {
+                "ls",
+                "cat",
+                "echo",
+                "pwd",
+                "head",
+                "tail",
+                "wc",
+                "find",
+                "rg",
+                "mkdir",
+                "cp",
+                "mv",
+                "python",
+                "python3",
+                "pip",
+                "pip3",
+                "pytest",
+                "git",
+                "bash",
+                "sh",
+            }
+        )
+        exec_cfg["allowed"] = sorted(allowed_set)
+        # Keep an explicit deny list for obviously destructive commands.
+        denied = exec_cfg.get("denied") or []
+        if not isinstance(denied, list):
+            denied = []
+        denied_set = {str(x) for x in denied if isinstance(x, (str, int, float))}
+        denied_set.update({"rm -rf", "sudo rm", "mkfs", "dd if="})
+        exec_cfg["denied"] = sorted(denied_set)
+        auto["execute"] = exec_cfg
+        config["autoApproval"] = auto
 
     if args.dry_run:
         print(f"dry-run: would update {config_path}")
