@@ -19,8 +19,8 @@
     },
     {
       "provider": "nanogpt",
-      "model_id": "deepseek/deepseek-v3.2:thinking",
-      "label": "DeepSeek V3.2 Thinking (NanoGPT)"
+      "model_id": "deepseek/deepseek-v3.2",
+      "label": "DeepSeek V3.2 (NanoGPT)"
     },
     {
       "provider": "nanogpt",
@@ -34,4 +34,3 @@
     }
   ]
 }
-

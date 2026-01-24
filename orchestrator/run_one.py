@@ -283,12 +283,17 @@ def cmd_auto(args: argparse.Namespace) -> int:
     competition_dir = _competition_dir(repo_root, args.competition_id)
     spec = load_spec(competition_dir / "spec.yaml")
 
+    spec_budget_seconds = int(spec.budgets.time_seconds)
+    budget_seconds = (
+        min(spec_budget_seconds, int(args.kilo_timeout_seconds)) if args.kilo_timeout_seconds else spec_budget_seconds
+    )
+
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
     paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
 
     copy_public_inputs(competition_dir=competition_dir, workspace_dir=paths.workspace_dir)
-    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=spec.budgets.time_seconds)
+    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=budget_seconds)
     state = read_run_state(state_path)
     state = set_run_metadata(
         state,
@@ -304,17 +309,28 @@ def cmd_auto(args: argparse.Namespace) -> int:
     prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
         override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
-        time_budget_seconds=spec.budgets.time_seconds,
+        time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(prompt, encoding="utf-8")
+
+    # Provide a fast baseline script to reduce agent wandering for short budgets.
+    baseline_src = repo_root / "orchestrator" / "agent_templates" / "train_model_fast.py"
+    baseline_dst = paths.workspace_dir / "train_model.py"
+    shutil.copyfile(baseline_src, baseline_dst)
 
     artifacts_dir = paths.artifacts_dir
     kilo_stdout = artifacts_dir / "kilo_stdout.jsonl"
     kilo_stderr = artifacts_dir / "kilo_stderr.log"
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
-    kilo_prompt = f"Read {paths.instructions_path.name} and follow it exactly. Do not ask questions. When done, ensure submission.csv exists in the workspace root."
-    budget_seconds = int(spec.budgets.time_seconds)
+    kilo_prompt = (
+        f"Read {paths.instructions_path.name} and follow it exactly. "
+        "Do not ask questions. "
+        "Run `python train_model.py` to produce `submission.csv`. "
+        "If it fails, only edit `train_model.py` and rerun it. "
+        "Do not install packages. "
+        "Stop immediately once `submission.csv` exists."
+    )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
 
     kr = run_kilo(

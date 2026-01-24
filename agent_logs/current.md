@@ -23,3 +23,8 @@
 - Added `scripts/setup_kilo_providers.py` to configure Kilo CLI providers from `secrets/provider_apis.txt` without committing credentials.
 - Configured Kilo CLI `chutes` provider and verified `kilo models --provider chutes` returns expected model ids.
 - Configured NanoGPT via OpenAI-compatible base URL (`https://nano-gpt.com/api/v1`) and verified a small headless Kilo run works with `--provider nanogpt`.
+
+### 2026-01-24 (Pacific) — Phase 3 smoke (180s budget)
+- First attempt via `python -m orchestrator.sweep ... --provider nanogpt --model deepseek/deepseek-v3.2 --kilo-timeout-seconds 180` timed out without producing `submission.csv`.
+- Added `orchestrator/agent_templates/train_model_fast.py` and made `run_one auto` copy it into the workspace and instruct Kilo to run it first.
+- Verified success: `python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --provider nanogpt --model-id deepseek/deepseek-v3.2 --kilo-timeout-seconds 180` produced a valid submission and result.

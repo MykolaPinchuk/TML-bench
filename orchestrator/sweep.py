@@ -50,6 +50,8 @@ def main() -> int:
     ap.add_argument("--per-competition", action="store_true")
     ap.add_argument("--kilo-timeout-seconds", type=int, default=None)
     ap.add_argument("--only-provider", default=None, help="If set, only run models from this provider id.")
+    ap.add_argument("--max-models", type=int, default=None, help="If set, limit to the first N models selected.")
+    ap.add_argument("--max-runs", type=int, default=None, help="If set, stop after N total runs (across all models).")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -65,6 +67,10 @@ def main() -> int:
     models = _load_model_set(model_set_path)
     if args.only_provider:
         models = [m for m in models if m["provider"] == args.only_provider]
+    if args.max_models is not None:
+        if args.max_models < 0:
+            raise ValueError("--max-models must be >= 0")
+        models = models[: args.max_models]
     if not models:
         raise ValueError("No models selected to run.")
 
@@ -72,6 +78,10 @@ def main() -> int:
         raise ValueError("--runs-per-model must be >= 1")
 
     planned = [(m["provider"], m["model_id"]) for m in models for _ in range(args.runs_per_model)]
+    if args.max_runs is not None:
+        if args.max_runs < 0:
+            raise ValueError("--max-runs must be >= 0")
+        planned = planned[: args.max_runs]
     print(f"competition: {args.competition_id}")
     print(f"models: {len(models)} from {model_set_path}")
     print(f"total runs: {len(planned)} (runs_per_model={args.runs_per_model})")
@@ -85,6 +95,8 @@ def main() -> int:
     run_n = 0
     for m in models:
         for rep in range(args.runs_per_model):
+            if args.max_runs is not None and run_n >= args.max_runs:
+                break
             run_n += 1
             print(f"\n=== run {run_n}/{len(planned)}: {m['provider']} :: {m['model_id']} (rep {rep+1}) ===")
             ns = argparse.Namespace(
@@ -108,6 +120,8 @@ def main() -> int:
             if rc != 0:
                 failures += 1
                 print(f"nonzero exit: {rc}")
+        if args.max_runs is not None and run_n >= args.max_runs:
+            break
 
     if failures:
         print(f"\ncompleted with failures={failures}")
@@ -118,4 +132,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
