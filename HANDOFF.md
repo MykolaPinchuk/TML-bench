@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v1 (Phase 1): implement deterministic competition preparation, strict submission validation, and private-holdout scoring (functionality only; not secure).
+v1 (Phase 1): deterministic competition preparation, strict submission validation, and private-holdout scoring (functionality only; not secure). Phase 1 is complete for one real competition (`playground-series-s6e1`).
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -19,15 +19,20 @@ v1 (Phase 1): implement deterministic competition preparation, strict submission
   - `orchestrator/schemas.py`, `orchestrator/prepare_lib.py`, `orchestrator/validate.py`, `orchestrator/score.py`
   - toy competition for fixtures: `competitions/toy_regression/`
   - tests: `tests/test_prepare_validate_score.py` (run: `pytest -q`)
+- Real competition wired in (Kaggle):
+  - `competitions/playground-series-s6e1/spec.yaml`, `competitions/playground-series-s6e1/prepare_competition.py`
+  - canonical prep policy: `docs/adr/0002-canonical-competition-prep.md`
+  - Phase 1 smoke: `KAGGLE_CONFIG_DIR=secrets python scripts/smoke_phase1.py --competition-id playground-series-s6e1`
 
 ### Next (ordered)
-1) Select the first real competition/task id (tabular, small, post-cutoff) and add `competitions/<id>/spec.yaml` + `prepare_competition.py`.
-2) Extend `prepare_holdout_from_train` to support `split.strategy: group|time` if needed by the selected task.
-3) Start Phase 2 scaffolding (runs workspace template + result record) once Phase 1 is stable for one real task.
+1) Human: PR/merge `v1` into main/master.
+2) Start `v2` (Phase 2): run workspace templating and a semi-automated `run_one` that supports manual Kilo VSCode runs + host-side validate/score + result recording.
+3) First manual agent run: run Kilo VSCode agent on `playground-series-s6e1` and score it via the orchestrator utilities.
 
 ### Open questions
 - Which competition/task is first for Phase 1?
 - Do we require multiclass support in v1, or start with regression/binary only?
+  (Resolved for Phase 1: `playground-series-s6e1` regression only. Multiclass can wait.)
 
 ## Repro / smoke check
 - Commands run:

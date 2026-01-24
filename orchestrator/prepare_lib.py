@@ -99,11 +99,21 @@ def prepare_holdout_from_train(
 
     holdout_labels.to_parquet(private_dir / "holdout_labels.parquet", index=False)
 
+    split_mapping = pd.DataFrame(
+        {
+            spec.id_column: pd.concat([train_public[spec.id_column], test_public[spec.id_column]], ignore_index=True),
+            "split": (["train_public"] * len(train_public)) + (["holdout"] * len(test_public)),
+        }
+    ).sort_values(spec.id_column)
+    split_mapping_path = private_dir / "split_mapping.csv"
+    split_mapping.to_csv(split_mapping_path, index=False)
+
     split_meta = {
         "competition_id": spec.id,
         "created_at": _utc_iso(),
         "split": asdict(spec.split),
         "raw_train": {"path": str(raw_train_csv), "sha256": sha256_file(raw_train_csv)},
+        "split_mapping": {"path": str(split_mapping_path), "sha256": sha256_file(split_mapping_path)},
         "counts": {"train_public_rows": int(train_public.shape[0]), "holdout_rows": int(test_public.shape[0])},
     }
     (private_dir / "split.json").write_text(json.dumps(split_meta, indent=2, sort_keys=True), encoding="utf-8")

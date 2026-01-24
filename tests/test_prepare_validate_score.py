@@ -57,6 +57,7 @@ def test_prepare_is_deterministic(tmp_path: Path) -> None:
     split2 = json.loads((out2_priv / "split.json").read_text(encoding="utf-8"))
     assert split1["split"] == split2["split"]
     assert split1["raw_train"]["sha256"] == split2["raw_train"]["sha256"]
+    assert split1["split_mapping"]["sha256"] == split2["split_mapping"]["sha256"]
     assert split1["counts"] == split2["counts"]
 
 
