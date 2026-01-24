@@ -25,12 +25,8 @@ You have access only to:
 
 ## Context hygiene (avoid blowing up the context window)
 
-- Never “read a CSV into chat context” or paste whole files.
-- If you need schema/shape, use tiny summaries only:
-  - `python - <<'PY'\nimport pandas as pd\nfor p in ['public/train_public.csv','public/test_public.csv','public/sample_submission.csv']:\n  df=pd.read_csv(p, nrows=5)\n  print(p, 'cols=', list(df.columns))\nPY`
-  - `head -n 5 public/sample_submission.csv`
-  - `python -c "import pandas as pd; print(pd.read_csv('public/train_public.csv').shape)"`
-  - Only print small outputs (header + a few rows), never full datasets.
+- Never “read a CSV into chat context” or paste whole files. This will fill up the context window and break the agent.
+
 
 ## Output and reporting
 

@@ -34,6 +34,7 @@ def _is_git_dirty(repo_root: Path) -> bool | None:
 class ModelConfig:
     provider: str
     model_id: str
+    mode: str | None = None
     temperature: float | None = None
     max_tokens: int | None = None
 
@@ -107,6 +108,7 @@ def make_result(
     local_validation_metric: float | None,
     runtime_seconds: float | None,
     budget_time_seconds: int | None,
+    model: ModelConfig | None = None,
     submission_path: Path | None,
     normalized_submission_path: Path | None,
     repo_root: Path,
@@ -123,6 +125,7 @@ def make_result(
         score_normalized=score_normalized,
         local_validation_metric=local_validation_metric,
         runtime_seconds=runtime_seconds,
+        model=model,
         budget=BudgetConfig(time_seconds=budget_time_seconds) if budget_time_seconds is not None else None,
         artifacts=Artifacts(
             submission_path=str(submission_path) if submission_path else None,

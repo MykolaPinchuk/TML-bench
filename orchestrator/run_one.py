@@ -9,8 +9,8 @@ from pathlib import Path
 from orchestrator.db import insert_run
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard
 from orchestrator.prompting import render_prompt
-from orchestrator.result import make_result, write_result_json
-from orchestrator.run_state import init_run_state, read_run_state
+from orchestrator.result import ModelConfig, make_result, write_result_json
+from orchestrator.run_state import init_run_state, read_run_state, set_run_metadata, start_timer, write_run_state
 from orchestrator.run_workspace import copy_public_inputs, create_run_dirs, default_run_id
 from orchestrator.schemas import load_spec
 from orchestrator.score import score_submission
@@ -35,7 +35,17 @@ def cmd_create(args: argparse.Namespace) -> int:
     paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
 
     copy_public_inputs(competition_dir=competition_dir, workspace_dir=paths.workspace_dir)
-    init_run_state(run_dir=paths.run_dir, time_budget_seconds=spec.budgets.time_seconds)
+    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=spec.budgets.time_seconds)
+    state = read_run_state(state_path)
+    state = set_run_metadata(
+        state,
+        provider=args.provider,
+        model_id=args.model_id,
+        mode=args.mode,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+    )
+    write_run_state(state_path, state)
 
     prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
@@ -48,8 +58,23 @@ def cmd_create(args: argparse.Namespace) -> int:
     print(f"run_id: {paths.run_id}")
     print(f"workspace: {paths.workspace_dir}")
     print(f"time budget: {spec.budgets.time_seconds} seconds (enforced at finalize)")
-    print(f"next: create {paths.workspace_dir/'submission.csv'} (via VSCode/Kilo), then run finalize:")
+    print("before you start Kilo, start the timer:")
+    print(f"  python -m orchestrator.run_one start --run-id {paths.run_id}")
+    print(f"then: create {paths.workspace_dir/'submission.csv'} (via VSCode/Kilo), then run finalize:")
     print(f"  python -m orchestrator.run_one finalize --competition-id {args.competition_id} --run-id {paths.run_id}")
+    return 0
+
+
+def cmd_start(args: argparse.Namespace) -> int:
+    repo_root = _repo_root()
+    run_dir = repo_root / "runs" / args.run_id
+    state_path = run_dir / "run_state.json"
+    if not state_path.exists():
+        raise FileNotFoundError(f"Missing run_state.json: {state_path}. Create the run first.")
+    state = read_run_state(state_path)
+    state = start_timer(state)
+    write_run_state(state_path, state)
+    print(f"timer started: {args.run_id}")
     return 0
 
 
@@ -65,17 +90,33 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
     state_path = run_dir / "run_state.json"
-    if state_path.exists():
-        state = read_run_state(state_path)
-        runtime_seconds = state.elapsed_seconds()
-        budget_seconds = state.time_budget_seconds
-    else:
-        runtime_seconds = None
-        budget_seconds = spec.budgets.time_seconds
+    if not state_path.exists():
+        raise FileNotFoundError(f"Missing run_state.json: {state_path}. Create the run first.")
+
+    state = read_run_state(state_path)
+    state = set_run_metadata(
+        state,
+        provider=args.provider,
+        model_id=args.model_id,
+        mode=args.mode,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+    )
+    write_run_state(state_path, state)
+
+    budget_seconds = state.time_budget_seconds
+    if state.started_at is None:
+        raise RuntimeError(f"Timer not started. Run: python -m orchestrator.run_one start --run-id {run_id}")
 
     submission_in = workspace_dir / "submission.csv"
     if not submission_in.exists():
         raise FileNotFoundError(f"Missing submission: {submission_in}")
+
+    # End time is derived from submission mtime to avoid counting finalize delay.
+    from datetime import datetime, timezone
+
+    end_dt = datetime.fromtimestamp(submission_in.stat().st_mtime, tz=timezone.utc)
+    runtime_seconds = state.elapsed_seconds(now=end_dt)
 
     # Copy submission into artifacts for immutability.
     submission_art = artifacts_dir / "submission.csv"
@@ -91,6 +132,13 @@ def cmd_finalize(args: argparse.Namespace) -> int:
 
     # Enforce time budget after submission exists (manual Phase 2 timing is coarse but standardized).
     if runtime_seconds is not None and runtime_seconds > float(budget_seconds):
+        model = ModelConfig(
+            provider=state.provider or "unknown",
+            model_id=state.model_id or "unknown",
+            mode=state.mode,
+            temperature=state.temperature,
+            max_tokens=state.max_tokens,
+        ) if (state.provider or state.model_id) else None
         result = make_result(
             competition_id=args.competition_id,
             status="timeout",
@@ -100,6 +148,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             local_validation_metric=None,
             runtime_seconds=runtime_seconds,
             budget_time_seconds=budget_seconds,
+            model=model,
             submission_path=submission_art,
             normalized_submission_path=None,
             repo_root=repo_root,
@@ -112,6 +161,13 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         return 3
 
     if not vr.ok:
+        model = ModelConfig(
+            provider=state.provider or "unknown",
+            model_id=state.model_id or "unknown",
+            mode=state.mode,
+            temperature=state.temperature,
+            max_tokens=state.max_tokens,
+        ) if (state.provider or state.model_id) else None
         result = make_result(
             competition_id=args.competition_id,
             status="invalid_submission",
@@ -121,6 +177,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             local_validation_metric=None,
             runtime_seconds=runtime_seconds,
             budget_time_seconds=budget_seconds,
+            model=model,
             submission_path=submission_art,
             normalized_submission_path=None,
             repo_root=repo_root,
@@ -134,6 +191,13 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         return 2
 
     sr = score_submission(spec=spec, private_dir=competition_dir / "private", normalized_submission_csv=normalized_art)
+    model = ModelConfig(
+        provider=state.provider or "unknown",
+        model_id=state.model_id or "unknown",
+        mode=state.mode,
+        temperature=state.temperature,
+        max_tokens=state.max_tokens,
+    ) if (state.provider or state.model_id) else None
     result = make_result(
         competition_id=args.competition_id,
         status="success",
@@ -143,6 +207,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         local_validation_metric=None,
         runtime_seconds=runtime_seconds,
         budget_time_seconds=budget_seconds,
+        model=model,
         submission_path=submission_art,
         normalized_submission_path=normalized_art,
         repo_root=repo_root,
@@ -184,13 +249,27 @@ def main() -> int:
     p_create = sub.add_parser("create", help="Create a run workspace for a manual VSCode/Kilo agent run.")
     p_create.add_argument("--competition-id", required=True)
     p_create.add_argument("--run-id", default=None)
+    p_create.add_argument("--provider", default=None)
+    p_create.add_argument("--model-id", default=None)
+    p_create.add_argument("--mode", default=None)
+    p_create.add_argument("--temperature", type=float, default=None)
+    p_create.add_argument("--max-tokens", type=int, default=None)
     p_create.set_defaults(func=cmd_create)
+
+    p_start = sub.add_parser("start", help="Start the run timer (call immediately before launching Kilo).")
+    p_start.add_argument("--run-id", required=True)
+    p_start.set_defaults(func=cmd_start)
 
     p_fin = sub.add_parser("finalize", help="Validate + score a run after submission.csv is produced.")
     p_fin.add_argument("--competition-id", required=True)
     p_fin.add_argument("--run-id", required=True)
     p_fin.add_argument("--db-path", default="results/results.sqlite")
     p_fin.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this competition only.")
+    p_fin.add_argument("--provider", default=None)
+    p_fin.add_argument("--model-id", default=None)
+    p_fin.add_argument("--mode", default=None)
+    p_fin.add_argument("--temperature", type=float, default=None)
+    p_fin.add_argument("--max-tokens", type=int, default=None)
     p_fin.set_defaults(func=cmd_finalize)
 
     args = parser.parse_args()

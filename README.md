@@ -47,8 +47,10 @@ Start here (in order):
 ## Phase 2 (manual Kilo VSCode runs)
 1) Create a run workspace:
    - `python -m orchestrator.run_one create --competition-id playground-series-s6e1`
-2) Open the printed `workspace` path in VSCode and run Kilo there; produce `submission.csv` in the workspace root.
-3) Finalize (validate + private score + record to sqlite + update `results/leaderboard.*`):
+2) Start the timer (immediately before launching Kilo):
+   - `python -m orchestrator.run_one start --run-id <run_id>`
+3) Open the printed `workspace` path in VSCode and run Kilo there; produce `submission.csv` in the workspace root.
+4) Finalize (validate + private score + record to sqlite + update `results/leaderboard.*`):
    - `python -m orchestrator.run_one finalize --competition-id playground-series-s6e1 --run-id <run_id>`
 
 Note: the run time budget is recorded at `create` and enforced at `finalize` (timeouts are marked `status=timeout`).

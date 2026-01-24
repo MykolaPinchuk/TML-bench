@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,10 +20,17 @@ def _parse_iso(s: str) -> datetime:
 @dataclass(frozen=True)
 class RunState:
     created_at: str
-    started_at: str
+    started_at: str | None
     time_budget_seconds: int
+    provider: str | None = None
+    model_id: str | None = None
+    mode: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
 
     def elapsed_seconds(self, *, now: datetime | None = None) -> float:
+        if self.started_at is None:
+            raise ValueError("run_state.started_at is not set; start the timer first")
         now_dt = now or datetime.now(timezone.utc)
         started = _parse_iso(self.started_at)
         if started.tzinfo is None:
@@ -39,15 +46,42 @@ def read_run_state(path: Path) -> RunState:
     raw = json.loads(path.read_text(encoding="utf-8"))
     return RunState(
         created_at=str(raw["created_at"]),
-        started_at=str(raw["started_at"]),
+        started_at=raw.get("started_at"),
         time_budget_seconds=int(raw["time_budget_seconds"]),
+        provider=raw.get("provider"),
+        model_id=raw.get("model_id"),
+        mode=raw.get("mode"),
+        temperature=raw.get("temperature"),
+        max_tokens=raw.get("max_tokens"),
     )
 
 
 def init_run_state(*, run_dir: Path, time_budget_seconds: int) -> Path:
     run_dir.mkdir(parents=True, exist_ok=True)
     state_path = run_dir / "run_state.json"
-    state = RunState(created_at=_utc_iso(), started_at=_utc_iso(), time_budget_seconds=time_budget_seconds)
+    state = RunState(created_at=_utc_iso(), started_at=None, time_budget_seconds=time_budget_seconds)
     write_run_state(state_path, state)
     return state_path
 
+
+def set_run_metadata(
+    state: RunState,
+    *,
+    provider: str | None,
+    model_id: str | None,
+    mode: str | None,
+    temperature: float | None,
+    max_tokens: int | None,
+) -> RunState:
+    return replace(
+        state,
+        provider=provider if provider is not None else state.provider,
+        model_id=model_id if model_id is not None else state.model_id,
+        mode=mode if mode is not None else state.mode,
+        temperature=temperature if temperature is not None else state.temperature,
+        max_tokens=max_tokens if max_tokens is not None else state.max_tokens,
+    )
+
+
+def start_timer(state: RunState) -> RunState:
+    return replace(state, started_at=_utc_iso())

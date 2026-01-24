@@ -24,10 +24,24 @@ def build_leaderboard(
     competition_id: str | None = None,
 ) -> pd.DataFrame:
     rows = fetch_runs(db_path, competition_id=competition_id)
-    df = pd.DataFrame(rows)
-    if df.empty:
-        df = pd.DataFrame(columns=["competition_id", "status", "metric_name", "score_raw", "created_at"])
-
+    df_full = pd.DataFrame(rows)
+    keep = [
+        "run_id",
+        "created_at",
+        "competition_id",
+        "status",
+        "provider",
+        "model_id",
+        "mode",
+        "metric_name",
+        "score_raw",
+        "runtime_seconds",
+        "budget_time_seconds",
+    ]
+    if df_full.empty:
+        df = pd.DataFrame(columns=keep)
+    else:
+        df = df_full[[c for c in keep if c in df_full.columns]].copy()
     # For Phase 2 we keep it simple: show all runs sorted by (competition_id, score_raw) where available.
     df["score_raw"] = pd.to_numeric(df.get("score_raw"), errors="coerce")
     df = df.sort_values(by=["competition_id", "score_raw", "created_at"], ascending=[True, True, False], na_position="last")

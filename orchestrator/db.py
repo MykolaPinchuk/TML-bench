@@ -26,6 +26,11 @@ def ensure_db(db_path: str | Path) -> None:
               local_validation_metric REAL,
               runtime_seconds REAL,
               budget_time_seconds INTEGER,
+              provider TEXT,
+              model_id TEXT,
+              mode TEXT,
+              temperature REAL,
+              max_tokens INTEGER,
               submission_path TEXT,
               normalized_submission_path TEXT,
               benchmark_version TEXT,
@@ -40,6 +45,16 @@ def ensure_db(db_path: str | Path) -> None:
             con.execute("ALTER TABLE runs ADD COLUMN runtime_seconds REAL")
         if "budget_time_seconds" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN budget_time_seconds INTEGER")
+        if "provider" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN provider TEXT")
+        if "model_id" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN model_id TEXT")
+        if "mode" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN mode TEXT")
+        if "temperature" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN temperature REAL")
+        if "max_tokens" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN max_tokens INTEGER")
         con.commit()
     finally:
         con.close()
@@ -57,15 +72,17 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
     try:
         artifacts = run.artifacts
         versions = run.versions
+        model = run.model
         con.execute(
             """
             INSERT OR REPLACE INTO runs (
               run_id, created_at, competition_id, status,
               metric_name, score_raw, score_normalized, local_validation_metric,
               runtime_seconds, budget_time_seconds,
+              provider, model_id, mode, temperature, max_tokens,
               submission_path, normalized_submission_path,
               benchmark_version, git_sha, git_dirty
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -78,6 +95,11 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
                 run.local_validation_metric,
                 run.runtime_seconds,
                 run.budget.time_seconds if run.budget else None,
+                model.provider if model else None,
+                model.model_id if model else None,
+                model.mode if model else None,
+                model.temperature if model else None,
+                model.max_tokens if model else None,
                 artifacts.submission_path if artifacts else None,
                 artifacts.normalized_submission_path if artifacts else None,
                 versions.benchmark if versions else None,
