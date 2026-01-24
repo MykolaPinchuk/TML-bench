@@ -16,6 +16,8 @@ Many existing “agent benchmarks” test code correctness or synthetic tasks, n
 - focused on tabular tasks,
 - and “contamination-resistant enough” by using recent tasks + no browsing + private holdout scoring.
 
+Operational assumption (current workflow): for Chutes and NanoGPT runs, treat cost as a non-constraint (high daily included limits) and optimize for iteration speed.
+
 ## Phase posture (important)
 - **Phases 1–5 are functionality-only (not secure).**
 - **Phase 6** introduces hard enforcement (isolation + strict mounts + egress allowlist).
