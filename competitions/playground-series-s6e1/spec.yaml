@@ -18,8 +18,7 @@ split:
   seed: 1337
 
 budgets:
-  time_seconds: 900
+  time_seconds: 600
 
 prepare:
   raw_train_path: raw/train.csv
-

@@ -24,6 +24,8 @@ def ensure_db(db_path: str | Path) -> None:
               score_raw REAL,
               score_normalized REAL,
               local_validation_metric REAL,
+              runtime_seconds REAL,
+              budget_time_seconds INTEGER,
               submission_path TEXT,
               normalized_submission_path TEXT,
               benchmark_version TEXT,
@@ -32,6 +34,12 @@ def ensure_db(db_path: str | Path) -> None:
             )
             """
         )
+        # Backward-compatible migrations (in case DB existed before columns were added).
+        cols = {row[1] for row in con.execute("PRAGMA table_info(runs)").fetchall()}
+        if "runtime_seconds" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN runtime_seconds REAL")
+        if "budget_time_seconds" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN budget_time_seconds INTEGER")
         con.commit()
     finally:
         con.close()
@@ -54,9 +62,10 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
             INSERT OR REPLACE INTO runs (
               run_id, created_at, competition_id, status,
               metric_name, score_raw, score_normalized, local_validation_metric,
+              runtime_seconds, budget_time_seconds,
               submission_path, normalized_submission_path,
               benchmark_version, git_sha, git_dirty
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -67,6 +76,8 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
                 run.score_raw,
                 run.score_normalized,
                 run.local_validation_metric,
+                run.runtime_seconds,
+                run.budget.time_seconds if run.budget else None,
                 artifacts.submission_path if artifacts else None,
                 artifacts.normalized_submission_path if artifacts else None,
                 versions.benchmark if versions else None,
@@ -90,4 +101,3 @@ def fetch_runs(db_path: str | Path, *, competition_id: str | None = None) -> lis
         return [dict(r) for r in rows]
     finally:
         con.close()
-

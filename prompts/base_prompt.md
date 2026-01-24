@@ -21,9 +21,6 @@ You have access only to:
 4) Do not use web browsing or external data sources.
 5) Keep work within the time budget: {{time_budget_seconds}} seconds.
 
-## Suggested workflow
+## Output and reporting
 
-- Do quick EDA (missingness, categorical handling).
-- Make a simple baseline first (e.g., sklearn) and iterate.
 - Print a local validation score (split your `train_public.csv`).
-

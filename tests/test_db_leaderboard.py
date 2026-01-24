@@ -22,6 +22,8 @@ def test_insert_and_leaderboard(tmp_path: Path) -> None:
         score_raw=1.23,
         score_normalized=-1.23,
         local_validation_metric=2.34,
+        runtime_seconds=12.0,
+        budget_time_seconds=600,
         submission_path=tmp_path / "submission.csv",
         normalized_submission_path=tmp_path / "submission.normalized.csv",
         repo_root=Path("."),
@@ -33,4 +35,3 @@ def test_insert_and_leaderboard(tmp_path: Path) -> None:
     assert len(df) == 1
     assert df.iloc[0]["competition_id"] == "toy_regression"
     assert float(df.iloc[0]["score_raw"]) == 1.23
-

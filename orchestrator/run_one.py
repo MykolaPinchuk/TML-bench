@@ -10,6 +10,7 @@ from orchestrator.db import insert_run
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard
 from orchestrator.prompting import render_prompt
 from orchestrator.result import make_result, write_result_json
+from orchestrator.run_state import init_run_state, read_run_state
 from orchestrator.run_workspace import copy_public_inputs, create_run_dirs, default_run_id
 from orchestrator.schemas import load_spec
 from orchestrator.score import score_submission
@@ -34,6 +35,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
 
     copy_public_inputs(competition_dir=competition_dir, workspace_dir=paths.workspace_dir)
+    init_run_state(run_dir=paths.run_dir, time_budget_seconds=spec.budgets.time_seconds)
 
     prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
@@ -45,6 +47,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     print("Run created.")
     print(f"run_id: {paths.run_id}")
     print(f"workspace: {paths.workspace_dir}")
+    print(f"time budget: {spec.budgets.time_seconds} seconds (enforced at finalize)")
     print(f"next: create {paths.workspace_dir/'submission.csv'} (via VSCode/Kilo), then run finalize:")
     print(f"  python -m orchestrator.run_one finalize --competition-id {args.competition_id} --run-id {paths.run_id}")
     return 0
@@ -61,6 +64,15 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     artifacts_dir = run_dir / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
+    state_path = run_dir / "run_state.json"
+    if state_path.exists():
+        state = read_run_state(state_path)
+        runtime_seconds = state.elapsed_seconds()
+        budget_seconds = state.time_budget_seconds
+    else:
+        runtime_seconds = None
+        budget_seconds = spec.budgets.time_seconds
+
     submission_in = workspace_dir / "submission.csv"
     if not submission_in.exists():
         raise FileNotFoundError(f"Missing submission: {submission_in}")
@@ -76,6 +88,29 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         submission_csv=submission_art,
         normalized_out_csv=normalized_art,
     )
+
+    # Enforce time budget after submission exists (manual Phase 2 timing is coarse but standardized).
+    if runtime_seconds is not None and runtime_seconds > float(budget_seconds):
+        result = make_result(
+            competition_id=args.competition_id,
+            status="timeout",
+            metric_name=None,
+            score_raw=None,
+            score_normalized=None,
+            local_validation_metric=None,
+            runtime_seconds=runtime_seconds,
+            budget_time_seconds=budget_seconds,
+            submission_path=submission_art,
+            normalized_submission_path=None,
+            repo_root=repo_root,
+            run_id_prefix=args.competition_id,
+        )
+        result = replace(result, run_id=run_id)
+        result_path = run_dir / "result.json"
+        write_result_json(result, result_path)
+        print(f"timeout: runtime_seconds={runtime_seconds:.1f} > budget_seconds={budget_seconds}; wrote: {result_path}")
+        return 3
+
     if not vr.ok:
         result = make_result(
             competition_id=args.competition_id,
@@ -84,6 +119,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             score_raw=None,
             score_normalized=None,
             local_validation_metric=None,
+            runtime_seconds=runtime_seconds,
+            budget_time_seconds=budget_seconds,
             submission_path=submission_art,
             normalized_submission_path=None,
             repo_root=repo_root,
@@ -104,6 +141,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         score_raw=sr.score_raw,
         score_normalized=sr.score_normalized,
         local_validation_metric=None,
+        runtime_seconds=runtime_seconds,
+        budget_time_seconds=budget_seconds,
         submission_path=submission_art,
         normalized_submission_path=normalized_art,
         repo_root=repo_root,
@@ -117,6 +156,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     write_result_json(result, result_path)
     print(f"wrote: {result_path}")
     print(f"private_holdout_{sr.metric_name}: {sr.score_raw}")
+    if runtime_seconds is not None:
+        print(f"runtime_seconds: {runtime_seconds:.1f} (budget {budget_seconds}s)")
 
     if args.db_path:
         db_path = Path(args.db_path)
@@ -126,7 +167,11 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             csv_path=repo_root / "results" / "leaderboard.csv",
             html_path=repo_root / "results" / "leaderboard.html",
         )
-        build_leaderboard(db_path=db_path, out_paths=lb_paths, competition_id=args.competition_id if args.per_competition else None)
+        build_leaderboard(
+            db_path=db_path,
+            out_paths=lb_paths,
+            competition_id=args.competition_id if args.per_competition else None,
+        )
         print(f"updated leaderboard under: {lb_paths.json_path.parent}")
 
     return 0

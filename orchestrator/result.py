@@ -69,6 +69,7 @@ class RunResult:
     metric_name: str | None = None
 
     local_validation_metric: float | None = None
+    runtime_seconds: float | None = None
 
     model: ModelConfig | None = None
     budget: BudgetConfig | None = None
@@ -104,6 +105,8 @@ def make_result(
     score_raw: float | None,
     score_normalized: float | None,
     local_validation_metric: float | None,
+    runtime_seconds: float | None,
+    budget_time_seconds: int | None,
     submission_path: Path | None,
     normalized_submission_path: Path | None,
     repo_root: Path,
@@ -119,10 +122,11 @@ def make_result(
         score_raw=score_raw,
         score_normalized=score_normalized,
         local_validation_metric=local_validation_metric,
+        runtime_seconds=runtime_seconds,
+        budget=BudgetConfig(time_seconds=budget_time_seconds) if budget_time_seconds is not None else None,
         artifacts=Artifacts(
             submission_path=str(submission_path) if submission_path else None,
             normalized_submission_path=str(normalized_submission_path) if normalized_submission_path else None,
         ),
         versions=build_versions(repo_root=repo_root, benchmark_version=default_benchmark_version()),
     )
-

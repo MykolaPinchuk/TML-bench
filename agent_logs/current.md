@@ -38,3 +38,4 @@
 
 ## Update (v2)
 - Started Phase 2 on branch `v2`: added manual run workspace creation + finalize workflow (`python -m orchestrator.run_one create/finalize`) with optional sqlite recording and leaderboard generation.
+- Updated Phase 2 to enforce the per-run time budget at finalize (default is 600s for `playground-series-s6e1`).

@@ -58,6 +58,8 @@ def main() -> int:
         score_raw=sr.score_raw,
         score_normalized=sr.score_normalized,
         local_validation_metric=baseline.local_validation_metric,
+        runtime_seconds=None,
+        budget_time_seconds=None,
         submission_path=submission_out,
         normalized_submission_path=normalized_out,
         repo_root=REPO_ROOT,
@@ -71,4 +73,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
