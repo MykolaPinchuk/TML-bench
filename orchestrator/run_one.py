@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import replace
+import hashlib
 import shutil
 import sys
 from pathlib import Path
@@ -29,6 +30,14 @@ def _competition_dir(repo_root: Path, competition_id: str) -> Path:
 
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _write_and_maybe_record(
@@ -239,6 +248,10 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         temperature=state.temperature,
         max_tokens=state.max_tokens,
     ) if (state.provider or state.model_id) else None
+
+    submission_sha256 = _sha256_file(submission_art)
+    normalized_submission_sha256 = _sha256_file(normalized_art)
+
     result = make_result(
         competition_id=args.competition_id,
         status="success",
@@ -256,7 +269,20 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     )
 
     # Overwrite run_id to match directory name.
-    result = replace(result, run_id=run_id)
+    notes = {
+        "submission_sha256": submission_sha256,
+        "normalized_submission_sha256": normalized_submission_sha256,
+    }
+    result = replace(
+        result,
+        run_id=run_id,
+        artifacts=replace(
+            result.artifacts,
+            notes=notes if not result.artifacts.notes else {**result.artifacts.notes, **notes},
+        )
+        if result.artifacts is not None
+        else None,
+    )
 
     result_path = run_dir / "result.json"
     _write_and_maybe_record(
@@ -269,6 +295,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     )
     print(f"wrote: {result_path}")
     print(f"private_holdout_{sr.metric_name}: {sr.score_raw}")
+    print(f"submission_sha256: {submission_sha256[:16]}…")
     if runtime_seconds is not None:
         print(f"runtime_seconds: {runtime_seconds:.1f} (budget {budget_seconds}s)")
     if args.db_path:
@@ -326,10 +353,9 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_prompt = (
         f"Read {paths.instructions_path.name} and follow it exactly. "
         "Do not ask questions. "
-        "Run `python train_model.py` to produce `submission.csv`. "
-        "If it fails, only edit `train_model.py` and rerun it. "
-        "Do not install packages. "
-        "Stop immediately once `submission.csv` exists."
+        "Use `train_model.py` as your main working file; you may edit it. "
+        "Start by running `python train_model.py` to produce an initial `submission.csv`, then iterate to improve your local validation score within the budget. "
+        "Do not install packages."
     )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
 

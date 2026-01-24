@@ -31,3 +31,14 @@ You have access only to:
 ## Output and reporting
 
 - Print a local validation score (split your `train_public.csv`).
+
+## Workflow (recommended)
+
+1) Create (or edit) a single script `train_model.py` that:
+   - reads the `public/` CSVs,
+   - trains a model,
+   - prints a local validation score,
+   - writes `submission.csv` that matches `public/sample_submission.csv`.
+2) Run `python train_model.py` early to ensure you can generate a valid `submission.csv`.
+3) Spend the remaining budget doing 1–3 fast iterations to improve local validation (model choice, hyperparameters, encoding, simple feature engineering).
+4) Keep the best approach and leave a final `submission.csv` in the workspace root.
