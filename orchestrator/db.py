@@ -1,0 +1,93 @@
+from __future__ import annotations
+
+import sqlite3
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any
+
+from orchestrator.result import RunResult
+
+
+def ensure_db(db_path: str | Path) -> None:
+    db_path = Path(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(db_path)
+    try:
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS runs (
+              run_id TEXT PRIMARY KEY,
+              created_at TEXT NOT NULL,
+              competition_id TEXT NOT NULL,
+              status TEXT NOT NULL,
+              metric_name TEXT,
+              score_raw REAL,
+              score_normalized REAL,
+              local_validation_metric REAL,
+              submission_path TEXT,
+              normalized_submission_path TEXT,
+              benchmark_version TEXT,
+              git_sha TEXT,
+              git_dirty INTEGER
+            )
+            """
+        )
+        con.commit()
+    finally:
+        con.close()
+
+
+def _to_int_bool(x: bool | None) -> int | None:
+    if x is None:
+        return None
+    return 1 if x else 0
+
+
+def insert_run(db_path: str | Path, run: RunResult) -> None:
+    ensure_db(db_path)
+    con = sqlite3.connect(db_path)
+    try:
+        artifacts = run.artifacts
+        versions = run.versions
+        con.execute(
+            """
+            INSERT OR REPLACE INTO runs (
+              run_id, created_at, competition_id, status,
+              metric_name, score_raw, score_normalized, local_validation_metric,
+              submission_path, normalized_submission_path,
+              benchmark_version, git_sha, git_dirty
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                run.run_id,
+                run.created_at,
+                run.competition_id,
+                run.status,
+                run.metric_name,
+                run.score_raw,
+                run.score_normalized,
+                run.local_validation_metric,
+                artifacts.submission_path if artifacts else None,
+                artifacts.normalized_submission_path if artifacts else None,
+                versions.benchmark if versions else None,
+                versions.git_sha if versions else None,
+                _to_int_bool(versions.git_dirty) if versions else None,
+            ),
+        )
+        con.commit()
+    finally:
+        con.close()
+
+
+def fetch_runs(db_path: str | Path, *, competition_id: str | None = None) -> list[dict[str, Any]]:
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        if competition_id:
+            rows = con.execute("SELECT * FROM runs WHERE competition_id=? ORDER BY created_at DESC", (competition_id,)).fetchall()
+        else:
+            rows = con.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        con.close()
+

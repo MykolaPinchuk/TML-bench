@@ -35,3 +35,6 @@
 - If requested: checkpoint commit on `v1` for the LLD doc.
 - Start Phase 1 implementation: pick first competition, implement prepare/validate/score against fixtures.
 - Decide the first real competition ID and implement its `competitions/<id>/prepare_competition.py` using the generic `prepare_holdout_from_train`.
+
+## Update (v2)
+- Started Phase 2 on branch `v2`: added manual run workspace creation + finalize workflow (`python -m orchestrator.run_one create/finalize`) with optional sqlite recording and leaderboard generation.

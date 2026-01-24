@@ -44,5 +44,12 @@ Start here (in order):
 3) End-to-end Phase 1 smoke (prepare → baseline → validate → private score → write `result.json`):
    - `KAGGLE_CONFIG_DIR=secrets python scripts/smoke_phase1.py --competition-id playground-series-s6e1`
 
+## Phase 2 (manual Kilo VSCode runs)
+1) Create a run workspace:
+   - `python -m orchestrator.run_one create --competition-id playground-series-s6e1`
+2) Open the printed `workspace` path in VSCode and run Kilo there; produce `submission.csv` in the workspace root.
+3) Finalize (validate + private score + record to sqlite + update `results/leaderboard.*`):
+   - `python -m orchestrator.run_one finalize --competition-id playground-series-s6e1 --run-id <run_id>`
+
 ## Data policy
 - Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).

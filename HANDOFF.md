@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v1 (Phase 1): deterministic competition preparation, strict submission validation, and private-holdout scoring (functionality only; not secure). Phase 1 is complete for one real competition (`playground-series-s6e1`).
+v2 (Phase 2): manual Kilo VSCode runs with repeatable run workspaces + host-side finalize (validate/score/record). Phase 1 is already complete for `playground-series-s6e1`.
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -25,14 +25,12 @@ v1 (Phase 1): deterministic competition preparation, strict submission validatio
   - Phase 1 smoke: `KAGGLE_CONFIG_DIR=secrets python scripts/smoke_phase1.py --competition-id playground-series-s6e1`
 
 ### Next (ordered)
-1) Human: PR/merge `v1` into main/master.
-2) Start `v2` (Phase 2): run workspace templating and a semi-automated `run_one` that supports manual Kilo VSCode runs + host-side validate/score + result recording.
-3) First manual agent run: run Kilo VSCode agent on `playground-series-s6e1` and score it via the orchestrator utilities.
+1) Use `python -m orchestrator.run_one create --competition-id playground-series-s6e1` to create a run workspace.
+2) Human: run Kilo VSCode agent inside the workspace and produce `submission.csv`.
+3) Finalize and record: `python -m orchestrator.run_one finalize --competition-id playground-series-s6e1 --run-id <run_id>`.
 
 ### Open questions
-- Which competition/task is first for Phase 1?
-- Do we require multiclass support in v1, or start with regression/binary only?
-  (Resolved for Phase 1: `playground-series-s6e1` regression only. Multiclass can wait.)
+- Do we want SQLite recording in Phase 2, or keep Phase 2 as `result.json` only?
 
 ## Repro / smoke check
 - Commands run:
