@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v3 (Phase 3): batch execution harness (headless), starting with a Kilo CLI capability spike.
+v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve auditability; no security yet).
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -30,24 +30,36 @@ v3 (Phase 3): batch execution harness (headless), starting with a Kilo CLI capab
   - leaderboard outputs:
     - root: `LEADERBOARD.md`, `LEADERBOARD.html` (committed snapshot for GitHub UI)
     - under `results/`: `results/leaderboard.json`, `results/leaderboard.csv`, `results/leaderboard.html`
+- Phase 3 headless batch execution (no Docker; functionality-only):
+  - Kilo CLI runner: `orchestrator/kilo_cli.py` (headless `kilo --auto --json ...` with cleaned JSONL)
+  - End-to-end headless run: `python -m orchestrator.run_one auto ...` (run → validate → score → record → leaderboards)
+  - Batch sweep runner: `python -m orchestrator.sweep ...` (supports `--concurrency` without sqlite contention)
+  - Provider setup helper (no secrets in git): `scripts/setup_kilo_providers.py` reading `secrets/provider_apis.txt`
+  - Audit trail:
+    - per-run Kilo JSON event logs under `runs/<run_id>/artifacts/kilo_stdout*.jsonl`
+    - `runs/<run_id>/artifacts/kilo_run.json` and `result.json` notes with submission hashes
 
 ### Next (ordered)
-1) Kilo CLI capability spike:
-   - verify whether Kilo can be run headlessly (no VSCode) against a workspace directory
-   - confirm how to supply prompt deterministically
-   - confirm what artifacts are available (stdout/stderr, transcript, structured JSON if any)
-   - confirm we can enforce a hard wall-clock timeout (kill process) reliably
-2) If the spike is a “go”, implement Phase 3 automation:
-   - `python -m orchestrator.run_one auto ...` (headless run → validate → score → record → leaderboards)
-   - `python -m orchestrator.sweep ...` for batching over model configs
-3) If the spike is a “no-go”, revise Phase 3 before implementing sweeps (fallback options are listed in `docs/plan/v3.md`).
+1) Phase 4 reproducibility packaging:
+   - pin Python dependencies (lockfile) and pin Kilo version in docs
+   - capture stronger provenance per run:
+     - spec hash
+     - rendered prompt hash (base + override + params)
+     - public data manifest hashes
+     - Kilo version + selected provider config hash (redacted; no secrets)
+2) Separate “non-agent baseline” from “agent runs”:
+   - keep a deterministic host baseline per competition (sanity)
+   - remove baseline injection for leaderboard sweeps (keep only as optional smoke/debug mode)
+3) Documentation improvements for rerunability:
+   - `REPRODUCIBILITY.md` with exact steps (incl. provider setup script, required env, pins)
+   - clarify what artifacts are expected for audit (run dirs, logs, hashes, leaderboard rebuild command)
 
 ### Open questions
-- Kilo CLI: can we reliably run headlessly, pass prompt/workspace, and capture a transcript/structured output?
-- If Kilo CLI is not workable, what is the fallback automation approach for Phase 3?
+- Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
+- Baseline policy: what is the default Phase 4 posture for sweeps (blank workspace vs seeded helper file) and time budget?
 
 ## Known issues / current breakage
-- None known.
+- Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
 
 ## Git notes (handoff)
 - `.gitignore` updates made:
