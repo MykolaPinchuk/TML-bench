@@ -50,21 +50,39 @@ def main() -> int:
         default=str(_repo_root() / "orchestrator" / "model_sets" / "v3_fast.json"),
         help="JSON file with provider/model_id entries.",
     )
+    ap.add_argument(
+        "--profile",
+        default=None,
+        choices=["simple-baseline", "good-baseline"],
+        help="Optional sweep profile. `simple-baseline` targets 240s. `good-baseline` targets 600s.",
+    )
     ap.add_argument("--runs-per-model", type=int, default=1)
     ap.add_argument("--db-path", default="results/results.sqlite")
     ap.add_argument("--per-competition", action="store_true")
     ap.add_argument("--kilo-timeout-seconds", type=int, default=None)
+    ap.add_argument(
+        "--prompt-profile",
+        default=None,
+        choices=["simple-baseline", "good-baseline"],
+        help="Prompt profile to pass to `run_one auto`. If not set, derives from `--profile` (if provided).",
+    )
     ap.add_argument("--only-provider", default=None, help="If set, only run models from this provider id.")
     ap.add_argument("--max-models", type=int, default=None, help="If set, limit to the first N models selected.")
     ap.add_argument("--max-runs", type=int, default=None, help="If set, stop after N total runs (across all models).")
     ap.add_argument(
         "--concurrency",
         type=int,
-        default=1,
+        default=4,
         help="If >1, run multiple headless runs in parallel. DB/leaderboard updates are done once at the end.",
     )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
+
+    if args.profile is not None:
+        if args.kilo_timeout_seconds is None:
+            args.kilo_timeout_seconds = 240 if args.profile == "simple-baseline" else 600
+        if args.prompt_profile is None:
+            args.prompt_profile = args.profile
 
     repo_root = _repo_root()
     competition_dir = repo_root / "competitions" / args.competition_id
@@ -117,6 +135,7 @@ def main() -> int:
             temperature=None,
             max_tokens=None,
             kilo_timeout_seconds=args.kilo_timeout_seconds,
+            prompt_profile=args.prompt_profile,
         )
         rc = int(cmd_auto(ns))
         return run_id, rc

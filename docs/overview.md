@@ -30,6 +30,14 @@ In Phase 2, the agent is run manually (VSCode + Kilo) in a per-run workspace:
 - you run Kilo inside that workspace and produce `submission.csv`
 - `python -m orchestrator.run_one finalize --competition-id <id> --run-id <run_id>` validates, scores (private holdout), and records results
 
+## Headless sweeps (Phase 3+)
+Use `orchestrator.sweep` to run many models headlessly via Kilo CLI:
+- Simple baseline (fast/cheap): `--profile simple-baseline` (240s) and default `--concurrency 4`
+- Good baseline (more effort): `--profile good-baseline` (600s) and default `--concurrency 4`
+
+Example:
+- `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline`
+
 ## Audit trail (what proves an agent actually ran)
 
 For any run `runs/<run_id>/`:

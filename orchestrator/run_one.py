@@ -77,6 +77,11 @@ def _write_json(path: Path, obj: dict) -> None:
     path.write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _seed_from_run_id(run_id: str) -> int:
+    raw = hashlib.sha256(run_id.encode("utf-8")).hexdigest()
+    return max(1, int(raw[:8], 16) % (2**31 - 1))
+
+
 def _load_kilo_run_meta(run_dir: Path) -> dict | None:
     p = run_dir / "artifacts" / "kilo_run.json"
     if not p.exists():
@@ -210,6 +215,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     spec = load_spec(competition_dir / "spec.yaml")
 
     run_id = args.run_id
+    seed = _seed_from_run_id(run_id)
+    prompt_profile = getattr(args, "prompt_profile", None)
     run_dir = repo_root / "runs" / run_id
     workspace_dir = run_dir / "workspace"
     artifacts_dir = run_dir / "artifacts"
@@ -293,7 +300,17 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         result = replace(
             result,
             run_id=run_id,
-            artifacts=replace(result.artifacts, notes=provenance_notes) if result.artifacts is not None else None,
+            seed=seed,
+            artifacts=replace(
+                result.artifacts,
+                notes={
+                    **provenance_notes,
+                    **({"prompt_profile": prompt_profile} if prompt_profile else {}),
+                    "seed": seed,
+                },
+            )
+            if result.artifacts is not None
+            else None,
         )
         result_path = run_dir / "result.json"
         _write_and_maybe_record(
@@ -335,7 +352,17 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         result = replace(
             result,
             run_id=run_id,
-            artifacts=replace(result.artifacts, notes=provenance_notes) if result.artifacts is not None else None,
+            seed=seed,
+            artifacts=replace(
+                result.artifacts,
+                notes={
+                    **provenance_notes,
+                    **({"prompt_profile": prompt_profile} if prompt_profile else {}),
+                    "seed": seed,
+                },
+            )
+            if result.artifacts is not None
+            else None,
         )
         _write_and_maybe_record(
             repo_root=repo_root,
@@ -387,9 +414,13 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     notes.update(provenance_notes)
     if kilo_meta is not None:
         notes["kilo"] = kilo_meta
+    if prompt_profile:
+        notes["prompt_profile"] = prompt_profile
+    notes["seed"] = seed
     result = replace(
         result,
         run_id=run_id,
+        seed=seed,
         artifacts=replace(
             result.artifacts,
             notes=notes if not result.artifacts.notes else {**result.artifacts.notes, **notes},
@@ -432,6 +463,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
     paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
+    seed = _seed_from_run_id(paths.run_id)
 
     copy_public_inputs(competition_dir=competition_dir, workspace_dir=paths.workspace_dir)
     state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=budget_seconds)
@@ -459,15 +491,31 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_stderr = artifacts_dir / "kilo_stderr.log"
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
-    harness_instructions = (
-        "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-        "Run `python train_model.py` early to validate the full pipeline end-to-end. "
-        "Start with a fast baseline that reliably finishes (e.g., a linear model like `Ridge` and/or a tree model like `HistGradientBoostingRegressor`). "
-        "Avoid very slow choices (full `OneHotEncoder` on high-cardinality categoricals, large `RandomForest*`/`ExtraTrees*`, etc.) unless you can keep them comfortably within the budget. "
-        "Then use the remaining time budget to do 1–3 quick iterations (encoding/model choice/hyperparameters) to improve your printed local validation score. "
-        "If your training run exceeds ~60s, simplify (smaller model / fewer iterations / simpler preprocessing) so you always leave a valid `submission.csv` behind. "
-        "Do not install packages."
+    prompt_profile = getattr(args, "prompt_profile", None) or ("good-baseline" if budget_seconds >= 600 else "simple-baseline")
+
+    seed_instructions = (
+        f"Run metadata:\n- RUN_ID: {paths.run_id}\n- SEED: {seed}\n- PROMPT_PROFILE: {prompt_profile}\n\n"
+        f"Use SEED={seed} consistently for any randomness (e.g., `train_test_split(random_state=SEED)`, model `random_state=SEED`, `numpy.random.seed(SEED)`).\n"
     )
+
+    if prompt_profile == "good-baseline":
+        harness_instructions = (
+            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
+            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
+            "Then spend most of the remaining time improving performance: do 2–4 quick iterations (encoding/model choice/hyperparameters), and consider light feature engineering. "
+            "Prefer scikit-learn options that work well on mixed numeric/categorical data under a time budget (e.g., `HistGradientBoostingRegressor` + `OrdinalEncoder`, or a strong linear baseline like `Ridge`). "
+            "Avoid extremely slow approaches unless you keep them small and reliable. Always leave a valid `submission.csv` behind. "
+            "Do not install packages."
+        )
+    else:
+        harness_instructions = (
+            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
+            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
+            "Start with a fast baseline that reliably finishes (e.g., a linear model like `Ridge` and/or `HistGradientBoostingRegressor`). "
+            "Avoid very slow choices (full `OneHotEncoder` on high-cardinality categoricals, large `RandomForest*`/`ExtraTrees*`, etc.). "
+            "If your training run exceeds ~60s, simplify so you always leave a valid `submission.csv` behind. "
+            "Do not install packages."
+        )
 
     kilo_prompt = (
         f"Read {paths.instructions_path.name} and follow it exactly.\n"
@@ -475,6 +523,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
         "- Do NOT read or write outside the workspace.\n"
         "- Do NOT use paths with `..` and do NOT run commands like `find ..`.\n"
         "- All required inputs are under `public/` in this workspace.\n\n"
+        f"{seed_instructions}\n"
         f"{harness_instructions}\n"
     )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
@@ -517,6 +566,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
             mode=args.mode,
             temperature=args.temperature,
             max_tokens=args.max_tokens,
+            prompt_profile=prompt_profile,
         )
         return cmd_finalize(args2)
 
@@ -554,10 +604,13 @@ def cmd_auto(args: argparse.Namespace) -> int:
     result = replace(
         result,
         run_id=paths.run_id,
+        seed=seed,
         artifacts=replace(
             result.artifacts,
             notes={
                 **provenance_notes,
+                "prompt_profile": prompt_profile,
+                "seed": seed,
                 "kilo": {
                     "returncode": kr.returncode,
                     "timeout_seconds": kilo_timeout,
@@ -680,6 +733,12 @@ def main() -> int:
     p_auto.add_argument("--temperature", type=float, default=None)
     p_auto.add_argument("--max-tokens", type=int, default=None)
     p_auto.add_argument("--kilo-timeout-seconds", type=int, default=None, help="Optional override for Kilo CLI timeout.")
+    p_auto.add_argument(
+        "--prompt-profile",
+        default=None,
+        choices=["simple-baseline", "good-baseline"],
+        help="Prompt profile for headless runs. If not set, derives from the time budget (>=600s -> good-baseline).",
+    )
     p_auto.add_argument(
         "--stop-when-submission",
         action="store_true",

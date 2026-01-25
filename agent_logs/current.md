@@ -45,3 +45,10 @@
 - Reran no-baseline probes:
   - `v4_expanded_probe.json` sweep @240s, concurrency=3: 7/10 success; scores showed more dispersion than previous stop-on-submission runs, but some submission hash collisions remain.
   - Added working models and ran `v4_probe_added.json` sweep @240s: 3/4 success; one more “baseline-like” collision observed (same normalized submission hash across multiple models).
+
+### 2026-01-25 (Pacific) — Baseline profiles + higher parallelism
+- Added two more Chutes models to the default fast model set (`orchestrator/model_sets/v3_fast.json`).
+- Increased default sweep parallelism to `--concurrency 4` and added sweep/run prompt profiles:
+  - `simple-baseline` (240s target)
+  - `good-baseline` (600s target)
+- Added a deterministic per-run `SEED` (derived from `run_id`) and inject it into the headless prompt; `result.json` now records `seed` for reproducibility/variance tracking.
