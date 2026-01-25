@@ -17,7 +17,7 @@ def test_best_by_model_uses_best_run_score_and_hash(tmp_path: Path) -> None:
                 "competition_id": "c1",
                 "status": "success",
                 "provider": "nanogpt",
-                "model_id": "m1",
+                "model_id": "org/m1",
                 "mode": "",
                 "metric_name": "rmse",
                 "score_raw": 2.0,
@@ -32,7 +32,7 @@ def test_best_by_model_uses_best_run_score_and_hash(tmp_path: Path) -> None:
                 "competition_id": "c1",
                 "status": "success",
                 "provider": "nanogpt",
-                "model_id": "m1",
+                "model_id": "org/m1",
                 "mode": "",
                 "metric_name": "rmse",
                 "score_raw": 1.0,
@@ -47,7 +47,7 @@ def test_best_by_model_uses_best_run_score_and_hash(tmp_path: Path) -> None:
                 "competition_id": "c1",
                 "status": "success",
                 "provider": "chutes",
-                "model_id": "m2",
+                "model_id": "org/m2",
                 "mode": "",
                 "metric_name": "rmse",
                 "score_raw": 1.0,
@@ -64,7 +64,7 @@ def test_best_by_model_uses_best_run_score_and_hash(tmp_path: Path) -> None:
 
     md = (tmp_path / "LEADERBOARD.md").read_text(encoding="utf-8")
     # Best run for (nanogpt, m1) must be r2, not r1.
-    assert "| c1 | nanogpt | m1 |" in md
-    assert "| c1 | nanogpt | m1 |  | rmse | 1.0 |" in md
+    assert "| c1 | nanogpt | org/m1 |" in md
+    assert "| c1 | nanogpt | org/m1 |  | rmse | 1.0 |" in md
     assert "| r2 |" in md
     assert ("2" * 16 + "…") in md
