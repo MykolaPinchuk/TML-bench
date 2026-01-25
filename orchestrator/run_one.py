@@ -487,16 +487,12 @@ def cmd_auto(args: argparse.Namespace) -> int:
         )
 
     kilo_prompt = (
-        "You are running inside a restricted workspace.\n"
+        f"Read {paths.instructions_path.name} and follow it exactly.\n"
+        "You are running inside a restricted workspace:\n"
         "- Do NOT read or write outside the workspace.\n"
         "- Do NOT use paths with `..` and do NOT run commands like `find ..`.\n"
         "- All required inputs are under `public/` in this workspace.\n\n"
-        "=== TASK INSTRUCTIONS (authoritative) ===\n"
-        f"{rendered_prompt.strip()}\n"
-        "=== END TASK INSTRUCTIONS ===\n\n"
-        "=== HARNESS INSTRUCTIONS (follow) ===\n"
         f"{harness_instructions}\n"
-        "=== END HARNESS INSTRUCTIONS ===\n"
     )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
 
