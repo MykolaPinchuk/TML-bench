@@ -33,6 +33,8 @@ def ensure_db(db_path: str | Path) -> None:
               max_tokens INTEGER,
               submission_path TEXT,
               normalized_submission_path TEXT,
+              submission_sha256 TEXT,
+              normalized_submission_sha256 TEXT,
               benchmark_version TEXT,
               git_sha TEXT,
               git_dirty INTEGER
@@ -55,6 +57,10 @@ def ensure_db(db_path: str | Path) -> None:
             con.execute("ALTER TABLE runs ADD COLUMN temperature REAL")
         if "max_tokens" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN max_tokens INTEGER")
+        if "submission_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN submission_sha256 TEXT")
+        if "normalized_submission_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN normalized_submission_sha256 TEXT")
         con.commit()
     finally:
         con.close()
@@ -73,6 +79,12 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
         artifacts = run.artifacts
         versions = run.versions
         model = run.model
+        notes = artifacts.notes if artifacts else None
+        submission_sha256 = None
+        normalized_submission_sha256 = None
+        if isinstance(notes, dict):
+            submission_sha256 = notes.get("submission_sha256")
+            normalized_submission_sha256 = notes.get("normalized_submission_sha256")
         con.execute(
             """
             INSERT OR REPLACE INTO runs (
@@ -81,8 +93,9 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
               runtime_seconds, budget_time_seconds,
               provider, model_id, mode, temperature, max_tokens,
               submission_path, normalized_submission_path,
+              submission_sha256, normalized_submission_sha256,
               benchmark_version, git_sha, git_dirty
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -102,6 +115,8 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
                 model.max_tokens if model else None,
                 artifacts.submission_path if artifacts else None,
                 artifacts.normalized_submission_path if artifacts else None,
+                submission_sha256,
+                normalized_submission_sha256,
                 versions.benchmark if versions else None,
                 versions.git_sha if versions else None,
                 _to_int_bool(versions.git_dirty) if versions else None,

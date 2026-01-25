@@ -16,6 +16,8 @@ Many existing “agent benchmarks” test code correctness or synthetic tasks, n
 - focused on tabular tasks,
 - and “contamination-resistant enough” by using recent tasks + no browsing + private holdout scoring.
 
+Operational assumption (current workflow): for Chutes and NanoGPT runs, treat cost as a non-constraint (high daily included limits) and optimize for iteration speed.
+
 ## Phase posture (important)
 - **Phases 1–5 are functionality-only (not secure).**
 - **Phase 6** introduces hard enforcement (isolation + strict mounts + egress allowlist).
@@ -27,6 +29,14 @@ In Phase 2, the agent is run manually (VSCode + Kilo) in a per-run workspace:
 - `python -m orchestrator.run_one create --competition-id <id>` creates `runs/<run_id>/workspace/`
 - you run Kilo inside that workspace and produce `submission.csv`
 - `python -m orchestrator.run_one finalize --competition-id <id> --run-id <run_id>` validates, scores (private holdout), and records results
+
+## Audit trail (what proves an agent actually ran)
+
+For any run `runs/<run_id>/`:
+- `runs/<run_id>/workspace/` contains the concrete artifacts the agent produced/edited (e.g. `train_model.py`, `submission.csv`).
+- `runs/<run_id>/result.json` contains the final private-holdout score plus `submission_sha256` (when recorded) so you can detect identical submissions across “different” runs/models.
+- Phase 3 (headless Kilo CLI) additionally writes `runs/<run_id>/artifacts/kilo_stdout.clean.jsonl`, which is Kilo’s JSON event stream (API request events, tool calls, and command outputs).
+- To rebuild the leaderboard from `runs/*/result.json` on disk: `python -m orchestrator.leaderboard --import-results --write-root`.
 
 ## Core protocol (Phase 1)
 Per competition we generate:

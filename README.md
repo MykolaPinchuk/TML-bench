@@ -56,5 +56,22 @@ Start here (in order):
 
 Note: the run time budget is recorded at `create` and enforced at `finalize` (timeouts are marked `status=timeout`). Finalize also updates `LEADERBOARD.md` / `LEADERBOARD.html` at repo root.
 
+## Where to find logs / evidence
+
+Each run lives under `runs/<run_id>/`:
+- `runs/<run_id>/workspace/` — the agent’s working directory (e.g. `train_model.py`, `submission.csv`)
+- `runs/<run_id>/RUN_INSTRUCTIONS.md` — the exact prompt/instructions given to the agent
+- `runs/<run_id>/run_state.json` — run metadata (provider/model/time budget)
+- `runs/<run_id>/result.json` — final outcome: status, private-holdout score, and `submission_sha256` (when available)
+- `runs/<run_id>/artifacts/` — raw agent logs (Phase 3 headless runs):
+  - `kilo_stdout.jsonl` / `kilo_stdout.clean.jsonl` — Kilo’s JSON event stream (API request events, tool calls, command outputs)
+  - `kilo_stderr.log` — Kilo stderr
+  - `kilo_run.json` — the exact `kilo ... --provider ... --model ...` argv used (newer runs)
+
+Across runs:
+- `results/results.sqlite` — local DB of recorded runs (source-of-truth for leaderboards)
+- `results/leaderboard.{json,csv,html}` and `LEADERBOARD.{md,html}` — generated views from the DB
+- Rebuild/refresh from on-disk `runs/*/result.json`: `python -m orchestrator.leaderboard --import-results --write-root`
+
 ## Data policy
 - Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).

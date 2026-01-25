@@ -10,8 +10,23 @@ from pathlib import Path
 from typing import Any
 
 
-def _utc_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+def _pacific_tz_name() -> str:
+    return "America/Los_Angeles"
+
+
+def _get_pacific_tz():
+    try:
+        from zoneinfo import ZoneInfo  # type: ignore
+
+        return ZoneInfo(_pacific_tz_name())
+    except Exception:
+        return None
+
+
+def _now_iso() -> str:
+    tz = _get_pacific_tz()
+    now = datetime.now(tz) if tz is not None else datetime.now(timezone.utc)
+    return now.replace(microsecond=0).isoformat()
 
 
 def _git_head_sha(repo_root: Path) -> str | None:
@@ -149,7 +164,7 @@ def make_result(
     run_id = new_run_id(prefix=run_id_prefix or competition_id)
     return RunResult(
         run_id=run_id,
-        created_at=_utc_iso(),
+        created_at=_now_iso(),
         competition_id=competition_id,
         status=status,
         metric_name=metric_name,

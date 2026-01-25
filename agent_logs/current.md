@@ -1,41 +1,33 @@
 # agent_logs/current.md
 
 ## Agent
-- id: agent00
+- id: agent01
 
 ## Timestamp (Pacific)
 - start: 2026-01-23
 
 ## Intent
-- Bootstrap repo-local agentic workflow scaffolding; keep artifacts/data out of git; enable clean multi-agent continuity.
+- Phase 3 (v3): verify Kilo CLI headless feasibility (“CLI capability spike”), then implement `run_one auto` + `sweep` if feasible.
 
-## Actions
-- Added repo-local workflow scaffolding (`repo_workflow.md`, `onboarding.md`, `HANDOFF.md`, `REPO_MAP.md`).
-- Added `.gitignore` guardrails for competition data, runs, artifacts, and sqlite DBs.
-- Added `.codex/skills/` procedures for `Onboard` / `checkpoint` / `handoff`.
-- Added local context enrichments and synced `agents.md` + `business_context.md` via `context-manager-1`.
-- Updated `prd.md` to add Phase 6 (security hardening) and clarify Phases 1–5 as non-secure.
-- Created `v1` branch and drafted Phase 1–3 low-level design: `docs/plan/v1.md`.
-- Implemented Phase 1 core library modules: `orchestrator/schemas.py`, `orchestrator/prepare_lib.py`, `orchestrator/validate.py`, `orchestrator/score.py`.
-- Added a toy competition spec + prepare script for local testing: `competitions/toy_regression/`.
-- Added pytest coverage for prepare determinism and validate+score roundtrip: `tests/test_prepare_validate_score.py`.
-- Tightened spec parsing validation and included `spec.yaml` hash in `public_manifest.json`.
-- Made the repo landing page human-friendly: `README.md` + `docs/overview.md`.
-- Added first real competition scaffold: `competitions/playground-series-s6e1/` (spec + prepare script + task README template).
-- Added a host-side sklearn baseline runner to exercise the Phase 1 protocol end-to-end: `scripts/run_baseline.py`, `orchestrator/baseline_sklearn.py`.
-- Added Phase 1 smoke script and a minimal `result.json` contract: `scripts/smoke_phase1.py`, `orchestrator/result.py`.
-- Added deterministic split mapping output (`private/split_mapping.csv`) and recorded its hash in `private/split.json`.
+## Notes
+- Next agent: update `id:` above if you are not agent00.
 
-## Result
-- Repo is ready for multi-agent work with stable onboarding/handoff docs and strict git hygiene.
-- LLD is ready to implement Phase 1 prepare/validate/score and Phase 3 Kilo CLI harness.
-- `pytest -q` passes locally for the Phase 1 core (2 tests).
+## Log
 
-## Next
-- If requested: checkpoint commit on `v1` for the LLD doc.
-- Start Phase 1 implementation: pick first competition, implement prepare/validate/score against fixtures.
-- Decide the first real competition ID and implement its `competitions/<id>/prepare_competition.py` using the generic `prepare_holdout_from_train`.
+### 2026-01-24 (Pacific) — Onboard
+- Read repo index/state docs; current slice is Phase 3 (v3) Kilo CLI headless capability spike → implement `run_one auto`/`sweep` only if CLI is workable.
+- Verified local sanity: `pytest -q` passes.
+- Opened Phase 3 plan + `orchestrator/run_one.py` + base prompt to understand where a headless Kilo invocation would plug in next.
 
-## Update (v2)
-- Started Phase 2 on branch `v2`: added manual run workspace creation + finalize workflow (`python -m orchestrator.run_one create/finalize`) with optional sqlite recording and leaderboard generation.
-- Updated Phase 2 to enforce the per-run time budget at finalize (default is 600s for `playground-series-s6e1`).
+### 2026-01-24 (Pacific) — Provider setup (Chutes + NanoGPT)
+- Added `scripts/setup_kilo_providers.py` to configure Kilo CLI providers from `secrets/provider_apis.txt` without committing credentials.
+- Configured Kilo CLI `chutes` provider and verified `kilo models --provider chutes` returns expected model ids.
+- Configured NanoGPT via OpenAI-compatible base URL (`https://nano-gpt.com/api/v1`) and verified a small headless Kilo run works with `--provider nanogpt`.
+
+### 2026-01-24 (Pacific) — Phase 3 smoke (180s budget)
+- First attempt via `python -m orchestrator.sweep ... --provider nanogpt --model deepseek/deepseek-v3.2 --kilo-timeout-seconds 180` timed out without producing `submission.csv`.
+- Added `orchestrator/agent_templates/train_model_fast.py` and made `run_one auto` copy it into the workspace and instruct Kilo to run it first.
+- Verified success: `python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --provider nanogpt --model-id deepseek/deepseek-v3.2 --kilo-timeout-seconds 180` produced a valid submission and result.
+
+### 2026-01-24 (Pacific) — Phase 3 checkpoint
+- Checkpoint before adding parallel sweep execution (concurrency) so sweeps can run faster without corrupting the sqlite leaderboard DB.

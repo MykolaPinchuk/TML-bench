@@ -364,6 +364,7 @@ Treat quotas as an operational parameter; no special design dependency other tha
 * backoff/retry handling
 * rate limiting at orchestrator level
 * per-run request cap optional (to avoid runaway costs)
+* for Chutes + NanoGPT (subscription-based, high daily included limits), assume cost is not the binding constraint; optimize for iteration speed instead
 
 ---
 

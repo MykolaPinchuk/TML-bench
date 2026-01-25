@@ -6,8 +6,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-def _utc_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+def _pacific_tz_name() -> str:
+    return "America/Los_Angeles"
+
+
+def _get_pacific_tz():
+    try:
+        from zoneinfo import ZoneInfo  # type: ignore
+
+        return ZoneInfo(_pacific_tz_name())
+    except Exception:
+        return None
+
+
+def _now_iso() -> str:
+    tz = _get_pacific_tz()
+    now = datetime.now(tz) if tz is not None else datetime.now(timezone.utc)
+    return now.replace(microsecond=0).isoformat()
 
 
 def _parse_iso(s: str) -> datetime:
@@ -59,7 +74,7 @@ def read_run_state(path: Path) -> RunState:
 def init_run_state(*, run_dir: Path, time_budget_seconds: int) -> Path:
     run_dir.mkdir(parents=True, exist_ok=True)
     state_path = run_dir / "run_state.json"
-    state = RunState(created_at=_utc_iso(), started_at=None, time_budget_seconds=time_budget_seconds)
+    state = RunState(created_at=_now_iso(), started_at=None, time_budget_seconds=time_budget_seconds)
     write_run_state(state_path, state)
     return state_path
 
@@ -84,4 +99,4 @@ def set_run_metadata(
 
 
 def start_timer(state: RunState) -> RunState:
-    return replace(state, started_at=_utc_iso())
+    return replace(state, started_at=_now_iso())
