@@ -52,3 +52,6 @@
   - `simple-baseline` (240s target)
   - `good-baseline` (600s target)
 - Added a deterministic per-run `SEED` (derived from `run_id`) and inject it into the headless prompt; `result.json` now records `seed` for reproducibility/variance tracking.
+
+### 2026-01-25 (Pacific) — Good-baseline sweep (600s)
+- Ran `good-baseline` pilot (2 models) and full sweep (8 models) for `playground-series-s6e1` with higher concurrency; all runs succeeded and the 8-model sweep produced unique normalized submission hashes (no within-sweep collisions).
