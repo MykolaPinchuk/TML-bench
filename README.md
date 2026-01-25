@@ -14,6 +14,7 @@ This repo’s end goal is an auditable leaderboard with per-run artifacts and pr
 ## Read me next (humans)
 - `LEADERBOARD.md` — current committed leaderboard snapshot.
 - `docs/overview.md` — high-level description of what we’re building and why.
+- `REPRODUCIBILITY.md` — pinned versions + rerun instructions (Phase 4).
 - `prd.md` — full PRD (phases, architecture, requirements).
 - `HANDOFF.md` — current slice + next steps.
 
