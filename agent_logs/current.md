@@ -35,3 +35,6 @@
 ### 2026-01-25 (Pacific) — No-baseline headless runs
 - Adjusted headless Kilo prompt to be shorter (read `RUN_INSTRUCTIONS.md` + focused harness rules) to improve compliance and avoid “stalling”.
 - Verified a no-baseline headless run can succeed (`playground-series-s6e1_ee85d335af8b`) and recorded distinct submission hashes vs. prior baseline-seeded runs.
+
+### 2026-01-25 (Pacific) — Baseline removal (v4)
+- Removed baseline seeding mode entirely (`--seed-baseline` removed); headless runs always start from scratch with an empty workspace (plus `public/` inputs).

@@ -63,12 +63,6 @@ python scripts/run_baseline.py --competition-dir competitions/playground-series-
 python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --provider chutes --model-id deepseek-ai/DeepSeek-V3.1-Terminus
 ```
 
-Note: baseline seeding is **off by default**. For smoke/debug only:
-
-```bash
-python -m orchestrator.run_one auto ... --seed-baseline
-```
-
 ### Sweep (batch)
 
 ```bash
@@ -90,4 +84,3 @@ Each run under `runs/<run_id>/` includes:
 - `artifacts/public_manifest.json` (hashed inventory of `competitions/<id>/public/`)
 
 The root `LEADERBOARD.md` also includes a “Duplicate submissions (by normalized hash)” section to surface identical outputs.
-

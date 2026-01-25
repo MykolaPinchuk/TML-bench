@@ -454,37 +454,20 @@ def cmd_auto(args: argparse.Namespace) -> int:
     )
     paths.instructions_path.write_text(rendered_prompt, encoding="utf-8")
 
-    if getattr(args, "seed_baseline", False):
-        # Optional: provide a fast baseline script to reduce agent wandering for short budgets.
-        baseline_src = repo_root / "orchestrator" / "agent_templates" / "train_model_fast.py"
-        baseline_dst = paths.workspace_dir / "train_model.py"
-        shutil.copyfile(baseline_src, baseline_dst)
-
     artifacts_dir = paths.artifacts_dir
     kilo_stdout = artifacts_dir / "kilo_stdout.jsonl"
     kilo_stderr = artifacts_dir / "kilo_stderr.log"
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
-    if getattr(args, "seed_baseline", False):
-        harness_instructions = (
-            "Use `train_model.py` as your main working file. "
-            "Step 1 (no edits): run `python train_model.py` exactly as provided and ensure it writes `submission.csv`. "
-            "If it fails to run or fails to write `submission.csv`, make the smallest possible fix to `train_model.py` and rerun until it works. "
-            "As soon as `submission.csv` is successfully written, STOP immediately (do not continue exploring). "
-            "Optional (only if there is ample time left): make at most one tiny hyperparameter tweak to the existing model and rerun. "
-            "Do NOT switch to slow models (`RandomForest*`, `ExtraTrees*`) or heavy one-hot/get_dummies pipelines."
-            "Do not install packages."
-        )
-    else:
-        harness_instructions = (
-            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-            "Choose a fast model that will finish well within the time budget: prefer `HistGradientBoostingRegressor`/`HistGradientBoostingClassifier` with `OrdinalEncoder` for categoricals. "
-            "Avoid slow choices like `RandomForest*`, `ExtraTrees*`, and heavy `OneHotEncoder` pipelines on large/high-cardinality data. "
-            "If `python train_model.py` runs longer than ~30s without producing output, stop and simplify (smaller model / fewer iterations / simpler preprocessing). "
-            "As soon as `submission.csv` is successfully written, STOP immediately (do not continue exploring). "
-            "Run `python train_model.py` early; iterate quickly only if time permits. "
-            "Do not install packages."
-        )
+    harness_instructions = (
+        "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
+        "Choose a fast model that will finish well within the time budget: prefer `HistGradientBoostingRegressor`/`HistGradientBoostingClassifier` with `OrdinalEncoder` for categoricals. "
+        "Avoid slow choices like `RandomForest*`, `ExtraTrees*`, and heavy `OneHotEncoder` pipelines on large/high-cardinality data. "
+        "If `python train_model.py` runs longer than ~30s without producing output, stop and simplify (smaller model / fewer iterations / simpler preprocessing). "
+        "As soon as `submission.csv` is successfully written, STOP immediately (do not continue exploring). "
+        "Run `python train_model.py` early; iterate quickly only if time permits. "
+        "Do not install packages."
+    )
 
     kilo_prompt = (
         f"Read {paths.instructions_path.name} and follow it exactly.\n"
@@ -697,11 +680,6 @@ def main() -> int:
     p_auto.add_argument("--temperature", type=float, default=None)
     p_auto.add_argument("--max-tokens", type=int, default=None)
     p_auto.add_argument("--kilo-timeout-seconds", type=int, default=None, help="Optional override for Kilo CLI timeout.")
-    p_auto.add_argument(
-        "--seed-baseline",
-        action="store_true",
-        help="If set, seed the workspace with a starter `train_model.py` baseline (debug/smoke mode; not recommended for benchmark sweeps).",
-    )
     p_auto.set_defaults(func=cmd_auto)
 
     p_ann = sub.add_parser("annotate", help="Update a run's model metadata and refresh the leaderboard.")

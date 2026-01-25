@@ -54,11 +54,6 @@ def main() -> int:
     ap.add_argument("--db-path", default="results/results.sqlite")
     ap.add_argument("--per-competition", action="store_true")
     ap.add_argument("--kilo-timeout-seconds", type=int, default=None)
-    ap.add_argument(
-        "--seed-baseline",
-        action="store_true",
-        help="If set, seed each run workspace with a starter `train_model.py` baseline (debug/smoke; not recommended for benchmark sweeps).",
-    )
     ap.add_argument("--only-provider", default=None, help="If set, only run models from this provider id.")
     ap.add_argument("--max-models", type=int, default=None, help="If set, limit to the first N models selected.")
     ap.add_argument("--max-runs", type=int, default=None, help="If set, stop after N total runs (across all models).")
@@ -122,7 +117,6 @@ def main() -> int:
             temperature=None,
             max_tokens=None,
             kilo_timeout_seconds=args.kilo_timeout_seconds,
-            seed_baseline=args.seed_baseline,
         )
         rc = int(cmd_auto(ns))
         return run_id, rc
