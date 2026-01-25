@@ -7,7 +7,7 @@ import json
 import shutil
 import sys
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from orchestrator.db import insert_run
 from orchestrator.kilo_cli import run_kilo, write_clean_jsonl
@@ -42,6 +42,32 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _parse_iso_datetime(s: str | None) -> datetime | None:
+    if not s:
+        return None
+    raw = str(s).strip()
+    if not raw:
+        return None
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    dt = datetime.fromisoformat(raw)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _headless_end_dt_from_kilo_run(*, state_started_at: str | None, kilo_meta: dict | None) -> datetime | None:
+    if not state_started_at or not kilo_meta:
+        return None
+    dur = kilo_meta.get("duration_seconds")
+    if not isinstance(dur, (int, float)):
+        return None
+    started = _parse_iso_datetime(state_started_at)
+    if started is None:
+        return None
+    return started + timedelta(seconds=float(dur))
+
+
 def _read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -66,14 +92,14 @@ def _compute_provenance(
     *,
     spec_path: Path,
     public_dir: Path,
-    run_dir: Path,
+    workspace_dir: Path,
     artifacts_dir: Path,
 ) -> tuple[Provenance, dict]:
     notes: dict = {}
 
     spec_sha = _sha256_file(spec_path) if spec_path.exists() else None
 
-    prompt_path = run_dir / "RUN_INSTRUCTIONS.md"
+    prompt_path = workspace_dir / "RUN_INSTRUCTIONS.md"
     prompt_sha = _sha256_file(prompt_path) if prompt_path.exists() else None
 
     public_manifest_sha = None
@@ -208,10 +234,11 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     if state.started_at is None:
         raise RuntimeError(f"Timer not started. Run: python -m orchestrator.run_one start --run-id {run_id}")
 
+    kilo_meta = _load_kilo_run_meta(run_dir)
     provenance, provenance_notes = _compute_provenance(
         spec_path=competition_dir / "spec.yaml",
         public_dir=competition_dir / "public",
-        run_dir=run_dir,
+        workspace_dir=workspace_dir,
         artifacts_dir=artifacts_dir,
     )
 
@@ -219,8 +246,11 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     if not submission_in.exists():
         raise FileNotFoundError(f"Missing submission: {submission_in}")
 
-    # End time is derived from submission mtime to avoid counting finalize delay.
-    end_dt = datetime.fromtimestamp(submission_in.stat().st_mtime, tz=timezone.utc)
+    # Manual runs: end time derived from submission mtime (ignore finalize delay).
+    # Headless runs: use Kilo duration to avoid under-counting time if the agent writes submission early.
+    end_dt = _headless_end_dt_from_kilo_run(state_started_at=state.started_at, kilo_meta=kilo_meta) or datetime.fromtimestamp(
+        submission_in.stat().st_mtime, tz=timezone.utc
+    )
     runtime_seconds = state.elapsed_seconds(now=end_dt)
 
     # Copy submission into artifacts for immutability.
@@ -332,8 +362,6 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     submission_sha256 = _sha256_file(submission_art)
     normalized_submission_sha256 = _sha256_file(normalized_art)
 
-    kilo_meta = _load_kilo_run_meta(run_dir)
-
     result = make_result(
         competition_id=args.competition_id,
         status="success",
@@ -419,12 +447,12 @@ def cmd_auto(args: argparse.Namespace) -> int:
     state = start_timer(state)
     write_run_state(state_path, state)
 
-    prompt = render_prompt(
+    rendered_prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
         override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
         time_budget_seconds=budget_seconds,
     )
-    paths.instructions_path.write_text(prompt, encoding="utf-8")
+    paths.instructions_path.write_text(rendered_prompt, encoding="utf-8")
 
     if getattr(args, "seed_baseline", False):
         # Optional: provide a fast baseline script to reduce agent wandering for short budgets.
@@ -438,24 +466,38 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
     if getattr(args, "seed_baseline", False):
-        kilo_prompt = (
-            f"Read {paths.instructions_path.name} and follow it exactly. "
-            "Do not ask questions. "
+        harness_instructions = (
             "Use `train_model.py` as your main working file. "
             "Step 1 (no edits): run `python train_model.py` exactly as provided and ensure it writes `submission.csv`. "
             "If it fails to run or fails to write `submission.csv`, make the smallest possible fix to `train_model.py` and rerun until it works. "
-            "Step 2 (one quick iteration): make exactly one small improvement edit to `train_model.py` (keep the existing preprocessing/pipeline; only adjust model choice/hyperparameters) and rerun. "
-            "Keep whichever version gives the best local validation metric while still producing `submission.csv`. "
+            "As soon as `submission.csv` is successfully written, STOP immediately (do not continue exploring). "
+            "Optional (only if there is ample time left): make at most one tiny hyperparameter tweak to the existing model and rerun. "
+            "Do NOT switch to slow models (`RandomForest*`, `ExtraTrees*`) or heavy one-hot/get_dummies pipelines."
             "Do not install packages."
         )
     else:
-        kilo_prompt = (
-            f"Read {paths.instructions_path.name} and follow it exactly. "
-            "Do not ask questions. "
+        harness_instructions = (
             "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
+            "Choose a fast model that will finish well within the time budget: prefer `HistGradientBoostingRegressor`/`HistGradientBoostingClassifier` with `OrdinalEncoder` for categoricals. "
+            "Avoid slow choices like `RandomForest*`, `ExtraTrees*`, and heavy `OneHotEncoder` pipelines on large/high-cardinality data. "
+            "If `python train_model.py` runs longer than ~30s without producing output, stop and simplify (smaller model / fewer iterations / simpler preprocessing). "
+            "As soon as `submission.csv` is successfully written, STOP immediately (do not continue exploring). "
             "Run `python train_model.py` early; iterate quickly only if time permits. "
             "Do not install packages."
         )
+
+    kilo_prompt = (
+        "You are running inside a restricted workspace.\n"
+        "- Do NOT read or write outside the workspace.\n"
+        "- Do NOT use paths with `..` and do NOT run commands like `find ..`.\n"
+        "- All required inputs are under `public/` in this workspace.\n\n"
+        "=== TASK INSTRUCTIONS (authoritative) ===\n"
+        f"{rendered_prompt.strip()}\n"
+        "=== END TASK INSTRUCTIONS ===\n\n"
+        "=== HARNESS INSTRUCTIONS (follow) ===\n"
+        f"{harness_instructions}\n"
+        "=== END HARNESS INSTRUCTIONS ===\n"
+    )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
 
     kr = run_kilo(
@@ -466,6 +508,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
         timeout_seconds=kilo_timeout,
         stdout_path=kilo_stdout,
         stderr_path=kilo_stderr,
+        stop_when_submission_path=paths.workspace_dir / "submission.csv",
     )
     _write_json(
         artifacts_dir / "kilo_run.json",
@@ -510,7 +553,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
     provenance, provenance_notes = _compute_provenance(
         spec_path=competition_dir / "spec.yaml",
         public_dir=competition_dir / "public",
-        run_dir=paths.run_dir,
+        workspace_dir=paths.workspace_dir,
         artifacts_dir=artifacts_dir,
     )
     result = make_result(

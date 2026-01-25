@@ -26,3 +26,8 @@
 ### 2026-01-25 (Pacific) — Provenance capture (Phase 4)
 - Added per-run provenance capture (spec/prompt/public manifest hashes; Kilo version; redacted Kilo config hash) into `result.json` + sqlite DB, and wrote `runs/<run_id>/artifacts/public_manifest.json`.
 - Refreshed root leaderboard; added a “Duplicate submissions” section to make identical outputs obvious.
+
+### 2026-01-25 (Pacific) — Headless run reliability fixes
+- Fixed provenance prompt hashing to point at `workspace/RUN_INSTRUCTIONS.md` (not the run dir).
+- Headless `run_one auto` now stops Kilo as soon as `submission.csv` appears, improving success rates under tight budgets.
+- Headless runtime accounting now uses Kilo duration (when available) instead of submission mtime, avoiding under-counting.
