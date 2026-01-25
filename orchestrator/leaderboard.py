@@ -75,6 +75,50 @@ def _df_to_markdown_table(df: pd.DataFrame) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _duplicate_submissions_df(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return pd.DataFrame()
+
+    needed = {"competition_id", "run_id", "provider", "model_id", "status", "score_raw", "normalized_submission_sha256"}
+    if not needed.issubset(set(df.columns)):
+        return pd.DataFrame()
+
+    d = df.copy()
+    d = d.fillna("")
+    d = d[(d["status"] == "success") & (d["normalized_submission_sha256"].astype(str).str.strip() != "")]
+    if d.empty:
+        return pd.DataFrame()
+
+    rows: list[dict[str, object]] = []
+    for (competition_id, norm_sha), g in d.groupby(["competition_id", "normalized_submission_sha256"], dropna=False):
+        n = int(len(g))
+        if n <= 1:
+            continue
+        g = g.copy()
+        g["score_raw"] = pd.to_numeric(g["score_raw"], errors="coerce")
+        g = g.sort_values(by=["score_raw", "run_id"], ascending=[True, True], na_position="last")
+
+        models = [f"{p}::{m}" for p, m in zip(g["provider"].astype(str), g["model_id"].astype(str), strict=False)]
+        run_ids = [str(x) for x in g["run_id"].tolist()]
+        rows.append(
+            {
+                "competition_id": str(competition_id),
+                "normalized_submission_sha256": str(norm_sha),
+                "count": n,
+                "score_raw": float(g["score_raw"].iloc[0]) if pd.notna(g["score_raw"].iloc[0]) else "",
+                "models": ", ".join(models[:5]) + ("…" if n > 5 else ""),
+                "run_ids": ", ".join(run_ids[:5]) + ("…" if n > 5 else ""),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame()
+
+    out = pd.DataFrame(rows)
+    out = out.sort_values(by=["competition_id", "count"], ascending=[True, False], na_position="last")
+    return out
+
+
 def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "TML-bench leaderboard") -> None:
     md_path = repo_root / "LEADERBOARD.md"
     html_path = repo_root / "LEADERBOARD.html"
@@ -130,6 +174,12 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
         best = best[best_cols]
         md += "## Best by model (per competition)\n\n"
         md += _df_to_markdown_table(best)
+
+        dup = _duplicate_submissions_df(df_sorted)
+        if not dup.empty:
+            md += "\n## Duplicate submissions (by normalized hash)\n\n"
+            md += _df_to_markdown_table(dup)
+
         md += "\n## All runs\n\n"
     md += _df_to_markdown_table(df)
     md_path.write_text(md, encoding="utf-8")
@@ -185,6 +235,12 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             if extra in best.columns:
                 best_cols.append(extra)
         html += best[best_cols].to_html(index=False, escape=True)
+
+        dup = _duplicate_submissions_df(df_sorted)
+        if not dup.empty:
+            html += "\n<h2>Duplicate submissions (by normalized hash)</h2>\n"
+            html += dup.to_html(index=False, escape=True)
+
         html += "\n<h2>All runs</h2>\n"
 
     html += df.to_html(index=False, escape=True)

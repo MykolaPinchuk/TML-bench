@@ -35,6 +35,11 @@ def ensure_db(db_path: str | Path) -> None:
               normalized_submission_path TEXT,
               submission_sha256 TEXT,
               normalized_submission_sha256 TEXT,
+              spec_sha256 TEXT,
+              prompt_sha256 TEXT,
+              public_manifest_sha256 TEXT,
+              kilo_version TEXT,
+              kilo_config_sha256 TEXT,
               benchmark_version TEXT,
               git_sha TEXT,
               git_dirty INTEGER
@@ -61,6 +66,16 @@ def ensure_db(db_path: str | Path) -> None:
             con.execute("ALTER TABLE runs ADD COLUMN submission_sha256 TEXT")
         if "normalized_submission_sha256" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN normalized_submission_sha256 TEXT")
+        if "spec_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN spec_sha256 TEXT")
+        if "prompt_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN prompt_sha256 TEXT")
+        if "public_manifest_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN public_manifest_sha256 TEXT")
+        if "kilo_version" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN kilo_version TEXT")
+        if "kilo_config_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN kilo_config_sha256 TEXT")
         con.commit()
     finally:
         con.close()
@@ -82,9 +97,27 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
         notes = artifacts.notes if artifacts else None
         submission_sha256 = None
         normalized_submission_sha256 = None
+        spec_sha256 = None
+        prompt_sha256 = None
+        public_manifest_sha256 = None
+        kilo_version = None
+        kilo_config_sha256 = None
         if isinstance(notes, dict):
             submission_sha256 = notes.get("submission_sha256")
             normalized_submission_sha256 = notes.get("normalized_submission_sha256")
+            # Backward-compatible: allow older result.json to store provenance in notes.
+            spec_sha256 = notes.get("spec_sha256")
+            prompt_sha256 = notes.get("prompt_sha256")
+            public_manifest_sha256 = notes.get("public_manifest_sha256")
+            kilo_version = notes.get("kilo_version")
+            kilo_config_sha256 = notes.get("kilo_config_sha256")
+
+        if run.provenance is not None:
+            spec_sha256 = run.provenance.spec_sha256 or spec_sha256
+            prompt_sha256 = run.provenance.prompt_sha256 or prompt_sha256
+            public_manifest_sha256 = run.provenance.public_manifest_sha256 or public_manifest_sha256
+            kilo_version = run.provenance.kilo_version or kilo_version
+            kilo_config_sha256 = run.provenance.kilo_config_sha256 or kilo_config_sha256
         con.execute(
             """
             INSERT OR REPLACE INTO runs (
@@ -94,8 +127,9 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
               provider, model_id, mode, temperature, max_tokens,
               submission_path, normalized_submission_path,
               submission_sha256, normalized_submission_sha256,
+              spec_sha256, prompt_sha256, public_manifest_sha256, kilo_version, kilo_config_sha256,
               benchmark_version, git_sha, git_dirty
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -117,6 +151,11 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
                 artifacts.normalized_submission_path if artifacts else None,
                 submission_sha256,
                 normalized_submission_sha256,
+                spec_sha256,
+                prompt_sha256,
+                public_manifest_sha256,
+                kilo_version,
+                kilo_config_sha256,
                 versions.benchmark if versions else None,
                 versions.git_sha if versions else None,
                 _to_int_bool(versions.git_dirty) if versions else None,

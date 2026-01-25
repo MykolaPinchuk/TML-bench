@@ -151,6 +151,37 @@
     </tr>
   </tbody>
 </table>
+<h2>Duplicate submissions (by normalized hash)</h2>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>competition_id</th>
+      <th>normalized_submission_sha256</th>
+      <th>count</th>
+      <th>score_raw</th>
+      <th>models</th>
+      <th>run_ids</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>playground-series-s6e1</td>
+      <td>19a144047d36120f…</td>
+      <td>6</td>
+      <td>8.810056</td>
+      <td>nanogpt::mistralai/devstral-2-123b-instruct-2512, chutes::deepseek-ai/DeepSeek-V3.1-Terminus, nanogpt::qwen/qwen3-next-80b-a3b-thinking, chutes::zai-org/GLM-4.6-FP8, chutes::deepseek-ai/DeepSeek-V3.1-Terminus…</td>
+      <td>playground-series-s6e1_5af29623df1f, playground-series-s6e1_86285db87971, playground-series-s6e1_ae22edea50fd, playground-series-s6e1_bc7d5e2cebba, playground-series-s6e1_dd00b22265d0…</td>
+    </tr>
+    <tr>
+      <td>playground-series-s6e1</td>
+      <td>702e691858192e39…</td>
+      <td>6</td>
+      <td>8.801154</td>
+      <td>chutes::zai-org/GLM-4.6-FP8, chutes::zai-org/GLM-4.6-FP8, nanogpt::deepseek/deepseek-v3.2, nanogpt::deepseek/deepseek-v3.2, chutes::Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8…</td>
+      <td>playground-series-s6e1_00d1d75defba, playground-series-s6e1_27c41b70a805, playground-series-s6e1_452b3aff53fe, playground-series-s6e1_4ef11356d2e4, playground-series-s6e1_7263ee8bfc0c…</td>
+    </tr>
+  </tbody>
+</table>
 <h2>All runs</h2>
 <table border="1" class="dataframe">
   <thead>

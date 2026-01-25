@@ -13,7 +13,8 @@ from orchestrator.db import insert_run
 from orchestrator.kilo_cli import run_kilo, write_clean_jsonl
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, write_root_leaderboard
 from orchestrator.prompting import render_prompt
-from orchestrator.result import ModelConfig, make_result, read_result_json, write_result_json
+from orchestrator.provenance import kilo_config_hash, kilo_version, public_manifest
+from orchestrator.result import ModelConfig, Provenance, make_result, read_result_json, write_result_json
 from orchestrator.run_state import init_run_state, read_run_state, set_run_metadata, start_timer, write_run_state
 from orchestrator.run_workspace import copy_public_inputs, create_run_dirs, default_run_id
 from orchestrator.schemas import load_spec
@@ -59,6 +60,46 @@ def _load_kilo_run_meta(run_dir: Path) -> dict | None:
     except Exception:
         return None
     return obj if isinstance(obj, dict) else None
+
+
+def _compute_provenance(
+    *,
+    spec_path: Path,
+    public_dir: Path,
+    run_dir: Path,
+    artifacts_dir: Path,
+) -> tuple[Provenance, dict]:
+    notes: dict = {}
+
+    spec_sha = _sha256_file(spec_path) if spec_path.exists() else None
+
+    prompt_path = run_dir / "RUN_INSTRUCTIONS.md"
+    prompt_sha = _sha256_file(prompt_path) if prompt_path.exists() else None
+
+    public_manifest_sha = None
+    if public_dir.exists():
+        man, man_sha = public_manifest(public_dir=public_dir)
+        public_manifest_sha = man_sha
+        man_path = artifacts_dir / "public_manifest.json"
+        _write_json(man_path, man)
+        notes["public_manifest_path"] = str(man_path)
+        notes["public_files_count"] = len(man.get("files") or [])
+
+    kv = kilo_version()
+    cfg = kilo_config_hash()
+    if cfg is not None:
+        notes["kilo_config_path"] = cfg.config_path
+
+    return (
+        Provenance(
+            spec_sha256=spec_sha,
+            prompt_sha256=prompt_sha,
+            public_manifest_sha256=public_manifest_sha,
+            kilo_version=kv,
+            kilo_config_sha256=cfg.sha256 if cfg is not None else None,
+        ),
+        notes,
+    )
 
 
 def _write_and_maybe_record(
@@ -167,6 +208,13 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     if state.started_at is None:
         raise RuntimeError(f"Timer not started. Run: python -m orchestrator.run_one start --run-id {run_id}")
 
+    provenance, provenance_notes = _compute_provenance(
+        spec_path=competition_dir / "spec.yaml",
+        public_dir=competition_dir / "public",
+        run_dir=run_dir,
+        artifacts_dir=artifacts_dir,
+    )
+
     submission_in = workspace_dir / "submission.csv"
     if not submission_in.exists():
         raise FileNotFoundError(f"Missing submission: {submission_in}")
@@ -210,8 +258,13 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             normalized_submission_path=None,
             repo_root=repo_root,
             run_id_prefix=args.competition_id,
+            provenance=provenance,
         )
-        result = replace(result, run_id=run_id)
+        result = replace(
+            result,
+            run_id=run_id,
+            artifacts=replace(result.artifacts, notes=provenance_notes) if result.artifacts is not None else None,
+        )
         result_path = run_dir / "result.json"
         _write_and_maybe_record(
             repo_root=repo_root,
@@ -246,8 +299,14 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             normalized_submission_path=None,
             repo_root=repo_root,
             run_id_prefix=args.competition_id,
+            provenance=provenance,
         )
         result_path = run_dir / "result.json"
+        result = replace(
+            result,
+            run_id=run_id,
+            artifacts=replace(result.artifacts, notes=provenance_notes) if result.artifacts is not None else None,
+        )
         _write_and_maybe_record(
             repo_root=repo_root,
             competition_id=args.competition_id,
@@ -289,6 +348,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         normalized_submission_path=normalized_art,
         repo_root=repo_root,
         run_id_prefix=args.competition_id,
+        provenance=provenance,
     )
 
     # Overwrite run_id to match directory name.
@@ -296,6 +356,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         "submission_sha256": submission_sha256,
         "normalized_submission_sha256": normalized_submission_sha256,
     }
+    notes.update(provenance_notes)
     if kilo_meta is not None:
         notes["kilo"] = kilo_meta
     result = replace(
@@ -365,26 +426,36 @@ def cmd_auto(args: argparse.Namespace) -> int:
     )
     paths.instructions_path.write_text(prompt, encoding="utf-8")
 
-    # Provide a fast baseline script to reduce agent wandering for short budgets.
-    baseline_src = repo_root / "orchestrator" / "agent_templates" / "train_model_fast.py"
-    baseline_dst = paths.workspace_dir / "train_model.py"
-    shutil.copyfile(baseline_src, baseline_dst)
+    if getattr(args, "seed_baseline", False):
+        # Optional: provide a fast baseline script to reduce agent wandering for short budgets.
+        baseline_src = repo_root / "orchestrator" / "agent_templates" / "train_model_fast.py"
+        baseline_dst = paths.workspace_dir / "train_model.py"
+        shutil.copyfile(baseline_src, baseline_dst)
 
     artifacts_dir = paths.artifacts_dir
     kilo_stdout = artifacts_dir / "kilo_stdout.jsonl"
     kilo_stderr = artifacts_dir / "kilo_stderr.log"
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
-    kilo_prompt = (
-        f"Read {paths.instructions_path.name} and follow it exactly. "
-        "Do not ask questions. "
-        "Use `train_model.py` as your main working file. "
-        "Step 1 (no edits): run `python train_model.py` exactly as provided and ensure it writes `submission.csv`. "
-        "If it fails to run or fails to write `submission.csv`, make the smallest possible fix to `train_model.py` and rerun until it works. "
-        "Step 2 (one quick iteration): make exactly one small improvement edit to `train_model.py` (keep the existing preprocessing/pipeline; only adjust model choice/hyperparameters) and rerun. "
-        "Keep whichever version gives the best local validation metric while still producing `submission.csv`. "
-        "Do not install packages."
-    )
+    if getattr(args, "seed_baseline", False):
+        kilo_prompt = (
+            f"Read {paths.instructions_path.name} and follow it exactly. "
+            "Do not ask questions. "
+            "Use `train_model.py` as your main working file. "
+            "Step 1 (no edits): run `python train_model.py` exactly as provided and ensure it writes `submission.csv`. "
+            "If it fails to run or fails to write `submission.csv`, make the smallest possible fix to `train_model.py` and rerun until it works. "
+            "Step 2 (one quick iteration): make exactly one small improvement edit to `train_model.py` (keep the existing preprocessing/pipeline; only adjust model choice/hyperparameters) and rerun. "
+            "Keep whichever version gives the best local validation metric while still producing `submission.csv`. "
+            "Do not install packages."
+        )
+    else:
+        kilo_prompt = (
+            f"Read {paths.instructions_path.name} and follow it exactly. "
+            "Do not ask questions. "
+            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
+            "Run `python train_model.py` early; iterate quickly only if time permits. "
+            "Do not install packages."
+        )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
 
     kr = run_kilo(
@@ -436,6 +507,12 @@ def cmd_auto(args: argparse.Namespace) -> int:
         temperature=args.temperature,
         max_tokens=args.max_tokens,
     )
+    provenance, provenance_notes = _compute_provenance(
+        spec_path=competition_dir / "spec.yaml",
+        public_dir=competition_dir / "public",
+        run_dir=paths.run_dir,
+        artifacts_dir=artifacts_dir,
+    )
     result = make_result(
         competition_id=args.competition_id,
         status=status,
@@ -450,6 +527,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
         normalized_submission_path=None,
         repo_root=repo_root,
         run_id_prefix=args.competition_id,
+        provenance=provenance,
     )
     result = replace(
         result,
@@ -457,6 +535,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
         artifacts=replace(
             result.artifacts,
             notes={
+                **provenance_notes,
                 "kilo": {
                     "returncode": kr.returncode,
                     "timeout_seconds": kilo_timeout,
@@ -579,6 +658,11 @@ def main() -> int:
     p_auto.add_argument("--temperature", type=float, default=None)
     p_auto.add_argument("--max-tokens", type=int, default=None)
     p_auto.add_argument("--kilo-timeout-seconds", type=int, default=None, help="Optional override for Kilo CLI timeout.")
+    p_auto.add_argument(
+        "--seed-baseline",
+        action="store_true",
+        help="If set, seed the workspace with a starter `train_model.py` baseline (debug/smoke mode; not recommended for benchmark sweeps).",
+    )
     p_auto.set_defaults(func=cmd_auto)
 
     p_ann = sub.add_parser("annotate", help="Update a run's model metadata and refresh the leaderboard.")
