@@ -38,3 +38,10 @@
 
 ### 2026-01-25 (Pacific) — Baseline removal (v4)
 - Removed baseline seeding mode entirely (`--seed-baseline` removed); headless runs always start from scratch with an empty workspace (plus `public/` inputs).
+
+### 2026-01-25 (Pacific) — Collision investigation + sweep robustness
+- Relaxed the headless harness prompt to avoid over-prescribing a single “fast HGB baseline” and removed the default “stop immediately on first submission” behavior (`orchestrator/run_one.py`); added `run_one auto --stop-when-submission` for quick smoke runs.
+- Fixed Kilo process cleanup so timeouts don’t leave `python train_model.py` running and writing `submission.csv` *after* the orchestrator records a timeout (kill the whole process group; `orchestrator/kilo_cli.py`).
+- Reran no-baseline probes:
+  - `v4_expanded_probe.json` sweep @240s, concurrency=3: 7/10 success; scores showed more dispersion than previous stop-on-submission runs, but some submission hash collisions remain.
+  - Added working models and ran `v4_probe_added.json` sweep @240s: 3/4 success; one more “baseline-like” collision observed (same normalized submission hash across multiple models).

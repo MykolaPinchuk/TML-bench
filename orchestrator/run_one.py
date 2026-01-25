@@ -461,11 +461,11 @@ def cmd_auto(args: argparse.Namespace) -> int:
 
     harness_instructions = (
         "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-        "Choose a fast model that will finish well within the time budget: prefer `HistGradientBoostingRegressor`/`HistGradientBoostingClassifier` with `OrdinalEncoder` for categoricals. "
-        "Avoid slow choices like `RandomForest*`, `ExtraTrees*`, and heavy `OneHotEncoder` pipelines on large/high-cardinality data. "
-        "If `python train_model.py` runs longer than ~30s without producing output, stop and simplify (smaller model / fewer iterations / simpler preprocessing). "
-        "As soon as `submission.csv` is successfully written, STOP immediately (do not continue exploring). "
-        "Run `python train_model.py` early; iterate quickly only if time permits. "
+        "Run `python train_model.py` early to validate the full pipeline end-to-end. "
+        "Start with a fast baseline that reliably finishes (e.g., a linear model like `Ridge` and/or a tree model like `HistGradientBoostingRegressor`). "
+        "Avoid very slow choices (full `OneHotEncoder` on high-cardinality categoricals, large `RandomForest*`/`ExtraTrees*`, etc.) unless you can keep them comfortably within the budget. "
+        "Then use the remaining time budget to do 1–3 quick iterations (encoding/model choice/hyperparameters) to improve your printed local validation score. "
+        "If your training run exceeds ~60s, simplify (smaller model / fewer iterations / simpler preprocessing) so you always leave a valid `submission.csv` behind. "
         "Do not install packages."
     )
 
@@ -487,7 +487,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
         timeout_seconds=kilo_timeout,
         stdout_path=kilo_stdout,
         stderr_path=kilo_stderr,
-        stop_when_submission_path=paths.workspace_dir / "submission.csv",
+        stop_when_submission_path=(paths.workspace_dir / "submission.csv") if getattr(args, "stop_when_submission", False) else None,
     )
     _write_json(
         artifacts_dir / "kilo_run.json",
@@ -680,6 +680,11 @@ def main() -> int:
     p_auto.add_argument("--temperature", type=float, default=None)
     p_auto.add_argument("--max-tokens", type=int, default=None)
     p_auto.add_argument("--kilo-timeout-seconds", type=int, default=None, help="Optional override for Kilo CLI timeout.")
+    p_auto.add_argument(
+        "--stop-when-submission",
+        action="store_true",
+        help="If set, terminate the Kilo process shortly after `submission.csv` first appears. Useful for quick smoke runs; disabled by default for sweeps.",
+    )
     p_auto.set_defaults(func=cmd_auto)
 
     p_ann = sub.add_parser("annotate", help="Update a run's model metadata and refresh the leaderboard.")

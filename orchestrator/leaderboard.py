@@ -160,7 +160,10 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             na_position="last",
         )
         group_cols = ["competition_id", "provider", "model_id", "mode"]
-        best = df_sorted[df_sorted["_runnable_model"]].groupby(group_cols, dropna=False).head(1).copy()
+        best_src = df_sorted[df_sorted["_runnable_model"]].copy()
+        if "status" in best_src.columns:
+            best_src = best_src[best_src["status"] == "success"]
+        best = best_src.groupby(group_cols, dropna=False).head(1).copy()
         if "_created_at_dt" in best.columns:
             best = best.drop(columns=["_created_at_dt"])
         if "_runnable_model" in best.columns:
@@ -232,7 +235,10 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             na_position="last",
         )
         group_cols = ["competition_id", "provider", "model_id", "mode"]
-        best = df_sorted[df_sorted["_runnable_model"]].groupby(group_cols, dropna=False).head(1).copy()
+        best_src = df_sorted[df_sorted["_runnable_model"]].copy()
+        if "status" in best_src.columns:
+            best_src = best_src[best_src["status"] == "success"]
+        best = best_src.groupby(group_cols, dropna=False).head(1).copy()
         if "_created_at_dt" in best.columns:
             best = best.drop(columns=["_created_at_dt"])
         if "_runnable_model" in best.columns:

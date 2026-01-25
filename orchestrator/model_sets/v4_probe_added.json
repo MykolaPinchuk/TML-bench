@@ -1,0 +1,27 @@
+{
+  "name": "v4_probe_added",
+  "description": "Additional Chutes + NanoGPT models to probe score dispersion / hash collisions (no-baseline headless runs).",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+      "label": "Llama 3.1 8B Instruct (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "microsoft/Phi-3.5-mini-instruct",
+      "label": "Phi 3.5 Mini Instruct (Chutes)"
+    },
+    {
+      "provider": "nanogpt",
+      "model_id": "meta-llama/llama-3.1-8b-instruct",
+      "label": "Llama 3.1 8B Instruct (NanoGPT)"
+    },
+    {
+      "provider": "nanogpt",
+      "model_id": "google/gemma-2-9b-it",
+      "label": "Gemma 2 9B IT (NanoGPT)"
+    }
+  ]
+}
+
