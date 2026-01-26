@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 
 from orchestrator.db import insert_run
 from orchestrator.kilo_cli import run_kilo, write_clean_jsonl
+from orchestrator.baselines import ensure_competition_baselines
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
 from orchestrator.prompting import render_prompt
 from orchestrator.provenance import kilo_config_hash, kilo_version, public_manifest
@@ -146,6 +147,17 @@ def _write_and_maybe_record(
     if not db_path:
         return
     dbp = Path(db_path)
+    # Ensure absolute normalization baselines are present (constant+hgb) before writing leaderboards.
+    try:
+        ensure_competition_baselines(
+            db_path=dbp,
+            competition_id=competition_id,
+            competition_dir=repo_root / "competitions" / competition_id,
+            baseline_types=["hgb", "constant"],
+            repo_root=repo_root,
+        )
+    except Exception:  # noqa: BLE001
+        pass
     insert_run(dbp, result)
     lb_paths = LeaderboardPaths(
         json_path=repo_root / "results" / "leaderboard.json",

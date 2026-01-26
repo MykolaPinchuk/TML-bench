@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from orchestrator.db import insert_run
+from orchestrator.baselines import ensure_competition_baselines
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
 from orchestrator.result import read_result_json
 from orchestrator.run_one import cmd_auto
@@ -201,6 +202,16 @@ def main() -> int:
         # Import results into DB/leaderboards once, deterministically.
         if args.db_path:
             dbp = Path(args.db_path)
+            try:
+                ensure_competition_baselines(
+                    db_path=dbp,
+                    competition_id=args.competition_id,
+                    competition_dir=repo_root / "competitions" / args.competition_id,
+                    baseline_types=["hgb", "constant"],
+                    repo_root=repo_root,
+                )
+            except Exception:  # noqa: BLE001
+                pass
             for run_id in run_ids:
                 result_path = repo_root / "runs" / run_id / "result.json"
                 if not result_path.exists():

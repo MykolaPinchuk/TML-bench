@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from orchestrator.baseline_sklearn import run_baseline
-from orchestrator.db import insert_baseline
+from orchestrator.db import fetch_baselines, insert_baseline
 from orchestrator.hash_utils import sha256_file
 from orchestrator.schemas import load_spec
 
@@ -43,37 +43,41 @@ def _baseline_out_dir(*, repo_root: Path, competition_id: str, baseline_type: st
     return repo_root / "tmp" / "baselines" / competition_id / baseline_type
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description="Compute and record host baselines (hgb/constant) into results/results.sqlite.")
-    ap.add_argument("--competition-id", required=True)
-    ap.add_argument("--db-path", default=str(_repo_root() / "results" / "results.sqlite"))
-    ap.add_argument(
-        "--baseline-types",
-        default="hgb,constant",
-        help="Comma-separated list from {hgb,constant}. Default: hgb,constant",
-    )
-    args = ap.parse_args()
+def ensure_competition_baselines(
+    *,
+    db_path: str | Path,
+    competition_id: str,
+    competition_dir: Path,
+    baseline_types: list[str] | None = None,
+    repo_root: Path | None = None,
+) -> dict[str, object]:
+    baseline_types = baseline_types or ["hgb", "constant"]
+    baseline_types = [str(x).strip().lower() for x in baseline_types if str(x).strip()]
+    for t in baseline_types:
+        if t not in {"hgb", "constant"}:
+            raise ValueError(f"Invalid baseline type: {t}")
 
-    repo_root = _repo_root()
-    competition_dir = repo_root / "competitions" / args.competition_id
+    try:
+        existing = fetch_baselines(db_path)
+    except Exception:  # noqa: BLE001
+        existing = []
+    have = {(str(r.get("competition_id")), str(r.get("baseline_type"))) for r in existing if isinstance(r, dict)}
+    missing = [t for t in baseline_types if (competition_id, t) not in have]
+    if not missing:
+        return {"competition_id": competition_id, "status": "ok", "missing": [], "recorded": []}
+
+    repo_root = repo_root or _repo_root()
     public_dir, private_dir = _ensure_dirs_exist(competition_dir=competition_dir)
 
     spec_path = competition_dir / "spec.yaml"
     spec = load_spec(spec_path)
     spec_sha = sha256_file(spec_path) if spec_path.exists() else None
     public_manifest_sha = _read_public_manifest_sha(public_dir)
-
-    baseline_types = [x.strip().lower() for x in str(args.baseline_types).split(",") if x.strip()]
-    if not baseline_types:
-        raise ValueError("No baseline types selected.")
-    for t in baseline_types:
-        if t not in {"hgb", "constant"}:
-            raise ValueError(f"Invalid baseline type: {t}")
-
     created_at = _now_utc_iso()
-    rows: list[dict[str, object]] = []
-    for baseline_type in baseline_types:
-        out_dir = _baseline_out_dir(repo_root=repo_root, competition_id=args.competition_id, baseline_type=baseline_type)
+
+    recorded: list[str] = []
+    for baseline_type in missing:
+        out_dir = _baseline_out_dir(repo_root=repo_root, competition_id=competition_id, baseline_type=baseline_type)
         out_dir.mkdir(parents=True, exist_ok=True)
         submission_out = out_dir / "submission.csv"
         normalized_out = out_dir / "submission.normalized.csv"
@@ -88,8 +92,8 @@ def main() -> int:
         )
 
         insert_baseline(
-            args.db_path,
-            competition_id=args.competition_id,
+            db_path,
+            competition_id=competition_id,
             baseline_type=baseline_type,
             created_at=created_at,
             metric_name=outputs.metric_name or spec.metric.name,
@@ -101,17 +105,39 @@ def main() -> int:
             spec_sha256=spec_sha,
             public_manifest_sha256=public_manifest_sha,
         )
-        rows.append(
-            {
-                "competition_id": args.competition_id,
-                "baseline_type": baseline_type,
-                "metric_name": outputs.metric_name or spec.metric.name,
-                "score_raw": outputs.private_holdout_score_raw,
-                "score_normalized": outputs.private_holdout_score_normalized,
-            }
-        )
+        recorded.append(baseline_type)
 
-    print(json.dumps({"created_at": created_at, "baselines": rows}, indent=2, sort_keys=True))
+    return {"competition_id": competition_id, "status": "ok", "missing": missing, "recorded": recorded}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Compute and record host baselines (hgb/constant) into results/results.sqlite.")
+    ap.add_argument("--competition-id", required=True)
+    ap.add_argument("--db-path", default=str(_repo_root() / "results" / "results.sqlite"))
+    ap.add_argument(
+        "--baseline-types",
+        default="hgb,constant",
+        help="Comma-separated list from {hgb,constant}. Default: hgb,constant",
+    )
+    args = ap.parse_args()
+
+    repo_root = _repo_root()
+    competition_dir = repo_root / "competitions" / args.competition_id
+    baseline_types = [x.strip().lower() for x in str(args.baseline_types).split(",") if x.strip()]
+    if not baseline_types:
+        raise ValueError("No baseline types selected.")
+    for t in baseline_types:
+        if t not in {"hgb", "constant"}:
+            raise ValueError(f"Invalid baseline type: {t}")
+
+    res = ensure_competition_baselines(
+        db_path=args.db_path,
+        competition_id=args.competition_id,
+        competition_dir=competition_dir,
+        baseline_types=baseline_types,
+        repo_root=repo_root,
+    )
+    print(json.dumps({"created_at": _now_utc_iso(), "result": res}, indent=2, sort_keys=True))
     return 0
 
 
