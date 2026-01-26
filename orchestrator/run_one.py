@@ -515,7 +515,10 @@ def cmd_auto(args: argparse.Namespace) -> int:
         harness_instructions = (
             "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
             "Run `python train_model.py` early to validate the full pipeline end-to-end. "
-            "Start with a fast baseline that reliably finishes (e.g., a linear model like `Ridge` and/or `HistGradientBoostingRegressor`). "
+            "Start with a fast baseline that reliably finishes. Then do a minimal diversity pass: implement exactly TWO candidate models/pipelines and pick the best by local validation using SEED. "
+            "Suggested choices: if this looks like regression, try `Ridge` vs `HistGradientBoostingRegressor`; if classification, try `LogisticRegression` vs `HistGradientBoostingClassifier`. "
+            "Keep preprocessing simple and fast (numeric: `SimpleImputer`; categorical: `OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)` + `SimpleImputer`). "
+            "If validation scores are extremely close, break ties deterministically using SEED (e.g., SEED parity) so different runs don't always choose the same pipeline. "
             "Avoid very slow choices (full `OneHotEncoder` on high-cardinality categoricals, large `RandomForest*`/`ExtraTrees*`, etc.). "
             "If your training run exceeds ~60s, simplify so you always leave a valid `submission.csv` behind. "
             "Do not install packages."

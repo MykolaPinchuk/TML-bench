@@ -81,6 +81,14 @@ python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-pa
 python -m orchestrator.leaderboard --import-results --write-root
 ```
 
+## Run health report
+
+Summarize success/timeout/invalid rates by model/config from `results/results.sqlite`:
+
+```bash
+python -m orchestrator.report
+```
+
 ## What gets recorded per run
 
 Each run under `runs/<run_id>/` includes:
