@@ -39,27 +39,38 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
     - per-run Kilo JSON event logs under `runs/<run_id>/artifacts/kilo_stdout*.jsonl`
     - `runs/<run_id>/artifacts/kilo_run.json` and `result.json` notes with submission hashes
 
+- Baseline policy + sweep reliability (v4):
+  - Workspace baseline seeding removed entirely (no injected `train_model.py`).
+  - Headless Kilo timeouts now kill the whole process group to avoid orphaned `python train_model.py` processes: `orchestrator/kilo_cli.py`.
+  - Headless prompt profiles:
+    - `simple-baseline` (240s): `python -m orchestrator.sweep --profile simple-baseline ...`
+    - `good-baseline` (600s): `python -m orchestrator.sweep --profile good-baseline ...`
+  - Default sweep parallelism: if >4 models selected, default `--concurrency 5` (else 4): `orchestrator/sweep.py`.
+  - Per-run deterministic `seed` recorded (derived from `run_id`) to track within-model variance: `orchestrator/run_one.py`.
+
+- Leaderboard collision/variance visibility:
+  - Root `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
+  - Secondary regression metric `r2` recorded as `secondary_r2` and surfaced in leaderboard outputs when present: `orchestrator/score.py`, `orchestrator/db.py`, `orchestrator/leaderboard.py`.
+
+- Host baselines:
+  - Deterministic sklearn baseline: `python scripts/run_baseline.py --competition-dir ... --baseline-type hgb`
+  - Trivial constant baseline floor: `python scripts/run_baseline.py --competition-dir ... --baseline-type constant`
+
 ### Next (ordered)
-1) Phase 4 reproducibility packaging:
-   - pin Python dependencies (lockfile) and pin Kilo version in docs
-   - capture stronger provenance per run:
-     - spec hash
-     - rendered prompt hash (base + override + params)
-     - public data manifest hashes
-     - Kilo version + selected provider config hash (redacted; no secrets)
-2) Separate “non-agent baseline” from “agent runs”:
-   - keep a deterministic host baseline per competition (sanity)
-   - remove baseline injection for leaderboard sweeps (keep only as optional smoke/debug mode)
-3) Documentation improvements for rerunability:
-   - `REPRODUCIBILITY.md` with exact steps (incl. provider setup script, required env, pins)
-   - clarify what artifacts are expected for audit (run dirs, logs, hashes, leaderboard rebuild command)
+1) Reduce `simple-baseline` collisions + failures:
+   - Consider provider/model-specific tweaks (e.g., NanoGPT timeout bump or retry-on-timeout) while keeping `simple-baseline` nominally 240s.
+   - Tighten the prompt to force a small amount of diversity (e.g., try both `Ridge` and `HistGradientBoostingRegressor` and pick best local RMSE).
+2) Reproducibility packaging follow-through:
+   - Ensure DB migrations cover new columns (`seed`, `prompt_profile`, `secondary_r2`) and document them.
+   - Keep `REPRODUCIBILITY.md` current with profiles and baseline commands.
 
 ### Open questions
 - Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
-- Baseline policy: what is the default Phase 4 posture for sweeps (blank workspace vs seeded helper file) and time budget?
+- Baseline posture: how aggressive should `simple-baseline` be about forcing diversity vs. maximizing success rate?
 
 ## Known issues / current breakage
 - Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
+- `simple-baseline` variance sweeps still show heavy output collisions (same normalized submission across different models/runs) and occasional timeouts (e.g., NanoGPT deepseek-v3.2 @240s).
 
 ## Git notes (handoff)
 - `.gitignore` updates made:
