@@ -72,8 +72,8 @@ def main() -> int:
     ap.add_argument(
         "--concurrency",
         type=int,
-        default=4,
-        help="If >1, run multiple headless runs in parallel. DB/leaderboard updates are done once at the end.",
+        default=None,
+        help="If >1, run multiple headless runs in parallel. Default: 5 if >4 models selected, else 4. DB/leaderboard updates are done once at the end.",
     )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -105,8 +105,11 @@ def main() -> int:
 
     if args.runs_per_model < 1:
         raise ValueError("--runs-per-model must be >= 1")
-    if args.concurrency < 1:
+    if args.concurrency is None:
+        args.concurrency = 5 if len(models) > 4 else 4
+    if int(args.concurrency) < 1:
         raise ValueError("--concurrency must be >= 1")
+    args.concurrency = int(args.concurrency)
 
     planned = [(m["provider"], m["model_id"]) for m in models for _ in range(args.runs_per_model)]
     if args.max_runs is not None:

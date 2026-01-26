@@ -60,3 +60,8 @@
 - Added host `--baseline-type constant` (constant predictor) to establish a floor score.
 - Added secondary `r2` computation for regression runs (stored in `result.json` notes as `secondary_r2` and in sqlite as `secondary_r2` when imported).
 - Leaderboard now groups best/duplicates by `(budget_time_seconds, prompt_profile)` and includes a per-model/config variance summary.
+
+### 2026-01-25 (Pacific) — Variance sweeps (3 reps/model, concurrency=5)
+- Ran `simple-baseline` (240s) and `good-baseline` (600s) variance sweeps over `v3_fast.json` with `--runs-per-model 3 --concurrency 5`.
+- `simple-baseline`: 22/24 success (2 failures in `nanogpt::deepseek/deepseek-v3.2`); many within-config collisions remain.
+- `good-baseline`: 24/24 success; all normalized submission hashes unique within that sweep and per-model RMSE stddev is small but non-zero (~0.004–0.008).
