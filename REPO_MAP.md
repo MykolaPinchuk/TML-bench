@@ -20,6 +20,7 @@ Keep this file short. Update it only when something important changes.
 - `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
 - `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).
 - `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).
+- `orchestrator/baselines.py` — compute + record host baselines (`hgb`, `constant`) into sqlite for absolute normalization.
 - `scripts/setup_kilo_providers.py` — configure Kilo providers from `secrets/provider_apis.txt` (untracked).
 
 ## Where results live

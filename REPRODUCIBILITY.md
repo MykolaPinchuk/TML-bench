@@ -89,6 +89,21 @@ Summarize success/timeout/invalid rates by model/config from `results/results.sq
 python -m orchestrator.report
 ```
 
+## Baseline normalization (absolute signal)
+
+Compute and record two fixed host baselines per competition (`hgb` and `constant`) into the local sqlite DB:
+
+```bash
+python -m orchestrator.baselines --competition-id playground-series-s6e1
+python -m orchestrator.baselines --competition-id bank-customer-churn-ict-u-ai
+```
+
+Then regenerate the root leaderboard to include baseline-normalized aggregates:
+
+```bash
+python -m orchestrator.leaderboard --write-root
+```
+
 ## What gets recorded per run
 
 Each run under `runs/<run_id>/` includes:

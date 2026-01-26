@@ -49,6 +49,24 @@ def ensure_db(db_path: str | Path) -> None:
             )
             """
         )
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS baselines (
+              competition_id TEXT NOT NULL,
+              baseline_type TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              metric_name TEXT NOT NULL,
+              score_raw REAL,
+              score_normalized REAL,
+              local_validation_metric REAL,
+              submission_sha256 TEXT,
+              normalized_submission_sha256 TEXT,
+              spec_sha256 TEXT,
+              public_manifest_sha256 TEXT,
+              PRIMARY KEY (competition_id, baseline_type)
+            )
+            """
+        )
         # Backward-compatible migrations (in case DB existed before columns were added).
         cols = {row[1] for row in con.execute("PRAGMA table_info(runs)").fetchall()}
         if "runtime_seconds" not in cols:
@@ -85,6 +103,22 @@ def ensure_db(db_path: str | Path) -> None:
             con.execute("ALTER TABLE runs ADD COLUMN kilo_version TEXT")
         if "kilo_config_sha256" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN kilo_config_sha256 TEXT")
+
+        # Backward-compatible migrations for baselines table.
+        bcols = {row[1] for row in con.execute("PRAGMA table_info(baselines)").fetchall()}
+        for col, ddl in [
+            ("created_at", "ALTER TABLE baselines ADD COLUMN created_at TEXT"),
+            ("metric_name", "ALTER TABLE baselines ADD COLUMN metric_name TEXT"),
+            ("score_raw", "ALTER TABLE baselines ADD COLUMN score_raw REAL"),
+            ("score_normalized", "ALTER TABLE baselines ADD COLUMN score_normalized REAL"),
+            ("local_validation_metric", "ALTER TABLE baselines ADD COLUMN local_validation_metric REAL"),
+            ("submission_sha256", "ALTER TABLE baselines ADD COLUMN submission_sha256 TEXT"),
+            ("normalized_submission_sha256", "ALTER TABLE baselines ADD COLUMN normalized_submission_sha256 TEXT"),
+            ("spec_sha256", "ALTER TABLE baselines ADD COLUMN spec_sha256 TEXT"),
+            ("public_manifest_sha256", "ALTER TABLE baselines ADD COLUMN public_manifest_sha256 TEXT"),
+        ]:
+            if col not in bcols:
+                con.execute(ddl)
         con.commit()
     finally:
         con.close()
@@ -191,6 +225,63 @@ def fetch_runs(db_path: str | Path, *, competition_id: str | None = None) -> lis
             rows = con.execute("SELECT * FROM runs WHERE competition_id=? ORDER BY created_at DESC", (competition_id,)).fetchall()
         else:
             rows = con.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        con.close()
+
+
+def insert_baseline(
+    db_path: str | Path,
+    *,
+    competition_id: str,
+    baseline_type: str,
+    created_at: str,
+    metric_name: str,
+    score_raw: float | None,
+    score_normalized: float | None,
+    local_validation_metric: float | None,
+    submission_sha256: str | None,
+    normalized_submission_sha256: str | None,
+    spec_sha256: str | None,
+    public_manifest_sha256: str | None,
+) -> None:
+    ensure_db(db_path)
+    con = sqlite3.connect(db_path)
+    try:
+        con.execute(
+            """
+            INSERT OR REPLACE INTO baselines (
+              competition_id, baseline_type, created_at, metric_name,
+              score_raw, score_normalized, local_validation_metric,
+              submission_sha256, normalized_submission_sha256,
+              spec_sha256, public_manifest_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(competition_id),
+                str(baseline_type),
+                str(created_at),
+                str(metric_name),
+                float(score_raw) if score_raw is not None else None,
+                float(score_normalized) if score_normalized is not None else None,
+                float(local_validation_metric) if local_validation_metric is not None else None,
+                str(submission_sha256) if submission_sha256 else None,
+                str(normalized_submission_sha256) if normalized_submission_sha256 else None,
+                str(spec_sha256) if spec_sha256 else None,
+                str(public_manifest_sha256) if public_manifest_sha256 else None,
+            ),
+        )
+        con.commit()
+    finally:
+        con.close()
+
+
+def fetch_baselines(db_path: str | Path) -> list[dict[str, Any]]:
+    ensure_db(db_path)
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute("SELECT * FROM baselines ORDER BY competition_id, baseline_type").fetchall()
         return [dict(r) for r in rows]
     finally:
         con.close()

@@ -68,3 +68,127 @@ def test_best_by_model_uses_best_run_score_and_hash(tmp_path: Path) -> None:
     assert "| c1 | nanogpt | org/m1 |  | rmse | 1.0 |" in md
     assert "| r2 |" in md
     assert ("2" * 16 + "…") in md
+
+
+def test_best_by_model_uses_higher_is_better_for_auc(tmp_path: Path) -> None:
+    df = pd.DataFrame(
+        [
+            {
+                "run_id": "r1",
+                "created_at": "2026-01-24T12:00:00-08:00",
+                "competition_id": "c_auc",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "metric_name": "auc",
+                "score_raw": 0.70,
+                "runtime_seconds": 10.0,
+                "budget_time_seconds": 180,
+                "submission_sha256": "1" * 16 + "…",
+                "normalized_submission_sha256": "a" * 16 + "…",
+            },
+            {
+                "run_id": "r2",
+                "created_at": "2026-01-24T12:01:00-08:00",
+                "competition_id": "c_auc",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "metric_name": "auc",
+                "score_raw": 0.80,
+                "runtime_seconds": 12.0,
+                "budget_time_seconds": 180,
+                "submission_sha256": "2" * 16 + "…",
+                "normalized_submission_sha256": "b" * 16 + "…",
+            },
+        ]
+    )
+
+    write_root_leaderboard(df=df, repo_root=tmp_path)
+    md = (tmp_path / "LEADERBOARD.md").read_text(encoding="utf-8")
+    assert "| c_auc | chutes | org/m1 |" in md
+    assert "| c_auc | chutes | org/m1 |  | auc | 0.8 |" in md
+    assert "| r2 |" in md
+
+
+def test_overall_is_split_by_prompt_profile(tmp_path: Path) -> None:
+    df = pd.DataFrame(
+        [
+            {
+                "run_id": "r1",
+                "created_at": "2026-01-24T12:00:00-08:00",
+                "competition_id": "c1",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "simple-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.70,
+                "runtime_seconds": 10.0,
+                "budget_time_seconds": 240,
+                "submission_sha256": "1" * 16 + "…",
+                "normalized_submission_sha256": "a" * 16 + "…",
+            },
+            {
+                "run_id": "r2",
+                "created_at": "2026-01-24T12:01:00-08:00",
+                "competition_id": "c2",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "good-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.80,
+                "runtime_seconds": 12.0,
+                "budget_time_seconds": 600,
+                "submission_sha256": "2" * 16 + "…",
+                "normalized_submission_sha256": "b" * 16 + "…",
+            },
+        ]
+    )
+
+    write_root_leaderboard(df=df, repo_root=tmp_path)
+    md = (tmp_path / "LEADERBOARD.md").read_text(encoding="utf-8")
+    assert "## Overall (across competitions)" in md
+    assert "### simple-baseline" in md
+    assert "### good-baseline" in md
+
+
+def test_overall_includes_baseline_normalization_when_provided(tmp_path: Path) -> None:
+    df = pd.DataFrame(
+        [
+            {
+                "run_id": "r1",
+                "created_at": "2026-01-24T12:00:00-08:00",
+                "competition_id": "c1",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "simple-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.875,
+                "runtime_seconds": 10.0,
+                "budget_time_seconds": 240,
+                "submission_sha256": "1" * 16 + "…",
+                "normalized_submission_sha256": "a" * 16 + "…",
+            }
+        ]
+    )
+    baselines = pd.DataFrame(
+        [
+            {"competition_id": "c1", "baseline_type": "constant", "score_normalized": 0.5},
+            {"competition_id": "c1", "baseline_type": "hgb", "score_normalized": 0.75},
+        ]
+    )
+
+    write_root_leaderboard(df=df, repo_root=tmp_path, baselines=baselines)
+    md = (tmp_path / "LEADERBOARD.md").read_text(encoding="utf-8")
+    assert "mean_abs_units" in md
+    assert "beat_hgb_rate" in md
+    # abs_units = (0.875 - 0.5) / (0.75 - 0.5) = 1.5
+    assert "| 1.5 |" in md or "| 1.5" in md

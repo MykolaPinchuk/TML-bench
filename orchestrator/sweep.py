@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from orchestrator.db import insert_run
-from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, write_root_leaderboard
+from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
 from orchestrator.result import read_result_json
 from orchestrator.run_one import cmd_auto
 from orchestrator.run_workspace import default_run_id
@@ -218,7 +218,8 @@ def main() -> int:
                 out_paths=lb_paths,
                 competition_id=args.competition_id if args.per_competition else None,
             )
-            write_root_leaderboard(df=df, repo_root=repo_root)
+            baselines_df = load_baselines_df(db_path=dbp)
+            write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
             print(f"updated leaderboard under: {(repo_root / 'results')}")
             print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 

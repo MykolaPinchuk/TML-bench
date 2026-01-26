@@ -16,6 +16,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostin
 from orchestrator.schemas import CompetitionSpec, load_spec
 from orchestrator.score import score_submission
 from orchestrator.validate import validate_and_normalize_submission
+from orchestrator.hash_utils import sha256_file
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,10 @@ class BaselineOutputs:
     normalized_submission_path: Path | None
     local_validation_metric: float | None
     private_holdout_score_raw: float | None
+    private_holdout_score_normalized: float | None
+    metric_name: str | None
+    submission_sha256: str | None
+    normalized_submission_sha256: str | None
 
 
 def _build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
@@ -199,9 +204,13 @@ def run_baseline(
         raise ValueError(f"Baseline produced invalid submission: {vr.errors}")
 
     private_score = None
+    private_score_norm = None
+    metric_name = None
     if private_dir.exists():
         sr = score_submission(spec=spec, private_dir=private_dir, normalized_submission_csv=normalized_out)
         private_score = sr.score_raw
+        private_score_norm = sr.score_normalized
+        metric_name = sr.metric_name
         if sr.secondary_metrics and "r2" in sr.secondary_metrics:
             print(f"private_holdout_r2: {sr.secondary_metrics['r2']}")
 
@@ -212,9 +221,16 @@ def run_baseline(
         print(f"private_holdout_{spec.metric.name}: {private_score}")
     print(f"baseline_type: {baseline_type}")
 
+    submission_sha = sha256_file(submission_out) if submission_out.exists() else None
+    normalized_sha = sha256_file(normalized_out) if normalized_out.exists() else None
+
     return BaselineOutputs(
         submission_path=submission_out,
         normalized_submission_path=normalized_out,
         local_validation_metric=local_metric,
         private_holdout_score_raw=private_score,
+        private_holdout_score_normalized=private_score_norm,
+        metric_name=metric_name,
+        submission_sha256=submission_sha,
+        normalized_submission_sha256=normalized_sha,
     )
