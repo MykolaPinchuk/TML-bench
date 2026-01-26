@@ -55,14 +55,17 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
 - Host baselines:
   - Deterministic sklearn baseline: `python scripts/run_baseline.py --competition-dir ... --baseline-type hgb`
   - Trivial constant baseline floor: `python scripts/run_baseline.py --competition-dir ... --baseline-type constant`
+  - Baseline recording into DB (for absolute normalization across competitions):
+    - `python -m orchestrator.baselines --competition-id <id>` records `hgb` + `constant` into `results/results.sqlite`.
+    - Root `LEADERBOARD.md` “Overall” tables include `mean_abs_units` (0=constant, 1=hgb) and `beat_hgb_rate`.
 
 ### Next (ordered)
-1) Reduce `simple-baseline` collisions + failures:
-   - Consider provider/model-specific tweaks (e.g., NanoGPT timeout bump or retry-on-timeout) while keeping `simple-baseline` nominally 240s.
-   - Tighten the prompt to force a small amount of diversity (e.g., try both `Ridge` and `HistGradientBoostingRegressor` and pick best local RMSE).
-2) Reproducibility packaging follow-through:
-   - Ensure DB migrations cover new columns (`seed`, `prompt_profile`, `secondary_r2`) and document them.
-   - Keep `REPRODUCIBILITY.md` current with profiles and baseline commands.
+1) Expand competition coverage (so “Overall” is meaningful):
+   - Add 1–2 more tabular competitions (one regression, one classification), run `v3_fast` sweeps, and record baselines via `python -m orchestrator.baselines`.
+2) Reduce `simple-baseline` failures (less about collisions now):
+   - Consider provider/model-specific tweaks (timeout bump, retry-on-timeout) while keeping `simple-baseline` nominally 240s.
+3) Baseline automation:
+   - Optionally auto-record missing baselines (constant+hgb) when a competition is first used, so absolute normalization is always available.
 
 ### Open questions
 - Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
@@ -70,7 +73,7 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
 
 ## Known issues / current breakage
 - Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
-- `simple-baseline` variance sweeps still show heavy output collisions (same normalized submission across different models/runs) and occasional timeouts (e.g., NanoGPT deepseek-v3.2 @240s).
+- `simple-baseline` sweeps can still show occasional timeouts (e.g., NanoGPT deepseek-v3.2 @240s).
 
 ## Git notes (handoff)
 - `.gitignore` updates made:
