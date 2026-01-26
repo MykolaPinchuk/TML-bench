@@ -51,6 +51,30 @@ def _build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
     )
 
 
+def _constant_predict_regression(*, spec: CompetitionSpec, train_public: pd.DataFrame, test_public: pd.DataFrame) -> tuple[np.ndarray, float | None]:
+    y = train_public[spec.target_column].to_numpy()
+    const = float(np.mean(y))
+    return np.full(shape=(len(test_public),), fill_value=const, dtype=float), None
+
+
+def _constant_predict_classification(
+    *, spec: CompetitionSpec, train_public: pd.DataFrame, test_public: pd.DataFrame
+) -> tuple[np.ndarray, float | None]:
+    y = train_public[spec.target_column].to_numpy()
+    classes, counts = np.unique(y, return_counts=True)
+    priors = counts / max(1, counts.sum())
+    # For binary, return probability of positive class (assume label 1 if present; else use the higher class).
+    if spec.task_type == "binary":
+        if 1 in classes:
+            p1 = float(priors[list(classes).index(1)])
+        else:
+            p1 = float(priors[int(np.argmax(classes))])
+        return np.full(shape=(len(test_public),), fill_value=p1, dtype=float), None
+    # Multiclass: return probabilities per class in the submission column order.
+    proba = np.tile(priors.astype(float), (len(test_public), 1))
+    return proba, None
+
+
 def _fit_predict_regression(*, spec: CompetitionSpec, train_public: pd.DataFrame, test_public: pd.DataFrame) -> tuple[np.ndarray, float | None]:
     X = train_public.drop(columns=[spec.target_column])
     y = train_public[spec.target_column].to_numpy()
@@ -118,6 +142,7 @@ def run_baseline(
     private_dir: Path | None,
     submission_out: Path,
     normalized_out: Path | None,
+    baseline_type: str = "hgb",
 ) -> BaselineOutputs:
     spec_path = competition_dir / "spec.yaml"
     spec = load_spec(spec_path)
@@ -132,10 +157,20 @@ def run_baseline(
     if len(pred_cols) != 1 and spec.task_type == "regression":
         raise ValueError("Baseline currently supports single-column regression predictions only")
 
-    if spec.task_type == "regression":
-        preds, local_metric = _fit_predict_regression(spec=spec, train_public=train_public, test_public=test_public)
+    baseline_type = str(baseline_type or "").strip().lower()
+    if baseline_type not in {"hgb", "constant"}:
+        raise ValueError(f"Unsupported baseline_type={baseline_type!r}; expected 'hgb' or 'constant'")
+
+    if baseline_type == "constant":
+        if spec.task_type == "regression":
+            preds, local_metric = _constant_predict_regression(spec=spec, train_public=train_public, test_public=test_public)
+        else:
+            preds, local_metric = _constant_predict_classification(spec=spec, train_public=train_public, test_public=test_public)
     else:
-        preds, local_metric = _fit_predict_classification(spec=spec, train_public=train_public, test_public=test_public)
+        if spec.task_type == "regression":
+            preds, local_metric = _fit_predict_regression(spec=spec, train_public=train_public, test_public=test_public)
+        else:
+            preds, local_metric = _fit_predict_classification(spec=spec, train_public=train_public, test_public=test_public)
 
     submission = pd.DataFrame({spec.id_column: test_public[spec.id_column].values})
     if spec.task_type == "multiclass":
@@ -167,12 +202,15 @@ def run_baseline(
     if private_dir.exists():
         sr = score_submission(spec=spec, private_dir=private_dir, normalized_submission_csv=normalized_out)
         private_score = sr.score_raw
+        if sr.secondary_metrics and "r2" in sr.secondary_metrics:
+            print(f"private_holdout_r2: {sr.secondary_metrics['r2']}")
 
     print(f"wrote: {submission_out}")
     if local_metric is not None:
         print(f"local_valid_{spec.metric.name}: {local_metric}")
     if private_score is not None:
         print(f"private_holdout_{spec.metric.name}: {private_score}")
+    print(f"baseline_type: {baseline_type}")
 
     return BaselineOutputs(
         submission_path=submission_out,
@@ -180,4 +218,3 @@ def run_baseline(
         local_validation_metric=local_metric,
         private_holdout_score_raw=private_score,
     )
-

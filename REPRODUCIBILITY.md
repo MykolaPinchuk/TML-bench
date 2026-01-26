@@ -57,6 +57,12 @@ Both are ignored by git; do not commit them.
 python scripts/run_baseline.py --competition-dir competitions/playground-series-s6e1 --out tmp/submission.csv
 ```
 
+Trivial constant baseline (useful as a floor):
+
+```bash
+python scripts/run_baseline.py --competition-dir competitions/playground-series-s6e1 --out tmp/submission.constant.csv --baseline-type constant
+```
+
 ### Headless agent run (Kilo CLI)
 
 ```bash

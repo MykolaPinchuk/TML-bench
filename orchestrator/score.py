@@ -4,7 +4,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-from sklearn.metrics import log_loss, mean_absolute_error, mean_squared_error, roc_auc_score, root_mean_squared_error
+from sklearn.metrics import (
+    log_loss,
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+    roc_auc_score,
+    root_mean_squared_error,
+)
 
 from orchestrator.schemas import CompetitionSpec
 
@@ -14,6 +21,7 @@ class ScoreResult:
     score_raw: float
     score_normalized: float
     metric_name: str
+    secondary_metrics: dict[str, float] | None = None
 
 
 def score_submission(
@@ -42,6 +50,8 @@ def score_submission(
         y_true_col = f"{y_true_col}_label"
     y_true = merged[y_true_col].to_numpy()
 
+    secondary: dict[str, float] = {}
+
     metric = spec.metric.name
     if metric == "rmse":
         pred_col = pred_cols[0]
@@ -52,12 +62,20 @@ def score_submission(
             score_raw = float(root_mean_squared_error(y_true, y_pred))
         except Exception:  # noqa: BLE001
             score_raw = float(mean_squared_error(y_true, y_pred) ** 0.5)
+        try:
+            secondary["r2"] = float(r2_score(y_true, y_pred))
+        except Exception:  # noqa: BLE001
+            pass
     elif metric == "mae":
         pred_col = pred_cols[0]
         if pred_col not in merged.columns and f"{pred_col}_pred" in merged.columns:
             pred_col = f"{pred_col}_pred"
         y_pred = merged[pred_col].to_numpy()
         score_raw = float(mean_absolute_error(y_true, y_pred))
+        try:
+            secondary["r2"] = float(r2_score(y_true, y_pred))
+        except Exception:  # noqa: BLE001
+            pass
     elif metric == "logloss":
         if spec.task_type == "binary":
             pred_col = pred_cols[0]
@@ -86,4 +104,9 @@ def score_submission(
         raise ValueError(f"Unsupported metric: {metric}")
 
     score_normalized = score_raw if spec.metric.higher_is_better else -score_raw
-    return ScoreResult(score_raw=score_raw, score_normalized=score_normalized, metric_name=metric)
+    return ScoreResult(
+        score_raw=score_raw,
+        score_normalized=score_normalized,
+        metric_name=metric,
+        secondary_metrics=secondary or None,
+    )

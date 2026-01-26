@@ -55,3 +55,8 @@
 
 ### 2026-01-25 (Pacific) — Good-baseline sweep (600s)
 - Ran `good-baseline` pilot (2 models) and full sweep (8 models) for `playground-series-s6e1` with higher concurrency; all runs succeeded and the 8-model sweep produced unique normalized submission hashes (no within-sweep collisions).
+
+### 2026-01-25 (Pacific) — Secondary metrics + baselines
+- Added host `--baseline-type constant` (constant predictor) to establish a floor score.
+- Added secondary `r2` computation for regression runs (stored in `result.json` notes as `secondary_r2` and in sqlite as `secondary_r2` when imported).
+- Leaderboard now groups best/duplicates by `(budget_time_seconds, prompt_profile)` and includes a per-model/config variance summary.

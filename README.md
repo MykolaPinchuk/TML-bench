@@ -43,6 +43,7 @@ Start here (in order):
    - `KAGGLE_CONFIG_DIR=secrets python competitions/playground-series-s6e1/prepare_competition.py --download`
 2) Run a host-side baseline (writes `submission.csv` + normalized copy):
    - `python scripts/run_baseline.py --competition-dir competitions/playground-series-s6e1 --out tmp/submission.csv`
+   - Trivial constant floor: `python scripts/run_baseline.py --competition-dir competitions/playground-series-s6e1 --out tmp/submission.constant.csv --baseline-type constant`
 3) End-to-end Phase 1 smoke (prepare → baseline → validate → private score → write `result.json`):
    - `KAGGLE_CONFIG_DIR=secrets python scripts/smoke_phase1.py --competition-id playground-series-s6e1`
 

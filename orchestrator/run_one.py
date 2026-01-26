@@ -417,6 +417,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     if prompt_profile:
         notes["prompt_profile"] = prompt_profile
     notes["seed"] = seed
+    if sr.secondary_metrics and "r2" in sr.secondary_metrics:
+        notes["secondary_r2"] = float(sr.secondary_metrics["r2"])
     result = replace(
         result,
         run_id=run_id,
@@ -440,6 +442,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     )
     print(f"wrote: {result_path}")
     print(f"private_holdout_{sr.metric_name}: {sr.score_raw}")
+    if sr.secondary_metrics and "r2" in sr.secondary_metrics:
+        print(f"private_holdout_r2: {sr.secondary_metrics['r2']}")
     print(f"submission_sha256: {submission_sha256[:16]}…")
     if runtime_seconds is not None:
         print(f"runtime_seconds: {runtime_seconds:.1f} (budget {budget_seconds}s)")

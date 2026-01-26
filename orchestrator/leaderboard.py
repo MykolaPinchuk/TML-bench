@@ -89,11 +89,11 @@ def _df_to_markdown_table(df: pd.DataFrame) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _duplicate_submissions_df(df: pd.DataFrame) -> pd.DataFrame:
+def _duplicate_submissions_df(df: pd.DataFrame, *, group_cols: list[str]) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
 
-    needed = {"competition_id", "run_id", "provider", "model_id", "status", "score_raw", "normalized_submission_sha256"}
+    needed = {"run_id", "provider", "model_id", "status", "score_raw", "normalized_submission_sha256"}
     if not needed.issubset(set(df.columns)):
         return pd.DataFrame()
 
@@ -104,7 +104,11 @@ def _duplicate_submissions_df(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     rows: list[dict[str, object]] = []
-    for (competition_id, norm_sha), g in d.groupby(["competition_id", "normalized_submission_sha256"], dropna=False):
+    gb_cols = [c for c in group_cols if c in d.columns] + ["normalized_submission_sha256"]
+    if not gb_cols or "normalized_submission_sha256" not in gb_cols:
+        return pd.DataFrame()
+
+    for keys, g in d.groupby(gb_cols, dropna=False):
         n = int(len(g))
         if n <= 1:
             continue
@@ -114,10 +118,13 @@ def _duplicate_submissions_df(df: pd.DataFrame) -> pd.DataFrame:
 
         models = [f"{p}::{m}" for p, m in zip(g["provider"].astype(str), g["model_id"].astype(str), strict=False)]
         run_ids = [str(x) for x in g["run_id"].tolist()]
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        key_map = {col: val for col, val in zip(gb_cols, keys, strict=False)}
         rows.append(
             {
-                "competition_id": str(competition_id),
-                "normalized_submission_sha256": str(norm_sha),
+                **{k: ("" if k == "normalized_submission_sha256" else str(v)) for k, v in key_map.items() if k != "normalized_submission_sha256"},
+                "normalized_submission_sha256": str(key_map.get("normalized_submission_sha256", "")),
                 "count": n,
                 "score_raw": float(g["score_raw"].iloc[0]) if pd.notna(g["score_raw"].iloc[0]) else "",
                 "models": ", ".join(models[:5]) + ("…" if n > 5 else ""),
@@ -129,8 +136,49 @@ def _duplicate_submissions_df(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     out = pd.DataFrame(rows)
-    out = out.sort_values(by=["competition_id", "count"], ascending=[True, False], na_position="last")
+    sort_cols = []
+    for c in group_cols:
+        if c in out.columns:
+            sort_cols.append(c)
+    out = out.sort_values(by=sort_cols + ["count"], ascending=[True] * len(sort_cols) + [False], na_position="last")
     return out
+
+
+def _variance_df(df: pd.DataFrame, *, group_cols: list[str]) -> pd.DataFrame:
+    if df.empty:
+        return pd.DataFrame()
+    needed = {"status", "score_raw", "normalized_submission_sha256"}
+    if not needed.issubset(set(df.columns)):
+        return pd.DataFrame()
+
+    d = df.copy()
+    d = d.fillna("")
+    d = d[d["status"] == "success"]
+    if d.empty:
+        return pd.DataFrame()
+    d["score_raw"] = pd.to_numeric(d["score_raw"], errors="coerce")
+    d = d[pd.notna(d["score_raw"])]
+    if d.empty:
+        return pd.DataFrame()
+
+    gb_cols = [c for c in group_cols if c in d.columns]
+    if not gb_cols:
+        return pd.DataFrame()
+
+    def _uniq_nonempty(s: pd.Series) -> int:
+        vals = [str(x).strip() for x in s.tolist()]
+        return len({v for v in vals if v})
+
+    agg = d.groupby(gb_cols, dropna=False).agg(
+        runs=("score_raw", "size"),
+        score_min=("score_raw", "min"),
+        score_mean=("score_raw", "mean"),
+        score_max=("score_raw", "max"),
+        score_std=("score_raw", "std"),
+        unique_normalized_submissions=("normalized_submission_sha256", _uniq_nonempty),
+    )
+    out = agg.reset_index()
+    return out.sort_values(by=gb_cols + ["score_mean"], ascending=[True] * len(gb_cols) + [True], na_position="last")
 
 
 def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "TML-bench leaderboard") -> None:
@@ -159,10 +207,11 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             ascending=[True, True, False],
             na_position="last",
         )
-        group_cols = ["competition_id", "provider", "model_id", "mode"]
         best_src = df_sorted[df_sorted["_runnable_model"]].copy()
         if "status" in best_src.columns:
             best_src = best_src[best_src["status"] == "success"]
+        group_cols = ["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"]
+        group_cols = [c for c in group_cols if c in best_src.columns]
         best = best_src.groupby(group_cols, dropna=False).head(1).copy()
         if "_created_at_dt" in best.columns:
             best = best.drop(columns=["_created_at_dt"])
@@ -176,6 +225,8 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
                 "budget_time_seconds": "budget_time_seconds",
             }
         )
+        if "secondary_r2" in best.columns:
+            best = best.rename(columns={"secondary_r2": "best_secondary_r2"})
         if "submission_sha256" in best.columns:
             best = best.rename(columns={"submission_sha256": "best_submission_sha256"})
         if "normalized_submission_sha256" in best.columns:
@@ -186,12 +237,15 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             "provider",
             "model_id",
             "mode",
+            "prompt_profile",
             "metric_name",
             "best_score_raw",
+            "best_secondary_r2",
             "best_runtime_seconds",
             "budget_time_seconds",
             "best_run_id",
         ]
+        best_cols = [c for c in best_cols if c in best.columns]
         for extra in ["best_submission_sha256", "best_normalized_submission_sha256"]:
             if extra in best.columns:
                 best_cols.append(extra)
@@ -199,10 +253,21 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
         md += "## Best by model (per competition)\n\n"
         md += _df_to_markdown_table(best)
 
-        dup = _duplicate_submissions_df(df_sorted[df_sorted["_runnable_model"]])
+        dup = _duplicate_submissions_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "budget_time_seconds", "prompt_profile"],
+        )
         if not dup.empty:
-            md += "\n## Duplicate submissions (by normalized hash)\n\n"
+            md += "\n## Duplicate submissions (by config + normalized hash)\n\n"
             md += _df_to_markdown_table(dup)
+
+        var = _variance_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"],
+        )
+        if not var.empty:
+            md += "\n## Variance (per model/config)\n\n"
+            md += _df_to_markdown_table(var)
 
         md += "\n## All runs\n\n"
         df_display = df_sorted[df_sorted["_runnable_model"]].copy()
@@ -234,10 +299,11 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             ascending=[True, True, False],
             na_position="last",
         )
-        group_cols = ["competition_id", "provider", "model_id", "mode"]
         best_src = df_sorted[df_sorted["_runnable_model"]].copy()
         if "status" in best_src.columns:
             best_src = best_src[best_src["status"] == "success"]
+        group_cols = ["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"]
+        group_cols = [c for c in group_cols if c in best_src.columns]
         best = best_src.groupby(group_cols, dropna=False).head(1).copy()
         if "_created_at_dt" in best.columns:
             best = best.drop(columns=["_created_at_dt"])
@@ -250,6 +316,8 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
                 "runtime_seconds": "best_runtime_seconds",
             }
         )
+        if "secondary_r2" in best.columns:
+            best = best.rename(columns={"secondary_r2": "best_secondary_r2"})
         if "submission_sha256" in best.columns:
             best = best.rename(columns={"submission_sha256": "best_submission_sha256"})
         if "normalized_submission_sha256" in best.columns:
@@ -261,21 +329,35 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             "provider",
             "model_id",
             "mode",
+            "prompt_profile",
             "metric_name",
             "best_score_raw",
+            "best_secondary_r2",
             "best_runtime_seconds",
             "budget_time_seconds",
             "best_run_id",
         ]
+        best_cols = [c for c in best_cols if c in best.columns]
         for extra in ["best_submission_sha256", "best_normalized_submission_sha256"]:
             if extra in best.columns:
                 best_cols.append(extra)
         html += best[best_cols].to_html(index=False, escape=True)
 
-        dup = _duplicate_submissions_df(df_sorted[df_sorted["_runnable_model"]])
+        dup = _duplicate_submissions_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "budget_time_seconds", "prompt_profile"],
+        )
         if not dup.empty:
-            html += "\n<h2>Duplicate submissions (by normalized hash)</h2>\n"
+            html += "\n<h2>Duplicate submissions (by config + normalized hash)</h2>\n"
             html += dup.to_html(index=False, escape=True)
+
+        var = _variance_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"],
+        )
+        if not var.empty:
+            html += "\n<h2>Variance (per model/config)</h2>\n"
+            html += var.to_html(index=False, escape=True)
 
         html += "\n<h2>All runs</h2>\n"
 
@@ -300,12 +382,15 @@ def build_leaderboard(
         "provider",
         "model_id",
         "mode",
+        "prompt_profile",
         "temperature",
         "max_tokens",
         "metric_name",
         "score_raw",
+        "secondary_r2",
         "runtime_seconds",
         "budget_time_seconds",
+        "seed",
         "submission_sha256",
         "normalized_submission_sha256",
     ]
