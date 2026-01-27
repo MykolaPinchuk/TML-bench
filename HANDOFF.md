@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v5 (Phase 5): multi-competition benchmark + publishable leaderboard artifact (one-command reruns; deterministic outputs).
+v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget tiers (incl. SOTA 20m). Publishable artifact packaging is deferred until v6.
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -48,6 +48,11 @@ v5 (Phase 5): multi-competition benchmark + publishable leaderboard artifact (on
   - Default sweep parallelism: if >4 models selected, default `--concurrency 5` (else 4): `orchestrator/sweep.py`.
   - Per-run deterministic `seed` recorded (derived from `run_id`) to track within-model variance: `orchestrator/run_one.py`.
 
+- Phase 5 runner + SOTA tier (v5):
+  - Suite runner across the core 4 competitions: `python -m orchestrator.suite ...` (default suite at `orchestrator/suites/v5_core.json`).
+  - SOTA tier profile (20 min, XGBoost allowed): `--profile sota-xgb` (1200s) on `orchestrator.sweep` / `orchestrator.run_one auto`.
+  - Sweep resume support (DB-backed): `python -m orchestrator.sweep ... --resume` (skip already-recorded runs for the same budget/profile).
+
 - Leaderboard collision/variance visibility:
   - Root `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
   - Secondary regression metric `r2` recorded as `secondary_r2` and surfaced in leaderboard outputs when present: `orchestrator/score.py`, `orchestrator/db.py`, `orchestrator/leaderboard.py`.
@@ -73,13 +78,12 @@ v5 (Phase 5): multi-competition benchmark + publishable leaderboard artifact (on
     - `playground-series-s5e10`
 
 ### Next (ordered)
-1) Phase 5 (v5): “one command” multi-competition benchmark run:
-   - Add a first-class entrypoint to run a fixed suite of competitions (the 4 above) against a model set (e.g., `orchestrator/model_sets/v3_fast.json`) with a chosen profile.
-   - Ensure it can (optionally) record baselines and then refresh all leaderboard artifacts deterministically.
-2) Publishable artifact packaging:
-   - Produce a single, reproducible output bundle (e.g., a timestamped folder under `results/` that contains `leaderboard.*`, per-competition summaries, and the exact config used).
-3) Reproducibility + anti-leak posture:
-   - Document the freshness cutoff policy (e.g., “competitions whose data was created after 2025-05-01”) and how it’s verified during `prepare_competition.py`.
+1) Phase 5 (v5): run the full suite end-to-end and refresh committed leaderboard snapshots:
+   - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model N --resume`
+2) Expand model sets (when ready):
+   - Add/update `orchestrator/model_sets/*.json` for “SOTA” models and run them at `--profile sota-xgb` (1200s).
+3) Publishable artifact packaging + anti-leak posture (defer to v6):
+   - Timestamped “bundle” outputs and freshness-cutoff verification during `prepare_competition.py`.
 
 ### Open questions
 - Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
@@ -95,3 +99,5 @@ v5 (Phase 5): multi-competition benchmark + publishable leaderboard artifact (on
   - Ignore competition data, runs, and sqlite DBs; allow small leaderboard outputs under `results/`.
 - v5 initialization commits:
   - `b811a1b` and `7b98385` on local branch `v5` (workflow docs + log rotation).
+- v5 progress commits:
+  - Added SOTA tier plumbing + sweep resume + suite runner (see recent local commits on `v5`).
