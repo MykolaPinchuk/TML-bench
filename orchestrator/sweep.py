@@ -6,7 +6,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from orchestrator.db import insert_run
+from orchestrator.db import ensure_db, fetch_runs, insert_run
 from orchestrator.baselines import ensure_competition_baselines
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
 from orchestrator.result import read_result_json
@@ -43,6 +43,63 @@ def _load_model_set(path: Path) -> list[dict]:
     return out
 
 
+def _profile_budget_seconds(profile: str) -> int:
+    if profile == "simple-baseline":
+        return 240
+    if profile == "good-baseline":
+        return 600
+    if profile == "sota-xgb":
+        return 1200
+    raise ValueError(f"Unknown profile: {profile}")
+
+
+def _derive_prompt_profile(*, budget_seconds: int) -> str:
+    if int(budget_seconds) >= 1200:
+        return "sota-xgb"
+    if int(budget_seconds) >= 600:
+        return "good-baseline"
+    return "simple-baseline"
+
+
+def _resume_counts_by_model(
+    *,
+    db_path: str | Path,
+    competition_id: str,
+    budget_seconds: int,
+    prompt_profile: str,
+    any_status: bool,
+) -> dict[tuple[str, str], int]:
+    ensure_db(db_path)
+    rows = fetch_runs(db_path, competition_id=competition_id)
+
+    counts: dict[tuple[str, str], int] = {}
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        provider = str(r.get("provider") or "").strip()
+        model_id = str(r.get("model_id") or "").strip()
+        if not provider or not model_id:
+            continue
+
+        if str(r.get("prompt_profile") or "").strip() != str(prompt_profile):
+            continue
+
+        try:
+            b = int(r.get("budget_time_seconds"))
+        except Exception:  # noqa: BLE001
+            continue
+        if b != int(budget_seconds):
+            continue
+
+        status = str(r.get("status") or "").strip()
+        if not any_status and status != "success":
+            continue
+
+        key = (provider, model_id)
+        counts[key] = int(counts.get(key, 0) + 1)
+    return counts
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Phase 3: batch runs via Kilo CLI (no Docker).")
     ap.add_argument("--competition-id", required=True)
@@ -54,18 +111,34 @@ def main() -> int:
     ap.add_argument(
         "--profile",
         default=None,
-        choices=["simple-baseline", "good-baseline"],
-        help="Optional sweep profile. `simple-baseline` targets 240s. `good-baseline` targets 600s.",
+        choices=["simple-baseline", "good-baseline", "sota-xgb"],
+        help="Optional sweep profile. `simple-baseline` targets 240s. `good-baseline` targets 600s. `sota-xgb` targets 1200s.",
     )
     ap.add_argument("--runs-per-model", type=int, default=1)
     ap.add_argument("--db-path", default="results/results.sqlite")
     ap.add_argument("--per-competition", action="store_true")
+    ap.add_argument(
+        "--budget-seconds",
+        type=int,
+        default=None,
+        help="Optional override for the run time budget (defaults to competition spec.yaml budgets.time_seconds).",
+    )
     ap.add_argument("--kilo-timeout-seconds", type=int, default=None)
     ap.add_argument(
         "--prompt-profile",
         default=None,
-        choices=["simple-baseline", "good-baseline"],
+        choices=["simple-baseline", "good-baseline", "sota-xgb"],
         help="Prompt profile to pass to `run_one auto`. If not set, derives from `--profile` (if provided).",
+    )
+    ap.add_argument(
+        "--resume",
+        action="store_true",
+        help="If set, only schedule missing runs by looking at existing runs in --db-path (counts only successes by default).",
+    )
+    ap.add_argument(
+        "--resume-any-status",
+        action="store_true",
+        help="If set with --resume, count any prior run status (success/timeout/invalid/...) toward --runs-per-model.",
     )
     ap.add_argument("--only-provider", default=None, help="If set, only run models from this provider id.")
     ap.add_argument("--max-models", type=int, default=None, help="If set, limit to the first N models selected.")
@@ -80,10 +153,14 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.profile is not None:
+        if args.budget_seconds is None:
+            args.budget_seconds = _profile_budget_seconds(args.profile)
         if args.kilo_timeout_seconds is None:
-            args.kilo_timeout_seconds = 240 if args.profile == "simple-baseline" else 600
+            args.kilo_timeout_seconds = int(args.budget_seconds)
         if args.prompt_profile is None:
             args.prompt_profile = args.profile
+    if args.prompt_profile is None and args.budget_seconds is not None:
+        args.prompt_profile = _derive_prompt_profile(budget_seconds=int(args.budget_seconds))
 
     repo_root = _repo_root()
     competition_dir = repo_root / "competitions" / args.competition_id
@@ -112,17 +189,45 @@ def main() -> int:
         raise ValueError("--concurrency must be >= 1")
     args.concurrency = int(args.concurrency)
 
-    planned = [(m["provider"], m["model_id"]) for m in models for _ in range(args.runs_per_model)]
+    if args.resume and (args.budget_seconds is None or args.prompt_profile is None):
+        raise ValueError("--resume requires --budget-seconds (or --profile) so runs can be matched deterministically.")
+
+    resume_counts = (
+        _resume_counts_by_model(
+            db_path=args.db_path,
+            competition_id=args.competition_id,
+            budget_seconds=int(args.budget_seconds),
+            prompt_profile=str(args.prompt_profile),
+            any_status=bool(args.resume_any_status),
+        )
+        if args.resume and args.db_path
+        else {}
+    )
+
+    tasks: list[tuple[str, str]] = []
+    for m in models:
+        key = (m["provider"], m["model_id"])
+        have = int(resume_counts.get(key, 0)) if args.resume else 0
+        need = max(0, int(args.runs_per_model) - have)
+        for _ in range(need):
+            tasks.append((m["provider"], m["model_id"]))
+
     if args.max_runs is not None:
         if args.max_runs < 0:
             raise ValueError("--max-runs must be >= 0")
-        planned = planned[: args.max_runs]
+        tasks = tasks[: args.max_runs]
     print(f"competition: {args.competition_id}")
     print(f"models: {len(models)} from {model_set_path}")
-    print(f"total runs: {len(planned)} (runs_per_model={args.runs_per_model})")
+    if args.resume:
+        print(f"resume: enabled ({'any status' if args.resume_any_status else 'success only'})")
+    if args.budget_seconds is not None:
+        print(f"budget_seconds: {int(args.budget_seconds)}")
+    if args.prompt_profile is not None:
+        print(f"prompt_profile: {args.prompt_profile}")
+    print(f"total runs: {len(tasks)} (runs_per_model={args.runs_per_model})")
 
     if args.dry_run:
-        for provider, model_id in planned:
+        for provider, model_id in tasks:
             print(f"- {provider} :: {model_id}")
         return 0
 
@@ -138,6 +243,7 @@ def main() -> int:
             mode=None,
             temperature=None,
             max_tokens=None,
+            budget_seconds=args.budget_seconds,
             kilo_timeout_seconds=args.kilo_timeout_seconds,
             prompt_profile=args.prompt_profile,
         )
@@ -148,45 +254,31 @@ def main() -> int:
     run_ids: list[str] = []
 
     if args.concurrency <= 1:
-        run_n = 0
-        for m in models:
-            for rep in range(args.runs_per_model):
-                if args.max_runs is not None and run_n >= args.max_runs:
-                    break
-                run_n += 1
-                run_id = default_run_id(competition_id=args.competition_id)
-                run_ids.append(run_id)
-                print(f"\n=== run {run_n}/{len(planned)}: {m['provider']} :: {m['model_id']} (rep {rep+1}) ===")
-                try:
-                    _, rc = _run_one(provider=m["provider"], model_id=m["model_id"], run_id=run_id)
-                except Exception as e:  # noqa: BLE001
-                    failures += 1
-                    print(f"error: {type(e).__name__}: {e}")
-                    continue
-                if rc != 0:
-                    failures += 1
-                    print(f"nonzero exit: {rc}")
-            if args.max_runs is not None and run_n >= args.max_runs:
-                break
+        for run_n, (provider, model_id) in enumerate(tasks, start=1):
+            run_id = default_run_id(competition_id=args.competition_id)
+            run_ids.append(run_id)
+            print(f"\n=== run {run_n}/{len(tasks)}: {provider} :: {model_id} ===")
+            try:
+                _, rc = _run_one(provider=provider, model_id=model_id, run_id=run_id)
+            except Exception as e:  # noqa: BLE001
+                failures += 1
+                print(f"error: {type(e).__name__}: {e}")
+                continue
+            if rc != 0:
+                failures += 1
+                print(f"nonzero exit: {rc}")
     else:
-        tasks: list[tuple[str, str, str]] = []
-        run_n = 0
-        for m in models:
-            for rep in range(args.runs_per_model):
-                if args.max_runs is not None and run_n >= args.max_runs:
-                    break
-                run_n += 1
-                run_id = default_run_id(competition_id=args.competition_id)
-                tasks.append((m["provider"], m["model_id"], run_id))
-            if args.max_runs is not None and run_n >= args.max_runs:
-                break
+        scheduled: list[tuple[str, str, str]] = []
+        for provider, model_id in tasks:
+            run_id = default_run_id(competition_id=args.competition_id)
+            scheduled.append((provider, model_id, run_id))
 
         print(f"concurrency: {args.concurrency} (DB/leaderboard updated after runs complete)")
-        for i, (provider, model_id, run_id) in enumerate(tasks, start=1):
-            print(f"- scheduled {i}/{len(tasks)}: {provider} :: {model_id} (run_id {run_id})")
+        for i, (provider, model_id, run_id) in enumerate(scheduled, start=1):
+            print(f"- scheduled {i}/{len(scheduled)}: {provider} :: {model_id} (run_id {run_id})")
 
         with ThreadPoolExecutor(max_workers=int(args.concurrency)) as ex:
-            futs = [ex.submit(_run_one, provider=p, model_id=m, run_id=r) for (p, m, r) in tasks]
+            futs = [ex.submit(_run_one, provider=p, model_id=m, run_id=r) for (p, m, r) in scheduled]
             for fut in as_completed(futs):
                 try:
                     run_id, rc = fut.result()

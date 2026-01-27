@@ -174,12 +174,16 @@ def cmd_create(args: argparse.Namespace) -> int:
     competition_dir = _competition_dir(repo_root, args.competition_id)
     spec = load_spec(competition_dir / "spec.yaml")
 
+    budget_seconds = int(getattr(args, "budget_seconds", None) or int(spec.budgets.time_seconds))
+    if budget_seconds < 1:
+        raise ValueError("--budget-seconds must be >= 1")
+
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
     paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
 
     copy_public_inputs(competition_dir=competition_dir, workspace_dir=paths.workspace_dir)
-    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=spec.budgets.time_seconds)
+    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=budget_seconds)
     state = read_run_state(state_path)
     state = set_run_metadata(
         state,
@@ -194,14 +198,14 @@ def cmd_create(args: argparse.Namespace) -> int:
     prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
         override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
-        time_budget_seconds=spec.budgets.time_seconds,
+        time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(prompt, encoding="utf-8")
 
     print("Run created.")
     print(f"run_id: {paths.run_id}")
     print(f"workspace: {paths.workspace_dir}")
-    print(f"time budget: {spec.budgets.time_seconds} seconds (enforced at finalize)")
+    print(f"time budget: {budget_seconds} seconds (enforced at finalize)")
     print("before you start Kilo, start the timer:")
     print(f"  python -m orchestrator.run_one start --run-id {paths.run_id}")
     print(f"then: create {paths.workspace_dir/'submission.csv'} (via VSCode/Kilo), then run finalize:")
@@ -473,9 +477,9 @@ def cmd_auto(args: argparse.Namespace) -> int:
     spec = load_spec(competition_dir / "spec.yaml")
 
     spec_budget_seconds = int(spec.budgets.time_seconds)
-    budget_seconds = (
-        min(spec_budget_seconds, int(args.kilo_timeout_seconds)) if args.kilo_timeout_seconds else spec_budget_seconds
-    )
+    budget_seconds = int(getattr(args, "budget_seconds", None) or spec_budget_seconds)
+    if budget_seconds < 1:
+        raise ValueError("--budget-seconds must be >= 1")
 
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
@@ -508,14 +512,24 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_stderr = artifacts_dir / "kilo_stderr.log"
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
-    prompt_profile = getattr(args, "prompt_profile", None) or ("good-baseline" if budget_seconds >= 600 else "simple-baseline")
+    prompt_profile = getattr(args, "prompt_profile", None) or (
+        "sota-xgb" if budget_seconds >= 1200 else ("good-baseline" if budget_seconds >= 600 else "simple-baseline")
+    )
 
     seed_instructions = (
         f"Run metadata:\n- RUN_ID: {paths.run_id}\n- SEED: {seed}\n- PROMPT_PROFILE: {prompt_profile}\n\n"
         f"Use SEED={seed} consistently for any randomness (e.g., `train_test_split(random_state=SEED)`, model `random_state=SEED`, `numpy.random.seed(SEED)`).\n"
     )
 
-    if prompt_profile == "good-baseline":
+    if prompt_profile == "sota-xgb":
+        harness_instructions = (
+            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
+            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
+            "XGBoost is available and allowed for this run. Prefer a strong, reliable baseline first (e.g., `XGBRegressor`/`XGBClassifier`), then iterate (encoding, depth/eta, subsampling, regularization). "
+            "Use SEED for all randomness. Always leave a valid `submission.csv` behind. "
+            "Do not install packages."
+        )
+    elif prompt_profile == "good-baseline":
         harness_instructions = (
             "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
             "Run `python train_model.py` early to validate the full pipeline end-to-end. "
@@ -719,6 +733,12 @@ def main() -> int:
     p_create = sub.add_parser("create", help="Create a run workspace for a manual VSCode/Kilo agent run.")
     p_create.add_argument("--competition-id", required=True)
     p_create.add_argument("--run-id", default=None)
+    p_create.add_argument(
+        "--budget-seconds",
+        type=int,
+        default=None,
+        help="Optional override for the run time budget (defaults to spec.yaml budgets.time_seconds).",
+    )
     p_create.add_argument("--provider", default=None)
     p_create.add_argument("--model-id", default=None)
     p_create.add_argument("--mode", default=None)
@@ -752,12 +772,18 @@ def main() -> int:
     p_auto.add_argument("--mode", default=None)
     p_auto.add_argument("--temperature", type=float, default=None)
     p_auto.add_argument("--max-tokens", type=int, default=None)
+    p_auto.add_argument(
+        "--budget-seconds",
+        type=int,
+        default=None,
+        help="Optional override for the run time budget (defaults to spec.yaml budgets.time_seconds).",
+    )
     p_auto.add_argument("--kilo-timeout-seconds", type=int, default=None, help="Optional override for Kilo CLI timeout.")
     p_auto.add_argument(
         "--prompt-profile",
         default=None,
-        choices=["simple-baseline", "good-baseline"],
-        help="Prompt profile for headless runs. If not set, derives from the time budget (>=600s -> good-baseline).",
+        choices=["simple-baseline", "good-baseline", "sota-xgb"],
+        help="Prompt profile for headless runs. If not set, derives from the time budget (>=1200s -> sota-xgb; >=600s -> good-baseline).",
     )
     p_auto.add_argument(
         "--stop-when-submission",
