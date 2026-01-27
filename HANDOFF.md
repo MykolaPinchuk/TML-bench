@@ -93,3 +93,5 @@ v5 (Phase 5): multi-competition benchmark + publishable leaderboard artifact (on
 ## Git notes (handoff)
 - `.gitignore` updates made:
   - Ignore competition data, runs, and sqlite DBs; allow small leaderboard outputs under `results/`.
+- v5 initialization commits:
+  - `b811a1b` and `7b98385` on local branch `v5` (workflow docs + log rotation).
