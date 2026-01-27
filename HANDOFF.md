@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve auditability; no security yet).
+v5 (Phase 5): multi-competition benchmark + publishable leaderboard artifact (one-command reruns; deterministic outputs).
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -66,13 +66,20 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
     - `competitions/playground-series-s5e10/` (regression RMSE; target `accident_risk`)
   - Regenerated leaderboards including the new competitions:
     - latest committed leaderboard refresh: commit `9583af5`
+  - Benchmark suite posture (v4 completion): **4 competitions** total (no further expansion in v4):
+    - `bank-customer-churn-ict-u-ai`
+    - `foot-traffic-wuerzburg-retail-forecasting-2-0`
+    - `playground-series-s6e1`
+    - `playground-series-s5e10`
 
 ### Next (ordered)
-1) v4 completeness (current posture):
-   - Treat the benchmark suite as complete at **4 competitions** for now (no further competition expansion in v4).
-   - Keep baselines recorded (`hgb` + `constant`) and leaderboards refreshed from local runs DB.
-2) (Optional, next phase) Automation / ops:
-   - If/when you start Phase 5, focus on making “one command” reruns cheap and reliable (no new competition scope unless explicitly requested).
+1) Phase 5 (v5): “one command” multi-competition benchmark run:
+   - Add a first-class entrypoint to run a fixed suite of competitions (the 4 above) against a model set (e.g., `orchestrator/model_sets/v3_fast.json`) with a chosen profile.
+   - Ensure it can (optionally) record baselines and then refresh all leaderboard artifacts deterministically.
+2) Publishable artifact packaging:
+   - Produce a single, reproducible output bundle (e.g., a timestamped folder under `results/` that contains `leaderboard.*`, per-competition summaries, and the exact config used).
+3) Reproducibility + anti-leak posture:
+   - Document the freshness cutoff policy (e.g., “competitions whose data was created after 2025-05-01”) and how it’s verified during `prepare_competition.py`.
 
 ### Open questions
 - Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
