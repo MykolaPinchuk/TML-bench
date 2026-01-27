@@ -59,9 +59,17 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
     - `python -m orchestrator.baselines --competition-id <id>` records `hgb` + `constant` into `results/results.sqlite`.
     - Root `LEADERBOARD.md` “Overall” tables include `mean_abs_units` (0=constant, 1=hgb) and `beat_hgb_rate`.
 
+- Competition expansion (v4):
+  - Added competition scaffolds:
+    - `competitions/bank-customer-churn-ict-u-ai/` (binary AUC; target `Exited`)
+    - `competitions/foot-traffic-wuerzburg-retail-forecasting-2-0/` (regression RMSE)
+    - `competitions/applied-regression-on-structured-attributes/` (regression RMSE; currently blocked)
+  - Regenerated leaderboards including the new competitions:
+    - latest committed leaderboard refresh: commit `9583af5`
+
 ### Next (ordered)
 1) Expand competition coverage (so “Overall” is meaningful):
-   - Add 1–2 more tabular competitions (one regression, one classification), run `v3_fast` sweeps, and record baselines via `python -m orchestrator.baselines`.
+   - Replace `applied-regression-on-structured-attributes` (blocked) with 1–2 other tabular competitions (one regression, one classification), run `v3_fast` sweeps, and ensure baselines exist (`hgb` + `constant`) so absolute normalization is populated.
 2) Reduce `simple-baseline` failures (less about collisions now):
    - Consider provider/model-specific tweaks (timeout bump, retry-on-timeout) while keeping `simple-baseline` nominally 240s.
 3) Baseline automation:
@@ -74,6 +82,7 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
 ## Known issues / current breakage
 - Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
 - `simple-baseline` sweeps can still show occasional timeouts (e.g., NanoGPT deepseek-v3.2 @240s).
+- `applied-regression-on-structured-attributes` Kaggle download returns `403 Forbidden` and the competition appears impossible to join; this blocks preparing data and running sweeps for that competition (see log commit `9aee1f1`).
 
 ## Git notes (handoff)
 - `.gitignore` updates made:
