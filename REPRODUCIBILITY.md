@@ -75,6 +75,28 @@ python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --pr
 python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --concurrency 1
 ```
 
+Resume a sweep without re-running completed configs (DB-backed):
+
+```bash
+python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 3 --resume
+```
+
+### Multi-competition suite (Phase 5)
+
+Run a fixed suite of 4 competitions end-to-end:
+
+```bash
+python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume
+```
+
+### SOTA tier (20 min, XGBoost allowed)
+
+Use the `sota-xgb` sweep profile (budget 1200s) or set `--budget-seconds 1200` explicitly:
+
+```bash
+python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --runs-per-model 1 --concurrency 1
+```
+
 ## Rebuild leaderboards
 
 ```bash

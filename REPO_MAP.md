@@ -17,6 +17,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
+- `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite).
 - `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
 - `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).
 - `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).

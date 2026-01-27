@@ -34,9 +34,14 @@ In Phase 2, the agent is run manually (VSCode + Kilo) in a per-run workspace:
 Use `orchestrator.sweep` to run many models headlessly via Kilo CLI:
 - Simple baseline (fast/cheap): `--profile simple-baseline` (240s) and default `--concurrency 4`
 - Good baseline (more effort): `--profile good-baseline` (600s) and default `--concurrency 4`
+- SOTA tier (20 min, XGBoost allowed): `--profile sota-xgb` (1200s)
 
 Example:
 - `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline`
+
+## Multi-competition suite (Phase 5)
+Run the benchmark across the core 4-competition suite:
+- `python -m orchestrator.suite --profile simple-baseline --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --resume`
 
 ## Audit trail (what proves an agent actually ran)
 

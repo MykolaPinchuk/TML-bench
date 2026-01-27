@@ -58,6 +58,17 @@ Start here (in order):
 
 Note: the run time budget is recorded at `create` and enforced at `finalize` (timeouts are marked `status=timeout`). Finalize also updates `LEADERBOARD.md` / `LEADERBOARD.html` at repo root.
 
+## Phase 3 (headless sweeps)
+Run models headlessly via Kilo CLI (single competition):
+- `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1`
+
+Resume a sweep without rerunning completed configs (DB-backed):
+- `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 3 --resume`
+
+## Phase 5 (multi-competition suite)
+Run the core 4-competition suite end-to-end:
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume`
+
 ## Where to find logs / evidence
 
 Each run lives under `runs/<run_id>/`:
