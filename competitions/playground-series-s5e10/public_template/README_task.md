@@ -1,10 +1,10 @@
-# Predicting Road Accident Risk (BUAA)
+# Playground Series S5E10 — Road Accident Risk Prediction
 
 ## Goal
-Train a model on `train_public.csv` to predict accident risk.
+Train a regression model on `train_public.csv` to predict `accident_risk`.
 
 ## Files
-- `train_public.csv`: features + label column (see `sample_submission.csv` for the required prediction column name)
+- `train_public.csv`: features + `accident_risk` (label)
 - `test_public.csv`: features only (no label)
 - `sample_submission.csv`: required submission schema
 

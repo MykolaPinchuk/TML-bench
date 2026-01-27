@@ -63,13 +63,13 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
   - Added competition scaffolds:
     - `competitions/bank-customer-churn-ict-u-ai/` (binary AUC; target `Exited`)
     - `competitions/foot-traffic-wuerzburg-retail-forecasting-2-0/` (regression RMSE)
-    - `competitions/predicting-road-accident-risk-buaa/` (scaffold; spec inferred on first `prepare_competition.py --download`; may require accepting rules)
+    - `competitions/playground-series-s5e10/` (regression RMSE; target `accident_risk`)
   - Regenerated leaderboards including the new competitions:
     - latest committed leaderboard refresh: commit `9583af5`
 
 ### Next (ordered)
 1) Expand competition coverage (so “Overall” is meaningful):
-   - Prepare + baseline + sweep `predicting-road-accident-risk-buaa`, then add 1 more tabular competition (preferably regression) to get closer to the target ~5 tasks; ensure baselines exist (`hgb` + `constant`) so absolute normalization is populated.
+   - Prepare + baseline + sweep `playground-series-s5e10`, then add 1 more tabular competition (preferably classification) to get closer to the target ~5 tasks; ensure baselines exist (`hgb` + `constant`) so absolute normalization is populated.
 2) Reduce `simple-baseline` failures (less about collisions now):
    - Consider provider/model-specific tweaks (timeout bump, retry-on-timeout) while keeping `simple-baseline` nominally 240s.
 3) Baseline automation:
