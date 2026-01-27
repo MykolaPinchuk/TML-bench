@@ -3675,6 +3675,27 @@
     "normalized_submission_sha256":"6a459c0e272de227\u2026"
   },
   {
+    "run_id":"playground-series-s5e10_e347721923e3",
+    "created_at":"2026-01-26T22:10:13-08:00",
+    "competition_id":"playground-series-s5e10",
+    "status":"success",
+    "provider":"nanogpt",
+    "model_id":"mistralai\/devstral-2-123b-instruct-2512",
+    "mode":null,
+    "prompt_profile":"good-baseline",
+    "temperature":null,
+    "max_tokens":null,
+    "metric_name":"rmse",
+    "score_raw":0.056394965478219,
+    "score_normalized":-0.056394965478219,
+    "secondary_r2":0.884707497054439,
+    "runtime_seconds":176.991575000000012,
+    "budget_time_seconds":600,
+    "seed":896447559.0,
+    "submission_sha256":"287c541431e1c41e\u2026",
+    "normalized_submission_sha256":"59647436774fabb2\u2026"
+  },
+  {
     "run_id":"playground-series-s5e10_723463b926d0",
     "created_at":"2026-01-26T20:59:42-08:00",
     "competition_id":"playground-series-s5e10",

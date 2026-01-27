@@ -25,3 +25,4 @@
   - Added missing per-competition prompt overrides for the 3 remaining competitions to reduce schema mistakes.
   - Added a small (5s) headless grace window for budget enforcement to avoid false timeouts near the boundary.
   - Refreshed leaderboard snapshots via `python -m orchestrator.leaderboard --import-results --write-root`.
+- 2026-01-27 (Pacific): Follow-up: reran one previously invalid `good-baseline` run (`playground-series-s5e10`, `nanogpt` `mistralai/devstral-2-123b-instruct-2512`) after adding the competition override; new run succeeded and leaderboards refreshed.
