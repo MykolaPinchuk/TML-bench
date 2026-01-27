@@ -68,12 +68,11 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
     - latest committed leaderboard refresh: commit `9583af5`
 
 ### Next (ordered)
-1) Expand competition coverage (so “Overall” is meaningful):
-   - Prepare + baseline + sweep `playground-series-s5e10`, then add 1 more tabular competition (preferably classification) to get closer to the target ~5 tasks; ensure baselines exist (`hgb` + `constant`) so absolute normalization is populated.
-2) Reduce `simple-baseline` failures (less about collisions now):
-   - Consider provider/model-specific tweaks (timeout bump, retry-on-timeout) while keeping `simple-baseline` nominally 240s.
-3) Baseline automation:
-   - Optionally auto-record missing baselines (constant+hgb) when a competition is first used, so absolute normalization is always available.
+1) v4 completeness (current posture):
+   - Treat the benchmark suite as complete at **4 competitions** for now (no further competition expansion in v4).
+   - Keep baselines recorded (`hgb` + `constant`) and leaderboards refreshed from local runs DB.
+2) (Optional, next phase) Automation / ops:
+   - If/when you start Phase 5, focus on making “one command” reruns cheap and reliable (no new competition scope unless explicitly requested).
 
 ### Open questions
 - Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
