@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from orchestrator.db import ensure_db, fetch_runs, insert_run
+from orchestrator.db import ensure_db, fetch_baselines, fetch_runs, insert_run
 from orchestrator.result import read_result_json
 
 
@@ -16,6 +16,30 @@ class LeaderboardPaths:
     json_path: Path
     csv_path: Path
     html_path: Path
+
+
+def load_baselines_df(*, db_path: Path) -> pd.DataFrame:
+    try:
+        rows = fetch_baselines(db_path)
+    except Exception:  # noqa: BLE001
+        rows = []
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows)
+
+
+def _is_runnable_model(*, provider: object, model_id: object) -> bool:
+    p = str(provider or "").strip()
+    m = str(model_id or "").strip()
+    if not p or not m:
+        return False
+    if any(ch.isspace() for ch in m):
+        return False
+    if p == "nanogpt":
+        return "/" in m
+    if p == "chutes":
+        return ("/" in m) or (m in {"deepseek-v3.1-terminus"})
+    return True
 
 
 def _pacific_tz_name() -> str:
@@ -57,7 +81,8 @@ def _format_created_at_pacific(s: str | None) -> str | None:
 
 
 def _df_to_markdown_table(df: pd.DataFrame) -> str:
-    df = df.fillna("")
+    # Avoid dtype issues (e.g., nullable Int64 columns) when filling missing values.
+    df = df.astype(object).where(df.notna(), "")
     cols = list(df.columns)
     if not cols:
         return "_(empty)_\n"
@@ -75,9 +100,283 @@ def _df_to_markdown_table(df: pd.DataFrame) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "TML-bench leaderboard") -> None:
+def _score_normalized_series(df: pd.DataFrame) -> pd.Series:
+    """
+    Return a higher-is-better score series.
+
+    Prefer the DB-provided `score_normalized` when available; otherwise derive from metric_name.
+    """
+    if "score_normalized" in df.columns:
+        s = pd.to_numeric(df["score_normalized"], errors="coerce")
+        if s.notna().any():
+            return s
+
+    if "score_raw" not in df.columns:
+        return pd.Series([pd.NA] * len(df), index=df.index, dtype="float64")
+
+    raw = pd.to_numeric(df["score_raw"], errors="coerce")
+    metric = df["metric_name"] if "metric_name" in df.columns else pd.Series([""] * len(df), index=df.index)
+    metric = metric.astype(str).str.strip().str.lower()
+
+    # Current supported metrics: rmse/mae/logloss (lower is better), auc (higher is better).
+    higher_is_better = metric.isin(["auc"])
+    out = raw.copy()
+    out[~higher_is_better] = -raw[~higher_is_better]
+    return out
+
+
+def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = None) -> pd.DataFrame:
+    if df.empty:
+        return pd.DataFrame()
+    needed = {"competition_id", "provider", "model_id", "run_id"}
+    if not needed.issubset(set(df.columns)):
+        return pd.DataFrame()
+
+    d = df.copy()
+    d["_score_norm"] = _score_normalized_series(d)
+    d["status"] = d["status"].fillna("").astype(str) if "status" in d.columns else ""
+
+    config_cols = ["provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"]
+    config_cols = [c for c in config_cols if c in d.columns]
+    if not config_cols:
+        return pd.DataFrame()
+
+    for c in config_cols + ["competition_id"]:
+        d[c] = d[c].fillna("").astype(str)
+
+    attempts = d.groupby(config_cols, dropna=False).agg(
+        runs=("run_id", "size"),
+        run_success=("status", lambda s: int((s == "success").sum())),
+        competitions_attempted=("competition_id", "nunique"),
+    )
+    attempts = attempts.reset_index()
+    attempts["run_success_rate"] = attempts["run_success"] / attempts["runs"]
+
+    successes = d[d["status"] == "success"].copy()
+    if successes.empty:
+        return pd.DataFrame()
+
+    comp_success = (
+        successes.groupby(config_cols, dropna=False)
+        .agg(competitions_succeeded=("competition_id", "nunique"))
+        .reset_index()
+    )
+    out = attempts.merge(comp_success, on=config_cols, how="left")
+    out["competitions_succeeded"] = out["competitions_succeeded"].fillna(0).astype(int)
+    out["competition_success_rate"] = out["competitions_succeeded"] / out["competitions_attempted"].replace(0, pd.NA)
+
+    best = (
+        successes.groupby(["competition_id"] + config_cols, dropna=False)
+        .agg(best_score_norm=("_score_norm", "max"))
+        .reset_index()
+    )
+    if best.empty:
+        return pd.DataFrame()
+
+    best["_configs_in_comp"] = best.groupby("competition_id")["best_score_norm"].transform("size")
+    best["rank"] = best.groupby("competition_id")["best_score_norm"].rank(ascending=False, method="min")
+    best["rank_pct"] = 0.0
+    mask = best["_configs_in_comp"] > 1
+    best.loc[mask, "rank_pct"] = (best.loc[mask, "rank"] - 1.0) / (best.loc[mask, "_configs_in_comp"] - 1.0)
+
+    ranks = best.groupby(config_cols, dropna=False).agg(
+        competitions_ranked=("competition_id", "nunique"),
+        mean_rank=("rank", "mean"),
+        mean_rank_pct=("rank_pct", "mean"),
+        best_rank=("rank", "min"),
+    )
+    ranks = ranks.reset_index()
+
+    out = out.merge(ranks, on=config_cols, how="left")
+
+    if "competitions_ranked" in out.columns:
+        out["competitions_ranked"] = pd.to_numeric(out["competitions_ranked"], errors="coerce").astype("Int64")
+
+    # Baseline-normalized absolute signal (dimensionless):
+    # abs_units = 0 -> constant baseline; abs_units = 1 -> hgb baseline.
+    if baselines is not None and not baselines.empty and {"competition_id", "baseline_type", "score_normalized"}.issubset(set(baselines.columns)):
+        b = baselines.copy()
+        b["competition_id"] = b["competition_id"].fillna("").astype(str)
+        b["baseline_type"] = b["baseline_type"].fillna("").astype(str)
+        b["score_normalized"] = pd.to_numeric(b["score_normalized"], errors="coerce")
+        pivot = (
+            b.pivot_table(index="competition_id", columns="baseline_type", values="score_normalized", aggfunc="max")
+            .reset_index()
+            .rename(columns={"constant": "baseline_constant_norm", "hgb": "baseline_hgb_norm"})
+        )
+        best2 = best.merge(pivot, on="competition_id", how="left")
+        if "baseline_constant_norm" in best2.columns and "baseline_hgb_norm" in best2.columns:
+            den = best2["baseline_hgb_norm"] - best2["baseline_constant_norm"]
+            best2["abs_units"] = (best2["best_score_norm"] - best2["baseline_constant_norm"]) / den.replace(0, pd.NA)
+            # Only trust scaling when hgb is better than constant (den > 0).
+            best2.loc[den <= 0, "abs_units"] = pd.NA
+            best2["beat_hgb"] = (best2["best_score_norm"] > best2["baseline_hgb_norm"]).astype("Int64")
+
+            abs_agg = best2.groupby(config_cols, dropna=False).agg(
+                competitions_abs=("abs_units", lambda s: int(pd.to_numeric(s, errors="coerce").notna().sum())),
+                mean_abs_units=("abs_units", "mean"),
+                median_abs_units=("abs_units", "median"),
+                beat_hgb=("beat_hgb", "sum"),
+            )
+            abs_agg = abs_agg.reset_index()
+            abs_agg["beat_hgb_rate"] = abs_agg["beat_hgb"] / abs_agg["competitions_abs"].replace(0, pd.NA)
+            out = out.merge(abs_agg, on=config_cols, how="left")
+
+    out["mean_rank"] = pd.to_numeric(out["mean_rank"], errors="coerce").round(2)
+    out["best_rank"] = pd.to_numeric(out["best_rank"], errors="coerce").astype("Int64")
+    out["mean_rank_pct"] = pd.to_numeric(out["mean_rank_pct"], errors="coerce").round(4)
+    out["competition_success_rate"] = pd.to_numeric(out["competition_success_rate"], errors="coerce").round(4)
+    out["run_success_rate"] = pd.to_numeric(out["run_success_rate"], errors="coerce").round(4)
+    if "mean_abs_units" in out.columns:
+        out["mean_abs_units"] = pd.to_numeric(out["mean_abs_units"], errors="coerce").round(3)
+    if "median_abs_units" in out.columns:
+        out["median_abs_units"] = pd.to_numeric(out["median_abs_units"], errors="coerce").round(3)
+    if "beat_hgb_rate" in out.columns:
+        out["beat_hgb_rate"] = pd.to_numeric(out["beat_hgb_rate"], errors="coerce").round(4)
+
+    def _pct(x: object) -> str:
+        try:
+            v = float(x)
+            if pd.isna(v):
+                return ""
+            return f"{100.0 * v:.1f}%"
+        except Exception:  # noqa: BLE001
+            return ""
+
+    out["competition_success_rate"] = out["competition_success_rate"].map(_pct)
+    out["run_success_rate"] = out["run_success_rate"].map(_pct)
+    out["mean_rank_pct"] = out["mean_rank_pct"].map(_pct)
+    if "beat_hgb_rate" in out.columns:
+        out["beat_hgb_rate"] = out["beat_hgb_rate"].map(_pct)
+
+    cols = config_cols + [
+        "competitions_attempted",
+        "competitions_succeeded",
+        "competition_success_rate",
+        "runs",
+        "run_success_rate",
+        "competitions_ranked",
+        "mean_rank",
+        "mean_rank_pct",
+        "best_rank",
+        "competitions_abs",
+        "mean_abs_units",
+        "median_abs_units",
+        "beat_hgb_rate",
+    ]
+    cols = [c for c in cols if c in out.columns]
+    out = out[cols]
+
+    # mean_rank_pct is a percent string; sort using numeric extraction.
+    out["_sort_rank_pct"] = pd.to_numeric(
+        out["mean_rank_pct"].astype(str).str.replace("%", "", regex=False),
+        errors="coerce",
+    )
+    out = out.sort_values(by=["_sort_rank_pct", "competitions_succeeded"], ascending=[True, False], na_position="last")
+    out = out.drop(columns=["_sort_rank_pct"])
+
+    return out
+
+
+def _duplicate_submissions_df(df: pd.DataFrame, *, group_cols: list[str]) -> pd.DataFrame:
+    if df.empty:
+        return pd.DataFrame()
+
+    needed = {"run_id", "provider", "model_id", "status", "score_raw", "normalized_submission_sha256"}
+    if not needed.issubset(set(df.columns)):
+        return pd.DataFrame()
+
+    d = df.copy()
+    d = d.fillna("")
+    d = d[(d["status"] == "success") & (d["normalized_submission_sha256"].astype(str).str.strip() != "")]
+    if d.empty:
+        return pd.DataFrame()
+
+    rows: list[dict[str, object]] = []
+    gb_cols = [c for c in group_cols if c in d.columns] + ["normalized_submission_sha256"]
+    if not gb_cols or "normalized_submission_sha256" not in gb_cols:
+        return pd.DataFrame()
+
+    for keys, g in d.groupby(gb_cols, dropna=False):
+        n = int(len(g))
+        if n <= 1:
+            continue
+        g = g.copy()
+        g["score_raw"] = pd.to_numeric(g["score_raw"], errors="coerce")
+        g = g.sort_values(by=["score_raw", "run_id"], ascending=[True, True], na_position="last")
+
+        models = [f"{p}::{m}" for p, m in zip(g["provider"].astype(str), g["model_id"].astype(str), strict=False)]
+        run_ids = [str(x) for x in g["run_id"].tolist()]
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        key_map = {col: val for col, val in zip(gb_cols, keys, strict=False)}
+        rows.append(
+            {
+                **{k: ("" if k == "normalized_submission_sha256" else str(v)) for k, v in key_map.items() if k != "normalized_submission_sha256"},
+                "normalized_submission_sha256": str(key_map.get("normalized_submission_sha256", "")),
+                "count": n,
+                "score_raw": float(g["score_raw"].iloc[0]) if pd.notna(g["score_raw"].iloc[0]) else "",
+                "models": ", ".join(models[:5]) + ("…" if n > 5 else ""),
+                "run_ids": ", ".join(run_ids[:5]) + ("…" if n > 5 else ""),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame()
+
+    out = pd.DataFrame(rows)
+    sort_cols = []
+    for c in group_cols:
+        if c in out.columns:
+            sort_cols.append(c)
+    out = out.sort_values(by=sort_cols + ["count"], ascending=[True] * len(sort_cols) + [False], na_position="last")
+    return out
+
+
+def _variance_df(df: pd.DataFrame, *, group_cols: list[str]) -> pd.DataFrame:
+    if df.empty:
+        return pd.DataFrame()
+    needed = {"status", "score_raw", "normalized_submission_sha256"}
+    if not needed.issubset(set(df.columns)):
+        return pd.DataFrame()
+
+    d = df.copy()
+    d = d.fillna("")
+    d = d[d["status"] == "success"]
+    if d.empty:
+        return pd.DataFrame()
+    d["score_raw"] = pd.to_numeric(d["score_raw"], errors="coerce")
+    d = d[pd.notna(d["score_raw"])]
+    if d.empty:
+        return pd.DataFrame()
+
+    gb_cols = [c for c in group_cols if c in d.columns]
+    if not gb_cols:
+        return pd.DataFrame()
+
+    def _uniq_nonempty(s: pd.Series) -> int:
+        vals = [str(x).strip() for x in s.tolist()]
+        return len({v for v in vals if v})
+
+    agg = d.groupby(gb_cols, dropna=False).agg(
+        runs=("score_raw", "size"),
+        score_min=("score_raw", "min"),
+        score_mean=("score_raw", "mean"),
+        score_max=("score_raw", "max"),
+        score_std=("score_raw", "std"),
+        unique_normalized_submissions=("normalized_submission_sha256", _uniq_nonempty),
+    )
+    out = agg.reset_index()
+    return out.sort_values(by=gb_cols + ["score_mean"], ascending=[True] * len(gb_cols) + [True], na_position="last")
+
+
+def write_root_leaderboard(
+    *, df: pd.DataFrame, repo_root: Path, title: str = "TML-bench leaderboard", baselines: pd.DataFrame | None = None
+) -> None:
     md_path = repo_root / "LEADERBOARD.md"
     html_path = repo_root / "LEADERBOARD.html"
+
+    df_display = df
 
     md = (
         f"# {title}\n\n"
@@ -89,17 +388,27 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
     if not df.empty and {"competition_id", "provider", "model_id", "mode", "score_raw", "run_id"}.issubset(set(df.columns)):
         df_sorted = df.copy()
         df_sorted["score_raw"] = pd.to_numeric(df_sorted["score_raw"], errors="coerce")
+        df_sorted["_score_norm"] = _score_normalized_series(df_sorted)
+        df_sorted["_runnable_model"] = [
+            _is_runnable_model(provider=p, model_id=m) for p, m in zip(df_sorted["provider"], df_sorted["model_id"], strict=False)
+        ]
         if "created_at" in df_sorted.columns:
             df_sorted["_created_at_dt"] = df_sorted["created_at"].map(_parse_iso_datetime)
         df_sorted = df_sorted.sort_values(
-            by=["competition_id", "score_raw", "_created_at_dt" if "_created_at_dt" in df_sorted.columns else "created_at"],
-            ascending=[True, True, False],
+            by=["competition_id", "_score_norm", "_created_at_dt" if "_created_at_dt" in df_sorted.columns else "created_at"],
+            ascending=[True, False, False],
             na_position="last",
         )
-        group_cols = ["competition_id", "provider", "model_id", "mode"]
-        best = df_sorted.groupby(group_cols, dropna=False).head(1).copy()
+        best_src = df_sorted[df_sorted["_runnable_model"]].copy()
+        if "status" in best_src.columns:
+            best_src = best_src[best_src["status"] == "success"]
+        group_cols = ["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"]
+        group_cols = [c for c in group_cols if c in best_src.columns]
+        best = best_src.groupby(group_cols, dropna=False).head(1).copy()
         if "_created_at_dt" in best.columns:
             best = best.drop(columns=["_created_at_dt"])
+        if "_runnable_model" in best.columns:
+            best = best.drop(columns=["_runnable_model"])
         best = best.rename(
             columns={
                 "run_id": "best_run_id",
@@ -108,6 +417,8 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
                 "budget_time_seconds": "budget_time_seconds",
             }
         )
+        if "secondary_r2" in best.columns:
+            best = best.rename(columns={"secondary_r2": "best_secondary_r2"})
         if "submission_sha256" in best.columns:
             best = best.rename(columns={"submission_sha256": "best_submission_sha256"})
         if "normalized_submission_sha256" in best.columns:
@@ -118,20 +429,87 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             "provider",
             "model_id",
             "mode",
+            "prompt_profile",
             "metric_name",
             "best_score_raw",
+            "best_secondary_r2",
             "best_runtime_seconds",
             "budget_time_seconds",
             "best_run_id",
         ]
+        best_cols = [c for c in best_cols if c in best.columns]
         for extra in ["best_submission_sha256", "best_normalized_submission_sha256"]:
             if extra in best.columns:
                 best_cols.append(extra)
         best = best[best_cols]
+
+        overall = _overall_by_model_df(df_sorted[df_sorted["_runnable_model"]], baselines=baselines)
+        if not overall.empty:
+            md += "## Overall (across competitions)\n\n"
+            md += (
+                "- Ranks are computed per competition using each model/config’s best normalized score (higher-is-better). "
+                "`mean_rank_pct` is a percentile rank within each competition (0% is best).\n"
+                "- Aggregation is shown separately per `prompt_profile`.\n\n"
+            )
+            if baselines is not None and not baselines.empty:
+                md += "- Absolute signal uses two fixed host baselines per competition: `constant` and `hgb`.\n"
+                md += "  - `mean_abs_units`: 0 = constant baseline, 1 = hgb baseline (higher is better).\n"
+                md += "  - `beat_hgb_rate`: fraction of competitions where the model beats the hgb baseline.\n\n"
+
+            if "prompt_profile" not in overall.columns:
+                md += _df_to_markdown_table(overall.head(60))
+            else:
+                known = ["simple-baseline", "good-baseline"]
+                present_known = [p for p in known if (overall["prompt_profile"] == p).any()]
+                present_other = sorted(
+                    {
+                        str(x)
+                        for x in overall["prompt_profile"].astype(str).tolist()
+                        if str(x) and str(x) not in set(known)
+                    }
+                )
+                has_legacy = (overall["prompt_profile"].astype(str).str.strip() == "").any()
+
+                def _emit_profile_md(profile_label: str, dfp: pd.DataFrame) -> None:
+                    nonlocal md
+                    if dfp.empty:
+                        return
+                    md += f"### {profile_label}\n\n"
+                    if "prompt_profile" in dfp.columns:
+                        dfp = dfp.drop(columns=["prompt_profile"])
+                    md += _df_to_markdown_table(dfp.head(60))
+
+                for p in present_known:
+                    _emit_profile_md(p, overall[overall["prompt_profile"] == p])
+                for p in present_other:
+                    _emit_profile_md(p, overall[overall["prompt_profile"] == p])
+                if has_legacy:
+                    _emit_profile_md("(legacy/unspecified)", overall[overall["prompt_profile"].astype(str).str.strip() == ""])
         md += "## Best by model (per competition)\n\n"
         md += _df_to_markdown_table(best)
+
+        dup = _duplicate_submissions_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "budget_time_seconds", "prompt_profile"],
+        )
+        if not dup.empty:
+            md += "\n## Duplicate submissions (by config + normalized hash)\n\n"
+            md += _df_to_markdown_table(dup)
+
+        var = _variance_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"],
+        )
+        if not var.empty:
+            md += "\n## Variance (per model/config)\n\n"
+            md += _df_to_markdown_table(var)
+
         md += "\n## All runs\n\n"
-    md += _df_to_markdown_table(df)
+        df_display = df_sorted[df_sorted["_runnable_model"]].copy()
+        for col in ["_created_at_dt", "_runnable_model", "_score_norm"]:
+            if col in df_display.columns:
+                df_display = df_display.drop(columns=[col])
+    md += _df_to_markdown_table(df_display)
     md_path.write_text(md, encoding="utf-8")
 
     html = (
@@ -146,17 +524,27 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
     if not df.empty and {"competition_id", "provider", "model_id", "mode", "score_raw", "run_id"}.issubset(set(df.columns)):
         df_sorted = df.copy()
         df_sorted["score_raw"] = pd.to_numeric(df_sorted["score_raw"], errors="coerce")
+        df_sorted["_score_norm"] = _score_normalized_series(df_sorted)
+        df_sorted["_runnable_model"] = [
+            _is_runnable_model(provider=p, model_id=m) for p, m in zip(df_sorted["provider"], df_sorted["model_id"], strict=False)
+        ]
         if "created_at" in df_sorted.columns:
             df_sorted["_created_at_dt"] = df_sorted["created_at"].map(_parse_iso_datetime)
         df_sorted = df_sorted.sort_values(
-            by=["competition_id", "score_raw", "_created_at_dt" if "_created_at_dt" in df_sorted.columns else "created_at"],
-            ascending=[True, True, False],
+            by=["competition_id", "_score_norm", "_created_at_dt" if "_created_at_dt" in df_sorted.columns else "created_at"],
+            ascending=[True, False, False],
             na_position="last",
         )
-        group_cols = ["competition_id", "provider", "model_id", "mode"]
-        best = df_sorted.groupby(group_cols, dropna=False).head(1).copy()
+        best_src = df_sorted[df_sorted["_runnable_model"]].copy()
+        if "status" in best_src.columns:
+            best_src = best_src[best_src["status"] == "success"]
+        group_cols = ["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"]
+        group_cols = [c for c in group_cols if c in best_src.columns]
+        best = best_src.groupby(group_cols, dropna=False).head(1).copy()
         if "_created_at_dt" in best.columns:
             best = best.drop(columns=["_created_at_dt"])
+        if "_runnable_model" in best.columns:
+            best = best.drop(columns=["_runnable_model"])
         best = best.rename(
             columns={
                 "run_id": "best_run_id",
@@ -164,10 +552,56 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
                 "runtime_seconds": "best_runtime_seconds",
             }
         )
+        if "secondary_r2" in best.columns:
+            best = best.rename(columns={"secondary_r2": "best_secondary_r2"})
         if "submission_sha256" in best.columns:
             best = best.rename(columns={"submission_sha256": "best_submission_sha256"})
         if "normalized_submission_sha256" in best.columns:
             best = best.rename(columns={"normalized_submission_sha256": "best_normalized_submission_sha256"})
+
+        overall = _overall_by_model_df(df_sorted[df_sorted["_runnable_model"]], baselines=baselines)
+        if not overall.empty:
+            html += "\n<h2>Overall (across competitions)</h2>\n"
+            html += (
+                "<p>Ranks are computed per competition using each model/config’s best normalized score (higher-is-better). "
+                "<code>mean_rank_pct</code> is a percentile rank within each competition (0% is best). "
+                "Aggregation is shown separately per <code>prompt_profile</code>.</p>\n"
+            )
+            if baselines is not None and not baselines.empty:
+                html += (
+                    "<p>Absolute signal uses two fixed host baselines per competition: <code>constant</code> and <code>hgb</code>. "
+                    "<code>mean_abs_units</code>: 0 = constant baseline, 1 = hgb baseline (higher is better). "
+                    "<code>beat_hgb_rate</code>: fraction of competitions where the model beats the hgb baseline.</p>\n"
+                )
+            if "prompt_profile" not in overall.columns:
+                html += overall.head(60).to_html(index=False, escape=True)
+            else:
+                known = ["simple-baseline", "good-baseline"]
+                present_known = [p for p in known if (overall["prompt_profile"] == p).any()]
+                present_other = sorted(
+                    {
+                        str(x)
+                        for x in overall["prompt_profile"].astype(str).tolist()
+                        if str(x) and str(x) not in set(known)
+                    }
+                )
+                has_legacy = (overall["prompt_profile"].astype(str).str.strip() == "").any()
+
+                def _emit_profile_html(profile_label: str, dfp: pd.DataFrame) -> None:
+                    nonlocal html
+                    if dfp.empty:
+                        return
+                    html += f"\n<h3>{profile_label}</h3>\n"
+                    if "prompt_profile" in dfp.columns:
+                        dfp = dfp.drop(columns=["prompt_profile"])
+                    html += dfp.head(60).to_html(index=False, escape=True)
+
+                for p in present_known:
+                    _emit_profile_html(p, overall[overall["prompt_profile"] == p])
+                for p in present_other:
+                    _emit_profile_html(p, overall[overall["prompt_profile"] == p])
+                if has_legacy:
+                    _emit_profile_html("(legacy/unspecified)", overall[overall["prompt_profile"].astype(str).str.strip() == ""])
 
         html += "<h2>Best by model (per competition)</h2>\n"
         best_cols = [
@@ -175,19 +609,39 @@ def write_root_leaderboard(*, df: pd.DataFrame, repo_root: Path, title: str = "T
             "provider",
             "model_id",
             "mode",
+            "prompt_profile",
             "metric_name",
             "best_score_raw",
+            "best_secondary_r2",
             "best_runtime_seconds",
             "budget_time_seconds",
             "best_run_id",
         ]
+        best_cols = [c for c in best_cols if c in best.columns]
         for extra in ["best_submission_sha256", "best_normalized_submission_sha256"]:
             if extra in best.columns:
                 best_cols.append(extra)
         html += best[best_cols].to_html(index=False, escape=True)
+
+        dup = _duplicate_submissions_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "budget_time_seconds", "prompt_profile"],
+        )
+        if not dup.empty:
+            html += "\n<h2>Duplicate submissions (by config + normalized hash)</h2>\n"
+            html += dup.to_html(index=False, escape=True)
+
+        var = _variance_df(
+            df_sorted[df_sorted["_runnable_model"]],
+            group_cols=["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"],
+        )
+        if not var.empty:
+            html += "\n<h2>Variance (per model/config)</h2>\n"
+            html += var.to_html(index=False, escape=True)
+
         html += "\n<h2>All runs</h2>\n"
 
-    html += df.to_html(index=False, escape=True)
+    html += df_display.to_html(index=False, escape=True)
     html_path.write_text(html, encoding="utf-8")
 
 
@@ -208,12 +662,16 @@ def build_leaderboard(
         "provider",
         "model_id",
         "mode",
+        "prompt_profile",
         "temperature",
         "max_tokens",
         "metric_name",
         "score_raw",
+        "score_normalized",
+        "secondary_r2",
         "runtime_seconds",
         "budget_time_seconds",
+        "seed",
         "submission_sha256",
         "normalized_submission_sha256",
     ]
@@ -226,10 +684,11 @@ def build_leaderboard(
     if "created_at" in df.columns:
         df["_created_at_dt"] = df["created_at"].map(_parse_iso_datetime)
 
-    # For Phase 2 we keep it simple: show all runs sorted by (competition_id, score_raw) where available.
+    # Sort using normalized score (higher-is-better) when possible.
     df["score_raw"] = pd.to_numeric(df.get("score_raw"), errors="coerce")
+    df["score_normalized"] = _score_normalized_series(df)
     sort_created = "_created_at_dt" if "_created_at_dt" in df.columns else "created_at"
-    df = df.sort_values(by=["competition_id", "score_raw", sort_created], ascending=[True, True, False], na_position="last")
+    df = df.sort_values(by=["competition_id", "score_normalized", sort_created], ascending=[True, False, False], na_position="last")
 
     if "created_at" in df.columns:
         df["created_at"] = df["created_at"].map(_format_created_at_pacific)
@@ -310,7 +769,8 @@ def main() -> int:
         competition_id=args.competition_id if args.per_competition else None,
     )
     if args.write_root:
-        write_root_leaderboard(df=df, repo_root=repo_root)
+        baselines_df = load_baselines_df(db_path=db_path)
+        write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
     print(f"wrote: {out_paths.json_path}")
     print(f"wrote: {out_paths.csv_path}")
     print(f"wrote: {out_paths.html_path}")

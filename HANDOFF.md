@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v3 (Phase 3): batch execution harness (headless), starting with a Kilo CLI capability spike.
+v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve auditability; no security yet).
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -30,24 +30,58 @@ v3 (Phase 3): batch execution harness (headless), starting with a Kilo CLI capab
   - leaderboard outputs:
     - root: `LEADERBOARD.md`, `LEADERBOARD.html` (committed snapshot for GitHub UI)
     - under `results/`: `results/leaderboard.json`, `results/leaderboard.csv`, `results/leaderboard.html`
+- Phase 3 headless batch execution (no Docker; functionality-only):
+  - Kilo CLI runner: `orchestrator/kilo_cli.py` (headless `kilo --auto --json ...` with cleaned JSONL)
+  - End-to-end headless run: `python -m orchestrator.run_one auto ...` (run → validate → score → record → leaderboards)
+  - Batch sweep runner: `python -m orchestrator.sweep ...` (supports `--concurrency` without sqlite contention)
+  - Provider setup helper (no secrets in git): `scripts/setup_kilo_providers.py` reading `secrets/provider_apis.txt`
+  - Audit trail:
+    - per-run Kilo JSON event logs under `runs/<run_id>/artifacts/kilo_stdout*.jsonl`
+    - `runs/<run_id>/artifacts/kilo_run.json` and `result.json` notes with submission hashes
+
+- Baseline policy + sweep reliability (v4):
+  - Workspace baseline seeding removed entirely (no injected `train_model.py`).
+  - Headless Kilo timeouts now kill the whole process group to avoid orphaned `python train_model.py` processes: `orchestrator/kilo_cli.py`.
+  - Headless prompt profiles:
+    - `simple-baseline` (240s): `python -m orchestrator.sweep --profile simple-baseline ...`
+    - `good-baseline` (600s): `python -m orchestrator.sweep --profile good-baseline ...`
+  - Default sweep parallelism: if >4 models selected, default `--concurrency 5` (else 4): `orchestrator/sweep.py`.
+  - Per-run deterministic `seed` recorded (derived from `run_id`) to track within-model variance: `orchestrator/run_one.py`.
+
+- Leaderboard collision/variance visibility:
+  - Root `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
+  - Secondary regression metric `r2` recorded as `secondary_r2` and surfaced in leaderboard outputs when present: `orchestrator/score.py`, `orchestrator/db.py`, `orchestrator/leaderboard.py`.
+
+- Host baselines:
+  - Deterministic sklearn baseline: `python scripts/run_baseline.py --competition-dir ... --baseline-type hgb`
+  - Trivial constant baseline floor: `python scripts/run_baseline.py --competition-dir ... --baseline-type constant`
+  - Baseline recording into DB (for absolute normalization across competitions):
+    - `python -m orchestrator.baselines --competition-id <id>` records `hgb` + `constant` into `results/results.sqlite`.
+    - Root `LEADERBOARD.md` “Overall” tables include `mean_abs_units` (0=constant, 1=hgb) and `beat_hgb_rate`.
+
+- Competition expansion (v4):
+  - Added competition scaffolds:
+    - `competitions/bank-customer-churn-ict-u-ai/` (binary AUC; target `Exited`)
+    - `competitions/foot-traffic-wuerzburg-retail-forecasting-2-0/` (regression RMSE)
+    - `competitions/playground-series-s5e10/` (regression RMSE; target `accident_risk`)
+  - Regenerated leaderboards including the new competitions:
+    - latest committed leaderboard refresh: commit `9583af5`
 
 ### Next (ordered)
-1) Kilo CLI capability spike:
-   - verify whether Kilo can be run headlessly (no VSCode) against a workspace directory
-   - confirm how to supply prompt deterministically
-   - confirm what artifacts are available (stdout/stderr, transcript, structured JSON if any)
-   - confirm we can enforce a hard wall-clock timeout (kill process) reliably
-2) If the spike is a “go”, implement Phase 3 automation:
-   - `python -m orchestrator.run_one auto ...` (headless run → validate → score → record → leaderboards)
-   - `python -m orchestrator.sweep ...` for batching over model configs
-3) If the spike is a “no-go”, revise Phase 3 before implementing sweeps (fallback options are listed in `docs/plan/v3.md`).
+1) v4 completeness (current posture):
+   - Treat the benchmark suite as complete at **4 competitions** for now (no further competition expansion in v4).
+   - Keep baselines recorded (`hgb` + `constant`) and leaderboards refreshed from local runs DB.
+2) (Optional, next phase) Automation / ops:
+   - If/when you start Phase 5, focus on making “one command” reruns cheap and reliable (no new competition scope unless explicitly requested).
 
 ### Open questions
-- Kilo CLI: can we reliably run headlessly, pass prompt/workspace, and capture a transcript/structured output?
-- If Kilo CLI is not workable, what is the fallback automation approach for Phase 3?
+- Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
+- Baseline posture: how aggressive should `simple-baseline` be about forcing diversity vs. maximizing success rate?
 
 ## Known issues / current breakage
-- None known.
+- Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
+- `simple-baseline` sweeps can still show occasional timeouts (e.g., NanoGPT deepseek-v3.2 @240s).
+- Some Kaggle competitions require accepting rules / entering before `kaggle competitions download` works (403). If a new competition download fails, enter via browser once, then rerun `prepare_competition.py --download`.
 
 ## Git notes (handoff)
 - `.gitignore` updates made:

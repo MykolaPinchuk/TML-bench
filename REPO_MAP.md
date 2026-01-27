@@ -15,7 +15,13 @@ Keep this file short. Update it only when something important changes.
 - `docs/adr/0002-canonical-competition-prep.md` — policy: `prepare_competition.py` is the canonical generator for `public/` + `private/`.
 - `docs/plan/v1.md` — low-level design for Phases 1–3.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
-- `orchestrator/run_one.py` — Phase 2 manual run workflow (create workspace → finalize with validate/score).
+- `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
+- `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
+- `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
+- `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).
+- `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).
+- `orchestrator/baselines.py` — compute + record host baselines (`hgb`, `constant`) into sqlite for absolute normalization.
+- `scripts/setup_kilo_providers.py` — configure Kilo providers from `secrets/provider_apis.txt` (untracked).
 
 ## Where results live
 - `agent_logs/` — per-cycle logs and index.

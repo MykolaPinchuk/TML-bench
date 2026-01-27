@@ -7,7 +7,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from orchestrator.db import insert_run
-from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, write_root_leaderboard
+from orchestrator.baselines import ensure_competition_baselines
+from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
 from orchestrator.result import read_result_json
 from orchestrator.run_one import cmd_auto
 from orchestrator.run_workspace import default_run_id
@@ -50,21 +51,39 @@ def main() -> int:
         default=str(_repo_root() / "orchestrator" / "model_sets" / "v3_fast.json"),
         help="JSON file with provider/model_id entries.",
     )
+    ap.add_argument(
+        "--profile",
+        default=None,
+        choices=["simple-baseline", "good-baseline"],
+        help="Optional sweep profile. `simple-baseline` targets 240s. `good-baseline` targets 600s.",
+    )
     ap.add_argument("--runs-per-model", type=int, default=1)
     ap.add_argument("--db-path", default="results/results.sqlite")
     ap.add_argument("--per-competition", action="store_true")
     ap.add_argument("--kilo-timeout-seconds", type=int, default=None)
+    ap.add_argument(
+        "--prompt-profile",
+        default=None,
+        choices=["simple-baseline", "good-baseline"],
+        help="Prompt profile to pass to `run_one auto`. If not set, derives from `--profile` (if provided).",
+    )
     ap.add_argument("--only-provider", default=None, help="If set, only run models from this provider id.")
     ap.add_argument("--max-models", type=int, default=None, help="If set, limit to the first N models selected.")
     ap.add_argument("--max-runs", type=int, default=None, help="If set, stop after N total runs (across all models).")
     ap.add_argument(
         "--concurrency",
         type=int,
-        default=1,
-        help="If >1, run multiple headless runs in parallel. DB/leaderboard updates are done once at the end.",
+        default=None,
+        help="If >1, run multiple headless runs in parallel. Default: 5 if >4 models selected, else 4. DB/leaderboard updates are done once at the end.",
     )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
+
+    if args.profile is not None:
+        if args.kilo_timeout_seconds is None:
+            args.kilo_timeout_seconds = 240 if args.profile == "simple-baseline" else 600
+        if args.prompt_profile is None:
+            args.prompt_profile = args.profile
 
     repo_root = _repo_root()
     competition_dir = repo_root / "competitions" / args.competition_id
@@ -87,8 +106,11 @@ def main() -> int:
 
     if args.runs_per_model < 1:
         raise ValueError("--runs-per-model must be >= 1")
-    if args.concurrency < 1:
+    if args.concurrency is None:
+        args.concurrency = 5 if len(models) > 4 else 4
+    if int(args.concurrency) < 1:
         raise ValueError("--concurrency must be >= 1")
+    args.concurrency = int(args.concurrency)
 
     planned = [(m["provider"], m["model_id"]) for m in models for _ in range(args.runs_per_model)]
     if args.max_runs is not None:
@@ -117,6 +139,7 @@ def main() -> int:
             temperature=None,
             max_tokens=None,
             kilo_timeout_seconds=args.kilo_timeout_seconds,
+            prompt_profile=args.prompt_profile,
         )
         rc = int(cmd_auto(ns))
         return run_id, rc
@@ -179,6 +202,16 @@ def main() -> int:
         # Import results into DB/leaderboards once, deterministically.
         if args.db_path:
             dbp = Path(args.db_path)
+            try:
+                ensure_competition_baselines(
+                    db_path=dbp,
+                    competition_id=args.competition_id,
+                    competition_dir=repo_root / "competitions" / args.competition_id,
+                    baseline_types=["hgb", "constant"],
+                    repo_root=repo_root,
+                )
+            except Exception:  # noqa: BLE001
+                pass
             for run_id in run_ids:
                 result_path = repo_root / "runs" / run_id / "result.json"
                 if not result_path.exists():
@@ -196,7 +229,8 @@ def main() -> int:
                 out_paths=lb_paths,
                 competition_id=args.competition_id if args.per_competition else None,
             )
-            write_root_leaderboard(df=df, repo_root=repo_root)
+            baselines_df = load_baselines_df(db_path=dbp)
+            write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
             print(f"updated leaderboard under: {(repo_root / 'results')}")
             print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 

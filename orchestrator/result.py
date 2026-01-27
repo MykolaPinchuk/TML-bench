@@ -45,6 +45,15 @@ def _is_git_dirty(repo_root: Path) -> bool | None:
         return None
 
 
+def _dataclass_from_dict(cls, raw: Any):
+    if not isinstance(raw, dict):
+        return None
+    # Filter unknown keys for forward/backward compatibility.
+    allowed = {f.name for f in cls.__dataclass_fields__.values()}  # type: ignore[attr-defined]
+    kwargs = {k: v for k, v in raw.items() if k in allowed}
+    return cls(**kwargs)
+
+
 @dataclass(frozen=True)
 class ModelConfig:
     provider: str
@@ -64,6 +73,15 @@ class Versions:
     benchmark: str
     git_sha: str | None = None
     git_dirty: bool | None = None
+
+
+@dataclass(frozen=True)
+class Provenance:
+    spec_sha256: str | None = None
+    prompt_sha256: str | None = None
+    public_manifest_sha256: str | None = None
+    kilo_version: str | None = None
+    kilo_config_sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +111,7 @@ class RunResult:
 
     artifacts: Artifacts | None = None
     versions: Versions | None = None
+    provenance: Provenance | None = None
 
 
 def new_run_id(*, prefix: str) -> str:
@@ -117,11 +136,13 @@ def read_result_json(path: str | Path) -> RunResult:
     budget_raw = raw.get("budget")
     artifacts_raw = raw.get("artifacts")
     versions_raw = raw.get("versions")
+    provenance_raw = raw.get("provenance")
 
-    model = ModelConfig(**model_raw) if isinstance(model_raw, dict) else None
-    budget = BudgetConfig(**budget_raw) if isinstance(budget_raw, dict) else None
-    artifacts = Artifacts(**artifacts_raw) if isinstance(artifacts_raw, dict) else None
-    versions = Versions(**versions_raw) if isinstance(versions_raw, dict) else None
+    model = _dataclass_from_dict(ModelConfig, model_raw)
+    budget = _dataclass_from_dict(BudgetConfig, budget_raw)
+    artifacts = _dataclass_from_dict(Artifacts, artifacts_raw)
+    versions = _dataclass_from_dict(Versions, versions_raw)
+    provenance = _dataclass_from_dict(Provenance, provenance_raw)
 
     return RunResult(
         run_id=str(raw["run_id"]),
@@ -138,6 +159,7 @@ def read_result_json(path: str | Path) -> RunResult:
         seed=raw.get("seed"),
         artifacts=artifacts,
         versions=versions,
+        provenance=provenance,
     )
 
 
@@ -160,6 +182,7 @@ def make_result(
     normalized_submission_path: Path | None,
     repo_root: Path,
     run_id_prefix: str | None = None,
+    provenance: Provenance | None = None,
 ) -> RunResult:
     run_id = new_run_id(prefix=run_id_prefix or competition_id)
     return RunResult(
@@ -179,4 +202,5 @@ def make_result(
             normalized_submission_path=str(normalized_submission_path) if normalized_submission_path else None,
         ),
         versions=build_versions(repo_root=repo_root, benchmark_version=default_benchmark_version()),
+        provenance=provenance,
     )

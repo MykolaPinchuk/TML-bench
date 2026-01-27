@@ -18,6 +18,16 @@
       "label": "GLM 4.6 FP8 (Chutes)"
     },
     {
+      "provider": "chutes",
+      "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+      "label": "Llama 3.1 8B Instruct (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "microsoft/Phi-3.5-mini-instruct",
+      "label": "Phi 3.5 Mini Instruct (Chutes)"
+    },
+    {
       "provider": "nanogpt",
       "model_id": "deepseek/deepseek-v3.2",
       "label": "DeepSeek V3.2 (NanoGPT)"

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import signal
 import subprocess
 import time
 from dataclasses import dataclass
@@ -23,6 +25,44 @@ class KiloRun:
     duration_seconds: float
 
 
+def _terminate_process_group(proc: subprocess.Popen[bytes], *, timeout_seconds: int = 10) -> None:
+    if proc.poll() is not None:
+        return
+
+    pgid: int | None
+    try:
+        pgid = os.getpgid(proc.pid)
+    except Exception:  # noqa: BLE001
+        pgid = None
+
+    try:
+        if pgid is not None:
+            os.killpg(pgid, signal.SIGTERM)
+        else:
+            proc.terminate()
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        proc.wait(timeout=timeout_seconds)
+        return
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        if pgid is not None:
+            os.killpg(pgid, signal.SIGKILL)
+        else:
+            proc.kill()
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        proc.wait(timeout=timeout_seconds)
+    except Exception:  # noqa: BLE001
+        return
+
+
 def run_kilo(
     *,
     workspace_dir: Path,
@@ -32,6 +72,8 @@ def run_kilo(
     timeout_seconds: int,
     stdout_path: Path,
     stderr_path: Path,
+    stop_when_submission_path: Path | None = None,
+    poll_interval_seconds: float = 0.25,
 ) -> KiloRun:
     argv = [
         "kilo",
@@ -55,9 +97,40 @@ def run_kilo(
 
     started = time.monotonic()
     with stdout_path.open("wb") as out_f, stderr_path.open("wb") as err_f:
-        cp = subprocess.run(argv, cwd=workspace_dir, stdout=out_f, stderr=err_f, timeout=timeout_seconds + 10)
+        proc = subprocess.Popen(
+            argv,
+            cwd=workspace_dir,
+            stdout=out_f,
+            stderr=err_f,
+            start_new_session=True,
+        )
+        returncode: int | None = None
+        deadline = started + float(timeout_seconds)
+        saw_submission_at: float | None = None
+        while True:
+            if proc.poll() is not None:
+                returncode = int(proc.returncode or 0)
+                # If Kilo timed out internally, aggressively kill the whole process group to avoid
+                # leaving long-running child processes behind (e.g., `python train_model.py`).
+                if returncode == 124:
+                    _terminate_process_group(proc)
+                break
+            now = time.monotonic()
+            if stop_when_submission_path is not None and stop_when_submission_path.exists():
+                # Give a tiny grace window so we don't kill while the file is still being written.
+                if saw_submission_at is None:
+                    saw_submission_at = now
+                if now - saw_submission_at >= 0.5:
+                    _terminate_process_group(proc)
+                    returncode = int(proc.returncode or 0)
+                    break
+            if now >= deadline:
+                _terminate_process_group(proc)
+                returncode = 124
+                break
+            time.sleep(max(0.05, float(poll_interval_seconds)))
     ended = time.monotonic()
-    return KiloRun(argv=argv, returncode=int(cp.returncode), duration_seconds=max(0.0, ended - started))
+    return KiloRun(argv=argv, returncode=int(returncode), duration_seconds=max(0.0, ended - started))
 
 
 def iter_json_events_from_jsonl(path: Path) -> Iterable[dict[str, Any]]:
@@ -81,4 +154,3 @@ def write_clean_jsonl(*, src_jsonl: Path, dst_jsonl: Path) -> int:
             f.write(json.dumps(obj, sort_keys=True) + "\n")
             count += 1
     return count
-

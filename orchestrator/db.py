@@ -23,9 +23,12 @@ def ensure_db(db_path: str | Path) -> None:
               metric_name TEXT,
               score_raw REAL,
               score_normalized REAL,
+              secondary_r2 REAL,
               local_validation_metric REAL,
               runtime_seconds REAL,
               budget_time_seconds INTEGER,
+              seed INTEGER,
+              prompt_profile TEXT,
               provider TEXT,
               model_id TEXT,
               mode TEXT,
@@ -35,9 +38,32 @@ def ensure_db(db_path: str | Path) -> None:
               normalized_submission_path TEXT,
               submission_sha256 TEXT,
               normalized_submission_sha256 TEXT,
+              spec_sha256 TEXT,
+              prompt_sha256 TEXT,
+              public_manifest_sha256 TEXT,
+              kilo_version TEXT,
+              kilo_config_sha256 TEXT,
               benchmark_version TEXT,
               git_sha TEXT,
               git_dirty INTEGER
+            )
+            """
+        )
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS baselines (
+              competition_id TEXT NOT NULL,
+              baseline_type TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              metric_name TEXT NOT NULL,
+              score_raw REAL,
+              score_normalized REAL,
+              local_validation_metric REAL,
+              submission_sha256 TEXT,
+              normalized_submission_sha256 TEXT,
+              spec_sha256 TEXT,
+              public_manifest_sha256 TEXT,
+              PRIMARY KEY (competition_id, baseline_type)
             )
             """
         )
@@ -47,6 +73,12 @@ def ensure_db(db_path: str | Path) -> None:
             con.execute("ALTER TABLE runs ADD COLUMN runtime_seconds REAL")
         if "budget_time_seconds" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN budget_time_seconds INTEGER")
+        if "secondary_r2" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN secondary_r2 REAL")
+        if "seed" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN seed INTEGER")
+        if "prompt_profile" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN prompt_profile TEXT")
         if "provider" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN provider TEXT")
         if "model_id" not in cols:
@@ -61,6 +93,32 @@ def ensure_db(db_path: str | Path) -> None:
             con.execute("ALTER TABLE runs ADD COLUMN submission_sha256 TEXT")
         if "normalized_submission_sha256" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN normalized_submission_sha256 TEXT")
+        if "spec_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN spec_sha256 TEXT")
+        if "prompt_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN prompt_sha256 TEXT")
+        if "public_manifest_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN public_manifest_sha256 TEXT")
+        if "kilo_version" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN kilo_version TEXT")
+        if "kilo_config_sha256" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN kilo_config_sha256 TEXT")
+
+        # Backward-compatible migrations for baselines table.
+        bcols = {row[1] for row in con.execute("PRAGMA table_info(baselines)").fetchall()}
+        for col, ddl in [
+            ("created_at", "ALTER TABLE baselines ADD COLUMN created_at TEXT"),
+            ("metric_name", "ALTER TABLE baselines ADD COLUMN metric_name TEXT"),
+            ("score_raw", "ALTER TABLE baselines ADD COLUMN score_raw REAL"),
+            ("score_normalized", "ALTER TABLE baselines ADD COLUMN score_normalized REAL"),
+            ("local_validation_metric", "ALTER TABLE baselines ADD COLUMN local_validation_metric REAL"),
+            ("submission_sha256", "ALTER TABLE baselines ADD COLUMN submission_sha256 TEXT"),
+            ("normalized_submission_sha256", "ALTER TABLE baselines ADD COLUMN normalized_submission_sha256 TEXT"),
+            ("spec_sha256", "ALTER TABLE baselines ADD COLUMN spec_sha256 TEXT"),
+            ("public_manifest_sha256", "ALTER TABLE baselines ADD COLUMN public_manifest_sha256 TEXT"),
+        ]:
+            if col not in bcols:
+                con.execute(ddl)
         con.commit()
     finally:
         con.close()
@@ -82,20 +140,44 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
         notes = artifacts.notes if artifacts else None
         submission_sha256 = None
         normalized_submission_sha256 = None
+        spec_sha256 = None
+        prompt_sha256 = None
+        public_manifest_sha256 = None
+        kilo_version = None
+        kilo_config_sha256 = None
+        prompt_profile = None
+        secondary_r2 = None
         if isinstance(notes, dict):
             submission_sha256 = notes.get("submission_sha256")
             normalized_submission_sha256 = notes.get("normalized_submission_sha256")
+            prompt_profile = notes.get("prompt_profile")
+            secondary_r2 = notes.get("secondary_r2")
+            # Backward-compatible: allow older result.json to store provenance in notes.
+            spec_sha256 = notes.get("spec_sha256")
+            prompt_sha256 = notes.get("prompt_sha256")
+            public_manifest_sha256 = notes.get("public_manifest_sha256")
+            kilo_version = notes.get("kilo_version")
+            kilo_config_sha256 = notes.get("kilo_config_sha256")
+
+        if run.provenance is not None:
+            spec_sha256 = run.provenance.spec_sha256 or spec_sha256
+            prompt_sha256 = run.provenance.prompt_sha256 or prompt_sha256
+            public_manifest_sha256 = run.provenance.public_manifest_sha256 or public_manifest_sha256
+            kilo_version = run.provenance.kilo_version or kilo_version
+            kilo_config_sha256 = run.provenance.kilo_config_sha256 or kilo_config_sha256
         con.execute(
             """
             INSERT OR REPLACE INTO runs (
               run_id, created_at, competition_id, status,
               metric_name, score_raw, score_normalized, local_validation_metric,
-              runtime_seconds, budget_time_seconds,
+              secondary_r2,
+              runtime_seconds, budget_time_seconds, seed, prompt_profile,
               provider, model_id, mode, temperature, max_tokens,
               submission_path, normalized_submission_path,
               submission_sha256, normalized_submission_sha256,
+              spec_sha256, prompt_sha256, public_manifest_sha256, kilo_version, kilo_config_sha256,
               benchmark_version, git_sha, git_dirty
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -106,8 +188,11 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
                 run.score_raw,
                 run.score_normalized,
                 run.local_validation_metric,
+                float(secondary_r2) if secondary_r2 is not None else None,
                 run.runtime_seconds,
                 run.budget.time_seconds if run.budget else None,
+                run.seed,
+                str(prompt_profile) if prompt_profile is not None else None,
                 model.provider if model else None,
                 model.model_id if model else None,
                 model.mode if model else None,
@@ -117,6 +202,11 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
                 artifacts.normalized_submission_path if artifacts else None,
                 submission_sha256,
                 normalized_submission_sha256,
+                spec_sha256,
+                prompt_sha256,
+                public_manifest_sha256,
+                kilo_version,
+                kilo_config_sha256,
                 versions.benchmark if versions else None,
                 versions.git_sha if versions else None,
                 _to_int_bool(versions.git_dirty) if versions else None,
@@ -135,6 +225,63 @@ def fetch_runs(db_path: str | Path, *, competition_id: str | None = None) -> lis
             rows = con.execute("SELECT * FROM runs WHERE competition_id=? ORDER BY created_at DESC", (competition_id,)).fetchall()
         else:
             rows = con.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        con.close()
+
+
+def insert_baseline(
+    db_path: str | Path,
+    *,
+    competition_id: str,
+    baseline_type: str,
+    created_at: str,
+    metric_name: str,
+    score_raw: float | None,
+    score_normalized: float | None,
+    local_validation_metric: float | None,
+    submission_sha256: str | None,
+    normalized_submission_sha256: str | None,
+    spec_sha256: str | None,
+    public_manifest_sha256: str | None,
+) -> None:
+    ensure_db(db_path)
+    con = sqlite3.connect(db_path)
+    try:
+        con.execute(
+            """
+            INSERT OR REPLACE INTO baselines (
+              competition_id, baseline_type, created_at, metric_name,
+              score_raw, score_normalized, local_validation_metric,
+              submission_sha256, normalized_submission_sha256,
+              spec_sha256, public_manifest_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(competition_id),
+                str(baseline_type),
+                str(created_at),
+                str(metric_name),
+                float(score_raw) if score_raw is not None else None,
+                float(score_normalized) if score_normalized is not None else None,
+                float(local_validation_metric) if local_validation_metric is not None else None,
+                str(submission_sha256) if submission_sha256 else None,
+                str(normalized_submission_sha256) if normalized_submission_sha256 else None,
+                str(spec_sha256) if spec_sha256 else None,
+                str(public_manifest_sha256) if public_manifest_sha256 else None,
+            ),
+        )
+        con.commit()
+    finally:
+        con.close()
+
+
+def fetch_baselines(db_path: str | Path) -> list[dict[str, Any]]:
+    ensure_db(db_path)
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute("SELECT * FROM baselines ORDER BY competition_id, baseline_type").fetchall()
         return [dict(r) for r in rows]
     finally:
         con.close()

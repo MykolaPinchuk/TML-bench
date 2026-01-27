@@ -1,0 +1,25 @@
+id: bank-customer-churn-ict-u-ai
+task_type: binary
+
+target_column: Exited
+id_column: id
+
+metric:
+  name: auc
+  higher_is_better: true
+
+submission:
+  filename: submission.csv
+  prediction_column: Exited
+
+split:
+  strategy: stratified
+  test_size: 0.2
+  seed: 1337
+
+budgets:
+  time_seconds: 600
+
+prepare:
+  raw_train_path: raw/train.csv
+

@@ -17,6 +17,12 @@ def main() -> int:
     parser.add_argument("--private-dir", type=str, default=None)
     parser.add_argument("--out", type=str, default="submission.csv")
     parser.add_argument("--normalized-out", type=str, default=None)
+    parser.add_argument(
+        "--baseline-type",
+        choices=["hgb", "constant"],
+        default="hgb",
+        help="Host-side baseline type. `constant` predicts a constant value (regression: mean target; classification: class prior).",
+    )
     args = parser.parse_args()
 
     run_baseline(
@@ -25,10 +31,10 @@ def main() -> int:
         private_dir=Path(args.private_dir) if args.private_dir else None,
         submission_out=Path(args.out),
         normalized_out=Path(args.normalized_out) if args.normalized_out else None,
+        baseline_type=args.baseline_type,
     )
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

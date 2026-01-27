@@ -1,0 +1,25 @@
+id: foot-traffic-wuerzburg-retail-forecasting-2-0
+task_type: regression
+
+target_column: target
+id_column: id
+
+metric:
+  name: rmse
+  higher_is_better: false
+
+submission:
+  filename: submission.csv
+  prediction_column: target
+
+split:
+  strategy: random
+  test_size: 0.2
+  seed: 1337
+
+budgets:
+  time_seconds: 600
+
+prepare:
+  raw_train_path: raw/train.csv
+
