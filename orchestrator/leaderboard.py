@@ -152,6 +152,20 @@ def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = N
     attempts = attempts.reset_index()
     attempts["run_success_rate"] = attempts["run_success"] / attempts["runs"]
 
+    # Time usage (fraction of budget used).
+    if "runtime_seconds" in d.columns and "budget_time_seconds" in d.columns:
+        d["_runtime_seconds"] = pd.to_numeric(d["runtime_seconds"], errors="coerce")
+        d["_budget_seconds"] = pd.to_numeric(d["budget_time_seconds"], errors="coerce")
+        mask = d["_runtime_seconds"].notna() & d["_budget_seconds"].notna() & (d["_budget_seconds"] > 0)
+        d["_time_used_frac"] = pd.NA
+        d.loc[mask, "_time_used_frac"] = d.loc[mask, "_runtime_seconds"] / d.loc[mask, "_budget_seconds"]
+        time_agg = d.groupby(config_cols, dropna=False).agg(
+            runtime_mean_seconds=("_runtime_seconds", "mean"),
+            mean_time_used=("_time_used_frac", "mean"),
+        )
+        time_agg = time_agg.reset_index()
+        attempts = attempts.merge(time_agg, on=config_cols, how="left")
+
     successes = d[d["status"] == "success"].copy()
     if successes.empty:
         return pd.DataFrame()
@@ -227,6 +241,10 @@ def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = N
     out["mean_rank_pct"] = pd.to_numeric(out["mean_rank_pct"], errors="coerce").round(4)
     out["competition_success_rate"] = pd.to_numeric(out["competition_success_rate"], errors="coerce").round(4)
     out["run_success_rate"] = pd.to_numeric(out["run_success_rate"], errors="coerce").round(4)
+    if "runtime_mean_seconds" in out.columns:
+        out["runtime_mean_seconds"] = pd.to_numeric(out["runtime_mean_seconds"], errors="coerce").round(1)
+    if "mean_time_used" in out.columns:
+        out["mean_time_used"] = pd.to_numeric(out["mean_time_used"], errors="coerce").round(4)
     if "mean_abs_units" in out.columns:
         out["mean_abs_units"] = pd.to_numeric(out["mean_abs_units"], errors="coerce").round(3)
     if "median_abs_units" in out.columns:
@@ -246,6 +264,8 @@ def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = N
     out["competition_success_rate"] = out["competition_success_rate"].map(_pct)
     out["run_success_rate"] = out["run_success_rate"].map(_pct)
     out["mean_rank_pct"] = out["mean_rank_pct"].map(_pct)
+    if "mean_time_used" in out.columns:
+        out["mean_time_used"] = out["mean_time_used"].map(_pct)
     if "beat_hgb_rate" in out.columns:
         out["beat_hgb_rate"] = out["beat_hgb_rate"].map(_pct)
 
@@ -255,6 +275,8 @@ def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = N
         "competition_success_rate",
         "runs",
         "run_success_rate",
+        "runtime_mean_seconds",
+        "mean_time_used",
         "competitions_ranked",
         "mean_rank",
         "mean_rank_pct",
@@ -671,6 +693,7 @@ def build_leaderboard(
         "secondary_r2",
         "runtime_seconds",
         "budget_time_seconds",
+        "time_used_frac",
         "seed",
         "submission_sha256",
         "normalized_submission_sha256",
@@ -679,6 +702,17 @@ def build_leaderboard(
         df = pd.DataFrame(columns=keep)
     else:
         df = df_full[[c for c in keep if c in df_full.columns]].copy()
+
+    if "runtime_seconds" in df.columns:
+        df["runtime_seconds"] = pd.to_numeric(df["runtime_seconds"], errors="coerce")
+    if "budget_time_seconds" in df.columns:
+        df["budget_time_seconds"] = pd.to_numeric(df["budget_time_seconds"], errors="coerce")
+
+    if "runtime_seconds" in df.columns and "budget_time_seconds" in df.columns:
+        mask = df["runtime_seconds"].notna() & df["budget_time_seconds"].notna() & (df["budget_time_seconds"] > 0)
+        df["time_used_frac"] = pd.NA
+        df.loc[mask, "time_used_frac"] = df.loc[mask, "runtime_seconds"] / df.loc[mask, "budget_time_seconds"]
+        df["time_used_frac"] = pd.to_numeric(df["time_used_frac"], errors="coerce").round(4)
 
     # Sorting is done using parsed datetimes, but we display in US Pacific.
     if "created_at" in df.columns:
