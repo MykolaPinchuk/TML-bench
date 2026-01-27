@@ -290,7 +290,9 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     )
 
     # Enforce time budget after submission exists (manual Phase 2 timing is coarse but standardized).
-    if runtime_seconds is not None and runtime_seconds > float(budget_seconds):
+    # Headless runs can exceed by a small amount due to process/clock granularity; allow a tiny grace window.
+    grace_seconds = 5.0 if kilo_meta is not None else 0.0
+    if runtime_seconds is not None and runtime_seconds > (float(budget_seconds) + float(grace_seconds)):
         model = ModelConfig(
             provider=state.provider or "unknown",
             model_id=state.model_id or "unknown",
@@ -338,7 +340,10 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             db_path=args.db_path,
             per_competition=args.per_competition,
         )
-        print(f"timeout: runtime_seconds={runtime_seconds:.1f} > budget_seconds={budget_seconds}; wrote: {result_path}")
+        extra = f" (grace {grace_seconds:.0f}s)" if grace_seconds else ""
+        print(
+            f"timeout: runtime_seconds={runtime_seconds:.1f} > budget_seconds={budget_seconds}{extra}; wrote: {result_path}"
+        )
         return 3
 
     if not vr.ok:
