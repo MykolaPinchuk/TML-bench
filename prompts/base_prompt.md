@@ -40,5 +40,7 @@ You have access only to:
    - prints a local validation score,
    - writes `submission.csv` that matches `public/sample_submission.csv`.
 2) Run `python train_model.py` early to ensure you can generate a valid `submission.csv`.
-3) Spend the remaining budget doing 1–3 fast iterations to improve local validation (model choice, hyperparameters, encoding, simple feature engineering).
-4) Keep the best approach and leave a final `submission.csv` in the workspace root.
+3) Use the time budget to improve your local validation score via iteration.
+   - You may try multiple approaches and re-run training multiple times.
+   - You may write intermediate submissions, but you must leave the best one as `submission.csv` in the workspace root.
+4) Prefer not to stop early; keep improving until you are close to the time budget and confident the current `submission.csv` is your best attempt.

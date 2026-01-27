@@ -27,3 +27,4 @@
   - Refreshed leaderboard snapshots via `python -m orchestrator.leaderboard --import-results --write-root`.
 - 2026-01-27 (Pacific): Follow-up: reran one previously invalid `good-baseline` run (`playground-series-s5e10`, `nanogpt` `mistralai/devstral-2-123b-instruct-2512`) after adding the competition override; new run succeeded and leaderboards refreshed.
 - 2026-01-27 (Pacific): Follow-up: reran the previously timed-out `sota-xgb` case (`playground-series-s6e1`, `chutes` `microsoft/Phi-3.5-mini-instruct`); new run succeeded quickly and leaderboards refreshed.
+- 2026-01-27 (Pacific): Updated prompting to use explicit prompt-profile snippets in `RUN_INSTRUCTIONS.md` (`simple-baseline`, `good-baseline`, `sota-xgb`) while avoiding model-specific optimization hints; profiles now emphasize using the full budget and iterative improvement, and allow multiple intermediate submissions as long as the best is left as `submission.csv`.

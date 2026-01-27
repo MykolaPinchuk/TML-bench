@@ -35,6 +35,14 @@ def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _prompt_profile_from_budget(*, budget_seconds: int) -> str:
+    if int(budget_seconds) >= 1200:
+        return "sota-xgb"
+    if int(budget_seconds) >= 600:
+        return "good-baseline"
+    return "simple-baseline"
+
+
 def _sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -178,6 +186,8 @@ def cmd_create(args: argparse.Namespace) -> int:
     if budget_seconds < 1:
         raise ValueError("--budget-seconds must be >= 1")
 
+    prompt_profile = getattr(args, "prompt_profile", None) or _prompt_profile_from_budget(budget_seconds=budget_seconds)
+
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
     paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
@@ -198,6 +208,7 @@ def cmd_create(args: argparse.Namespace) -> int:
     prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
         override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
+        profile_path=repo_root / "prompts" / "prompt_profiles" / f"{prompt_profile}.md",
         time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(prompt, encoding="utf-8")
@@ -505,9 +516,12 @@ def cmd_auto(args: argparse.Namespace) -> int:
     state = start_timer(state)
     write_run_state(state_path, state)
 
+    prompt_profile = getattr(args, "prompt_profile", None) or _prompt_profile_from_budget(budget_seconds=budget_seconds)
+
     rendered_prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
         override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
+        profile_path=repo_root / "prompts" / "prompt_profiles" / f"{prompt_profile}.md",
         time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(rendered_prompt, encoding="utf-8")
@@ -517,44 +531,10 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_stderr = artifacts_dir / "kilo_stderr.log"
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
-    prompt_profile = getattr(args, "prompt_profile", None) or (
-        "sota-xgb" if budget_seconds >= 1200 else ("good-baseline" if budget_seconds >= 600 else "simple-baseline")
-    )
-
     seed_instructions = (
         f"Run metadata:\n- RUN_ID: {paths.run_id}\n- SEED: {seed}\n- PROMPT_PROFILE: {prompt_profile}\n\n"
         f"Use SEED={seed} consistently for any randomness (e.g., `train_test_split(random_state=SEED)`, model `random_state=SEED`, `numpy.random.seed(SEED)`).\n"
     )
-
-    if prompt_profile == "sota-xgb":
-        harness_instructions = (
-            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
-            "XGBoost is available and allowed for this run. Prefer a strong, reliable baseline first (e.g., `XGBRegressor`/`XGBClassifier`), then iterate (encoding, depth/eta, subsampling, regularization). "
-            "Use SEED for all randomness. Always leave a valid `submission.csv` behind. "
-            "Do not install packages."
-        )
-    elif prompt_profile == "good-baseline":
-        harness_instructions = (
-            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
-            "Then spend most of the remaining time improving performance: do 2–4 quick iterations (encoding/model choice/hyperparameters), and consider light feature engineering. "
-            "Prefer scikit-learn options that work well on mixed numeric/categorical data under a time budget (e.g., `HistGradientBoostingRegressor` + `OrdinalEncoder`, or a strong linear baseline like `Ridge`). "
-            "Avoid extremely slow approaches unless you keep them small and reliable. Always leave a valid `submission.csv` behind. "
-            "Do not install packages."
-        )
-    else:
-        harness_instructions = (
-            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
-            "Start with a fast baseline that reliably finishes. Then do a minimal diversity pass: implement exactly TWO candidate models/pipelines and pick the best by local validation using SEED. "
-            "Suggested choices: if this looks like regression, try `Ridge` vs `HistGradientBoostingRegressor`; if classification, try `LogisticRegression` vs `HistGradientBoostingClassifier`. "
-            "Keep preprocessing simple and fast (numeric: `SimpleImputer`; categorical: `OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)` + `SimpleImputer`). "
-            "If validation scores are extremely close, break ties deterministically using SEED (e.g., SEED parity) so different runs don't always choose the same pipeline. "
-            "Avoid very slow choices (full `OneHotEncoder` on high-cardinality categoricals, large `RandomForest*`/`ExtraTrees*`, etc.). "
-            "If your training run exceeds ~60s, simplify so you always leave a valid `submission.csv` behind. "
-            "Do not install packages."
-        )
 
     kilo_prompt = (
         f"Read {paths.instructions_path.name} and follow it exactly.\n"
@@ -563,7 +543,6 @@ def cmd_auto(args: argparse.Namespace) -> int:
         "- Do NOT use paths with `..` and do NOT run commands like `find ..`.\n"
         "- All required inputs are under `public/` in this workspace.\n\n"
         f"{seed_instructions}\n"
-        f"{harness_instructions}\n"
     )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
 
@@ -744,6 +723,12 @@ def main() -> int:
         default=None,
         help="Optional override for the run time budget (defaults to spec.yaml budgets.time_seconds).",
     )
+    p_create.add_argument(
+        "--prompt-profile",
+        default=None,
+        choices=["simple-baseline", "good-baseline", "sota-xgb"],
+        help="Prompt profile. If not set, derives from the time budget (>=1200s -> sota-xgb; >=600s -> good-baseline).",
+    )
     p_create.add_argument("--provider", default=None)
     p_create.add_argument("--model-id", default=None)
     p_create.add_argument("--mode", default=None)
@@ -760,6 +745,12 @@ def main() -> int:
     p_fin.add_argument("--run-id", required=True)
     p_fin.add_argument("--db-path", default="results/results.sqlite")
     p_fin.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this competition only.")
+    p_fin.add_argument(
+        "--prompt-profile",
+        default=None,
+        choices=["simple-baseline", "good-baseline", "sota-xgb"],
+        help="Optional prompt profile metadata to record with the run (useful for manual runs).",
+    )
     p_fin.add_argument("--provider", default=None)
     p_fin.add_argument("--model-id", default=None)
     p_fin.add_argument("--mode", default=None)
