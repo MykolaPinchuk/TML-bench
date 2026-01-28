@@ -536,12 +536,14 @@ def cmd_auto(args: argparse.Namespace) -> int:
         f"Use SEED={seed} consistently for any randomness (e.g., `train_test_split(random_state=SEED)`, model `random_state=SEED`, `numpy.random.seed(SEED)`).\n"
     )
 
+    # Pass the full rendered prompt directly to Kilo to avoid runs stalling if a model
+    # fails to open/read RUN_INSTRUCTIONS.md reliably.
     kilo_prompt = (
-        f"Read {paths.instructions_path.name} and follow it exactly.\n"
         "You are running inside a restricted workspace:\n"
         "- Do NOT read or write outside the workspace.\n"
         "- Do NOT use paths with `..` and do NOT run commands like `find ..`.\n"
         "- All required inputs are under `public/` in this workspace.\n\n"
+        f"{rendered_prompt}\n\n"
         f"{seed_instructions}\n"
     )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
