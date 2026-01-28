@@ -46,11 +46,6 @@
       "provider": "openrouter",
       "model_id": "x-ai/grok-4.1-fast",
       "label": "Grok 4.1 Fast (OpenRouter)"
-    },
-    {
-      "provider": "openrouter",
-      "model_id": "google/gemini-2.5-flash",
-      "label": "Gemini 2.5 Flash (OpenRouter)"
     }
   ]
 }

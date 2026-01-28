@@ -133,7 +133,7 @@ def _maybe_fix_global_state_for_headless_runs(*, preferred_config_name: str, pre
                 break
 
     if openrouter_meta is not None:
-        # Ensure the meta entry is usable (model ids should be fully-qualified for OpenRouter).
+        # Ensure the meta entry is usable.
         if openrouter_meta.get("apiProvider") != preferred_provider:
             openrouter_meta["apiProvider"] = preferred_provider
             changed = True
@@ -141,7 +141,7 @@ def _maybe_fix_global_state_for_headless_runs(*, preferred_config_name: str, pre
             openrouter_meta["modelId"] = preferred_model_id
             changed = True
 
-        # Prefer OpenRouter for the active config to avoid touching the deprecated Kilo free-tier model.
+        # Prefer the specified config during startup to avoid retry loops.
         if state.get("currentApiConfigName") != preferred_config_name:
             state["currentApiConfigName"] = preferred_config_name
             changed = True
@@ -158,6 +158,43 @@ def _maybe_fix_global_state_for_headless_runs(*, preferred_config_name: str, pre
     if not changed:
         return False
 
+    _save_json(global_state_path, state)
+    return True
+
+
+def _maybe_update_global_state_meta(*, config_name: str, api_provider: str, model_id: str) -> bool:
+    """
+    Update a named entry in global-state's listApiConfigMeta without changing the active config.
+    Useful to prevent retired/undesired model ids from being used if a user switches configs later.
+    """
+    global_state_path = Path.home() / ".kilocode" / "cli" / "global" / "global-state.json"
+    if not global_state_path.exists():
+        return False
+
+    state = _load_json(global_state_path)
+    if not isinstance(state, dict):
+        return False
+
+    list_meta = state.get("listApiConfigMeta")
+    if not isinstance(list_meta, list):
+        return False
+
+    changed = False
+    for item in list_meta:
+        if not isinstance(item, dict):
+            continue
+        if item.get("name") != config_name:
+            continue
+        if item.get("apiProvider") != api_provider:
+            item["apiProvider"] = api_provider
+            changed = True
+        if item.get("modelId") != model_id:
+            item["modelId"] = model_id
+            changed = True
+        break
+
+    if not changed:
+        return False
     _save_json(global_state_path, state)
     return True
 
@@ -216,7 +253,7 @@ def main() -> int:
             updates={
                 "chutesApiKey": keys.chutes_api_key,
                 # Required by Kilo's selected-provider validation; the benchmark always passes --model anyway.
-                "apiModelId": "gpt-4o",
+                "apiModelId": "microsoft/Phi-3.5-mini-instruct",
             },
         )
 
@@ -229,7 +266,7 @@ def main() -> int:
                 "openAiApiKey": keys.nanogpt_api_key,
                 "openAiBaseUrl": keys.nanogpt_base_url,
                 # Not required, but helps avoid confusion when calling Kilo without --model.
-                "openAiModelId": "gpt-4o",
+                "openAiModelId": "mistralai/devstral-2-123b-instruct-2512",
             },
         )
     elif keys.nanogpt_api_key and not keys.nanogpt_base_url:
@@ -247,7 +284,7 @@ def main() -> int:
 
     if keys.openrouter_api_key:
         base_url = keys.openrouter_base_url or "https://openrouter.ai/api/v1"
-        preferred_openrouter_model = "google/gemini-2.5-flash"
+        preferred_openrouter_model = "x-ai/grok-4.1-fast"
         _upsert_provider(
             providers,
             provider_id="openrouter",
@@ -260,6 +297,7 @@ def main() -> int:
             },
         )
         # Keep Kilo's built-in `default` provider on a known-good model to avoid invalid_model errors.
+        # NOTE: This is only used for Kilo's internal defaults; benchmark runs always pass --provider/--model.
         _upsert_kilocode_defaults(providers, fallback_model=preferred_openrouter_model)
 
     if args.set_default_provider != "keep":
@@ -323,14 +361,27 @@ def main() -> int:
     print(f"updated: {config_path}")
     print("providers now include ids:", sorted({p.get('id') for p in providers if isinstance(p, dict)}))
     print("default provider id:", config.get("provider"))
-    if keys.openrouter_api_key:
+    # Keep global-state aligned with the chosen default provider to avoid startup requests
+    # going to an unexpected provider/model (which can cause retry loops and timeouts).
+    preferred = None
+    if args.set_default_provider == "chutes":
+        preferred = ("chutes", "chutes", "microsoft/Phi-3.5-mini-instruct")
+    elif args.set_default_provider == "nanogpt" and keys.nanogpt_api_key and keys.nanogpt_base_url:
+        preferred = ("nanogpt", "openai", "mistralai/devstral-2-123b-instruct-2512")
+    elif args.set_default_provider == "openrouter" and keys.openrouter_api_key:
+        preferred = ("openrouter", "openai", "x-ai/grok-4.1-fast")
+    if preferred is not None:
         fixed = _maybe_fix_global_state_for_headless_runs(
-            preferred_config_name="openrouter",
-            preferred_provider="openai",
-            preferred_model_id="google/gemini-2.5-flash",
+            preferred_config_name=preferred[0],
+            preferred_provider=preferred[1],
+            preferred_model_id=preferred[2],
         )
         if fixed:
             print("updated: ~/.kilocode/cli/global/global-state.json (avoid stale default model)")
+
+    # Prevent accidental use of Gemini Flash if OpenRouter is configured but credits are exhausted.
+    if keys.openrouter_api_key:
+        _maybe_update_global_state_meta(config_name="openrouter", api_provider="openai", model_id="grok-4.1-fast")
     return 0
 
 
