@@ -30,7 +30,8 @@ You have access only to:
 ## Execution environment note (headless)
 
 - Prefer shell commands for inspection and file I/O (`ls`, `cat`, `head`, `python ...`).
-- Avoid editor/IDE-specific tools like `readFile` / `writeFile`; they may not be available in this headless run mode.
+- Avoid editor/IDE-specific tools (e.g. `readFile`, `writeFile`, `newFileCreated`, `updateTodoList`); they may not execute in this headless run mode.
+- Create/edit files using shell redirection or heredocs (example pattern): `cat > train_model.py <<'PY' ... PY`.
 
 ## Output and reporting
 
