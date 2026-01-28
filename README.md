@@ -69,6 +69,13 @@ Resume a sweep without rerunning completed configs (DB-backed):
 Run the core 4-competition suite end-to-end:
 - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume`
 
+## Refreshing after prompt changes
+If you change `prompts/` (base prompt or prompt profiles) and want an apples-to-apples leaderboard, use a fresh DB path for the new run batch:
+- `DB=results/results_prompt_refresh.sqlite`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --db-path $DB`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline --runs-per-model 1 --db-path $DB`
+- `python -m orchestrator.leaderboard --db-path $DB --import-results --write-root`
+
 ## Where to find logs / evidence
 
 Each run lives under `runs/<run_id>/`:
