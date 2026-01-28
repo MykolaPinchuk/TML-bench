@@ -1,0 +1,11 @@
+{
+  "name": "v5_all",
+  "description": "All competitions currently in the repo (including toy_regression).",
+  "competitions": [
+    "toy_regression",
+    "bank-customer-churn-ict-u-ai",
+    "foot-traffic-wuerzburg-retail-forecasting-2-0",
+    "playground-series-s5e10",
+    "playground-series-s6e1"
+  ]
+}
