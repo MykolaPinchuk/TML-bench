@@ -14,3 +14,4 @@ Use the time budget aggressively:
 Always leave a valid `submission.csv` behind.
 
 Do not install packages.
+Use any remaining time for comprehensive EDA + diagnostics to identify failure modes and iterate on fixes.

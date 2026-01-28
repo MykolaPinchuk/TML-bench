@@ -12,3 +12,4 @@ Do not stop after the first working solution. Keep iterating until you are close
 Always leave a valid `submission.csv` behind.
 
 Do not install packages.
+Use any remaining time for lightweight EDA/diagnostics to decide what to try next.
