@@ -27,6 +27,10 @@ You have access only to:
 
 - Never “read a CSV into chat context” or paste whole files. This will fill up the context window and break the agent.
 
+## Execution environment note (headless)
+
+- Prefer shell commands for inspection and file I/O (`ls`, `cat`, `head`, `python ...`).
+- Avoid editor/IDE-specific tools like `readFile` / `writeFile`; they may not be available in this headless run mode.
 
 ## Output and reporting
 
