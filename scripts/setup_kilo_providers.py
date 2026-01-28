@@ -12,6 +12,8 @@ class ProviderKeys:
     chutes_api_key: str | None
     nanogpt_api_key: str | None
     nanogpt_base_url: str | None
+    openrouter_api_key: str | None
+    openrouter_base_url: str | None
 
 
 def _repo_root() -> Path:
@@ -25,6 +27,8 @@ def _load_provider_keys(path: Path) -> ProviderKeys:
     chutes_api_key: str | None = None
     nanogpt_api_key: str | None = None
     nanogpt_base_url: str | None = None
+    openrouter_api_key: str | None = None
+    openrouter_base_url: str | None = None
 
     for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
         line = raw_line.strip()
@@ -43,8 +47,18 @@ def _load_provider_keys(path: Path) -> ProviderKeys:
             nanogpt_api_key = value
         elif key in {"nanogpt_base_url", "nanogpt_base", "nano_gpt_base_url", "nano_gpt_base"}:
             nanogpt_base_url = value
+        elif key in {"openrouter", "openrouter_api_key", "openrouter-key", "openrouter_key"}:
+            openrouter_api_key = value
+        elif key in {"openrouter_base_url", "openrouter_base"}:
+            openrouter_base_url = value
 
-    return ProviderKeys(chutes_api_key=chutes_api_key, nanogpt_api_key=nanogpt_api_key, nanogpt_base_url=nanogpt_base_url)
+    return ProviderKeys(
+        chutes_api_key=chutes_api_key,
+        nanogpt_api_key=nanogpt_api_key,
+        nanogpt_base_url=nanogpt_base_url,
+        openrouter_api_key=openrouter_api_key,
+        openrouter_base_url=openrouter_base_url,
+    )
 
 
 def _load_json(path: Path) -> dict:
@@ -74,11 +88,11 @@ def _remove_provider(providers: list[dict], *, provider_id: str) -> bool:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Configure Kilo CLI providers (Chutes + Nano-GPT) from repo secrets.")
+    ap = argparse.ArgumentParser(description="Configure Kilo CLI providers (Chutes + Nano-GPT + OpenRouter) from repo secrets.")
     ap.add_argument(
         "--keys-file",
         default=str(_repo_root() / "secrets" / "provider_apis.txt"),
-        help="Path to a file with lines like 'chutes: <key>' and 'nanogpt: <key>'.",
+        help="Path to a file with lines like 'chutes: <key>', 'nanogpt: <key>', and/or 'openrouter: <key>'.",
     )
     ap.add_argument(
         "--config-path",
@@ -87,7 +101,7 @@ def main() -> int:
     )
     ap.add_argument(
         "--set-default-provider",
-        choices=["keep", "chutes", "nanogpt"],
+        choices=["keep", "chutes", "nanogpt", "openrouter"],
         default="chutes",
         help="Which provider id to set as the default for Kilo CLI invocations without --provider.",
     )
@@ -100,10 +114,10 @@ def main() -> int:
     args = ap.parse_args()
 
     keys = _load_provider_keys(Path(args.keys_file))
-    if not keys.chutes_api_key:
-        raise RuntimeError(f"Missing Chutes key in {args.keys_file} (expected a line like 'chutes: ...').")
-    if not keys.nanogpt_api_key:
-        raise RuntimeError(f"Missing Nano-GPT key in {args.keys_file} (expected a line like 'nanogpt: ...').")
+    if not (keys.chutes_api_key or keys.nanogpt_api_key or keys.openrouter_api_key):
+        raise RuntimeError(
+            f"No provider keys found in {args.keys_file}. Add at least one of: chutes, nanogpt, openrouter."
+        )
 
     config_path = Path(args.config_path)
     config = _load_json(config_path)
@@ -119,17 +133,19 @@ def main() -> int:
 
     providers: list[dict] = config["providers"]
 
-    _upsert_provider(
-        providers,
-        provider_id="chutes",
-        provider_type="chutes",
-        updates={
-            "chutesApiKey": keys.chutes_api_key,
-            # Required by Kilo's selected-provider validation; the benchmark always passes --model anyway.
-            "apiModelId": "gpt-4o",
-        },
-    )
-    if keys.nanogpt_base_url:
+    if keys.chutes_api_key:
+        _upsert_provider(
+            providers,
+            provider_id="chutes",
+            provider_type="chutes",
+            updates={
+                "chutesApiKey": keys.chutes_api_key,
+                # Required by Kilo's selected-provider validation; the benchmark always passes --model anyway.
+                "apiModelId": "gpt-4o",
+            },
+        )
+
+    if keys.nanogpt_api_key and keys.nanogpt_base_url:
         _upsert_provider(
             providers,
             provider_id="nanogpt",
@@ -141,7 +157,7 @@ def main() -> int:
                 "openAiModelId": "gpt-4o",
             },
         )
-    else:
+    elif keys.nanogpt_api_key and not keys.nanogpt_base_url:
         removed = _remove_provider(providers, provider_id="nanogpt")
         if removed:
             print(
@@ -154,8 +170,22 @@ def main() -> int:
                 "add 'nanogpt_base_url: https://.../v1' and rerun to enable NanoGPT via OpenAI-compatible API."
             )
 
+    if keys.openrouter_api_key:
+        base_url = keys.openrouter_base_url or "https://openrouter.ai/api/v1"
+        _upsert_provider(
+            providers,
+            provider_id="openrouter",
+            provider_type="openai",
+            updates={
+                "openAiApiKey": keys.openrouter_api_key,
+                "openAiBaseUrl": base_url,
+                # Not required, but helps avoid confusion when calling Kilo without --model.
+                "openAiModelId": "gpt-4o",
+            },
+        )
+
     if args.set_default_provider != "keep":
-        config["provider"] = "chutes" if args.set_default_provider == "chutes" else "nanogpt"
+        config["provider"] = str(args.set_default_provider)
 
     if args.enable_exec:
         auto = config.get("autoApproval") or {}

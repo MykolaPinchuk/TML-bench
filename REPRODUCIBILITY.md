@@ -27,6 +27,9 @@ python -m pip install -r requirements-dev.txt
 chutes: <key>
 nanogpt: <key>
 nanogpt_base_url: https://.../v1
+openrouter: <key>
+# optional:
+openrouter_base_url: https://openrouter.ai/api/v1
 ```
 
 2) Configure Kilo providers:
