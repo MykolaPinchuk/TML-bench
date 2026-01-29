@@ -6,6 +6,8 @@ Time management: prioritize reliability. Within the first ~60 seconds, ensure yo
 
 Execution note: use shell commands to write files and verify `train_model.py` / `submission.csv` exist (avoid IDE/editor tools).
 
+Runtime note: start with a fast-to-train approach that will finish within the budget (avoid very slow models/configs that may not complete in time).
+
 Use the remaining time to try a couple of alternative approaches and keep the one with the best local validation score.
 
 Always leave a valid `submission.csv` behind.
