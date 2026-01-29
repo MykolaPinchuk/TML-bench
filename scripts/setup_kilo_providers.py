@@ -199,6 +199,69 @@ def _maybe_update_global_state_meta(*, config_name: str, api_provider: str, mode
     return True
 
 
+def _maybe_fix_global_secrets_for_headless_runs(*, preferred_config_name: str) -> bool:
+    """
+    Kilo also maintains an encoded API config blob under ~/.kilocode/cli/global/secrets.json
+    (key: roo_cline_config_api_config). Some startup/background calls can consult modeApiConfigs
+    from this blob even when --provider/--model are passed, causing retry loops if it points at a
+    stale/default gateway config.
+
+    Keep the embedded currentApiConfigName + modeApiConfigs aligned to a known-good config.
+    """
+    secrets_path = Path.home() / ".kilocode" / "cli" / "global" / "secrets.json"
+    if not secrets_path.exists():
+        return False
+
+    secrets = _load_json(secrets_path)
+    if not isinstance(secrets, dict):
+        return False
+
+    key = "roo_cline_config_api_config"
+    raw = secrets.get(key)
+    if not isinstance(raw, str) or not raw.strip().startswith("{"):
+        return False
+
+    try:
+        cfg = json.loads(raw)
+    except Exception:  # noqa: BLE001
+        return False
+    if not isinstance(cfg, dict):
+        return False
+
+    api_configs = cfg.get("apiConfigs")
+    if not isinstance(api_configs, dict):
+        return False
+
+    preferred_cfg = api_configs.get(preferred_config_name)
+    if not isinstance(preferred_cfg, dict):
+        return False
+
+    preferred_id = preferred_cfg.get("id")
+    if not isinstance(preferred_id, str) or not preferred_id.strip():
+        return False
+
+    changed = False
+    if cfg.get("currentApiConfigName") != preferred_config_name:
+        cfg["currentApiConfigName"] = preferred_config_name
+        changed = True
+
+    mode_cfgs = cfg.get("modeApiConfigs")
+    if not isinstance(mode_cfgs, dict):
+        mode_cfgs = {}
+    for mode in ["architect", "code", "ask", "debug", "orchestrator"]:
+        if mode_cfgs.get(mode) != preferred_id:
+            mode_cfgs[mode] = preferred_id
+            changed = True
+    cfg["modeApiConfigs"] = mode_cfgs
+
+    if not changed:
+        return False
+
+    secrets[key] = json.dumps(cfg, indent=2, sort_keys=True)
+    _save_json(secrets_path, secrets)
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Configure Kilo CLI providers (Chutes + Nano-GPT + OpenRouter) from repo secrets.")
     ap.add_argument(
@@ -378,6 +441,9 @@ def main() -> int:
         )
         if fixed:
             print("updated: ~/.kilocode/cli/global/global-state.json (avoid stale default model)")
+        fixed2 = _maybe_fix_global_secrets_for_headless_runs(preferred_config_name=preferred[0])
+        if fixed2:
+            print("updated: ~/.kilocode/cli/global/secrets.json (align modeApiConfigs)")
 
     # Prevent accidental use of Gemini Flash if OpenRouter is configured but credits are exhausted.
     if keys.openrouter_api_key:
