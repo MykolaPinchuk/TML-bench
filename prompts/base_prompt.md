@@ -51,6 +51,7 @@ You have access only to:
    - trains a model,
    - prints a local validation score,
    - writes `submission.csv` that matches `public/sample_submission.csv`.
+   - robustly handles typical tabular issues (missing values, categorical columns, string columns) so training does not crash.
 2) After writing `train_model.py`, verify it is non-empty and runnable (e.g. `wc -c train_model.py` and `python -m py_compile train_model.py`).
 3) Run `python train_model.py` early to ensure you can generate a valid `submission.csv`.
 4) Verify `submission.csv` exists and matches the required format (same columns + row count as the sample).
