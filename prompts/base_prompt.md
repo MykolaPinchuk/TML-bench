@@ -40,6 +40,10 @@ You have access only to:
 - Do **not** create or update “todo lists” in the chat. If you must plan, use ≤5 short bullets and then execute immediately.
 - If you are about to produce a long response, stop and run the next shell command instead.
 
+## Runtime pitfalls (short budgets)
+
+- If your preprocessing produces a wide feature matrix (e.g., after encoding categorical columns), avoid very slow models/configurations that may not finish within the time budget.
+
 ## Output and reporting
 
 - Print a local validation score (split your `train_public.csv`).
