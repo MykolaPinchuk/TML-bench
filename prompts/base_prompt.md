@@ -33,6 +33,13 @@ You have access only to:
 - Do NOT use editor/IDE-specific tools (e.g. `readFile`, `writeFile`, `newFileCreated`, `updateTodoList`). Assume they may silently fail or create empty files.
 - Create/edit files using shell redirection or heredocs (example pattern): `cat > train_model.py <<'PY' ... PY`.
 
+## Output discipline (important)
+
+- Keep chat output short. Avoid long reasoning, long plans, or large code blocks.
+- Do **not** write the full `train_model.py` code in the chat. Write it to a file via shell redirection/heredocs.
+- Do **not** create or update “todo lists” in the chat. If you must plan, use ≤5 short bullets and then execute immediately.
+- If you are about to produce a long response, stop and run the next shell command instead.
+
 ## Output and reporting
 
 - Print a local validation score (split your `train_public.csv`).
