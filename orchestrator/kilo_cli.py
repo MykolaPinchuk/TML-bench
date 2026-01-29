@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import select
 import signal
 import subprocess
 import time
@@ -23,6 +24,7 @@ class KiloRun:
     argv: list[str]
     returncode: int
     duration_seconds: float
+    stop_reason: str | None = None
 
 
 def _terminate_process_group(proc: subprocess.Popen[bytes], *, timeout_seconds: int = 10) -> None:
@@ -73,6 +75,7 @@ def run_kilo(
     stdout_path: Path,
     stderr_path: Path,
     stop_when_submission_path: Path | None = None,
+    stop_on_api_402: bool = True,
     poll_interval_seconds: float = 0.25,
 ) -> KiloRun:
     argv = [
@@ -100,15 +103,49 @@ def run_kilo(
         proc = subprocess.Popen(
             argv,
             cwd=workspace_dir,
-            stdout=out_f,
+            stdout=subprocess.PIPE,
             stderr=err_f,
             start_new_session=True,
         )
+        if proc.stdout is None:
+            raise RuntimeError("Failed to capture Kilo stdout (proc.stdout is None).")
+
         returncode: int | None = None
+        stop_reason: str | None = None
         deadline = started + float(timeout_seconds)
         saw_submission_at: float | None = None
+        scan_buf = b""
+
+        def _drain_stdout(*, max_bytes: int | None = None) -> None:
+            nonlocal scan_buf
+            if proc.stdout is None:
+                return
+            remaining = max_bytes
+            while True:
+                if remaining is not None and remaining <= 0:
+                    return
+                r, _, _ = select.select([proc.stdout], [], [], 0.0)
+                if not r:
+                    return
+                chunk = os.read(proc.stdout.fileno(), 4096 if remaining is None else min(4096, remaining))
+                if not chunk:
+                    return
+                out_f.write(chunk)
+                scan_buf = (scan_buf + chunk)[-65536:]
+                if remaining is not None:
+                    remaining -= len(chunk)
+
         while True:
+            # Consume any available output so we can react to provider errors quickly.
+            _drain_stdout()
+            if stop_on_api_402 and (stop_reason is None) and (b"402 status code" in scan_buf):
+                stop_reason = "api_402"
+                _terminate_process_group(proc)
+                returncode = int(proc.returncode or 0)
+                break
+
             if proc.poll() is not None:
+                _drain_stdout(max_bytes=None)
                 returncode = int(proc.returncode or 0)
                 # If Kilo timed out internally, aggressively kill the whole process group to avoid
                 # leaving long-running child processes behind (e.g., `python train_model.py`).
@@ -130,7 +167,12 @@ def run_kilo(
                 break
             time.sleep(max(0.05, float(poll_interval_seconds)))
     ended = time.monotonic()
-    return KiloRun(argv=argv, returncode=int(returncode), duration_seconds=max(0.0, ended - started))
+    return KiloRun(
+        argv=argv,
+        returncode=int(returncode),
+        duration_seconds=max(0.0, ended - started),
+        stop_reason=stop_reason,
+    )
 
 
 def iter_json_events_from_jsonl(path: Path) -> Iterable[dict[str, Any]]:

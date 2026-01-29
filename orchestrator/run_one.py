@@ -564,6 +564,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
             "argv": kr.argv,
             "returncode": kr.returncode,
             "duration_seconds": kr.duration_seconds,
+            "stop_reason": kr.stop_reason,
             "provider_id": args.provider,
             "model_id": args.model_id,
             "timeout_seconds": kilo_timeout,
@@ -591,7 +592,10 @@ def cmd_auto(args: argparse.Namespace) -> int:
         return cmd_finalize(args2)
 
     runtime_seconds = state.elapsed_seconds(now=_now_utc()) if state.started_at is not None else None
-    status = "timeout" if kr.returncode == 124 else "runtime_error"
+    if kr.stop_reason == "api_402":
+        status = "provider_error"
+    else:
+        status = "timeout" if kr.returncode == 124 else "runtime_error"
     model = ModelConfig(
         provider=args.provider,
         model_id=args.model_id,
