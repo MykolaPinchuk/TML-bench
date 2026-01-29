@@ -2,7 +2,7 @@
 
 Goal: use most of the budget to iteratively improve the local validation score.
 
-Time management: ensure you have a working end-to-end pipeline early (create `train_model.py` and run `python train_model.py`), then spend most of the remaining budget iterating and improving.
+Time management: ensure you have a working end-to-end pipeline early (within the first ~2 minutes, create `train_model.py` and run `python train_model.py`), then spend most of the remaining budget iterating and improving.
 
 Execution note: use shell commands to write files and verify `train_model.py` / `submission.csv` exist (avoid IDE/editor tools).
 

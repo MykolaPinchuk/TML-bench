@@ -2,7 +2,7 @@
 
 Goal: maximize score under a long budget, using a thorough iterative workflow.
 
-Run `python train_model.py` early to validate the full pipeline end-to-end.
+Time management: within the first ~3 minutes, ensure you can generate a valid `submission.csv` end-to-end (create `train_model.py` and run `python train_model.py`), then spend the rest improving.
 
 Execution note: use shell commands to write files and verify `train_model.py` / `submission.csv` exist (avoid IDE/editor tools).
 
