@@ -4,6 +4,8 @@ Goal: maximize score under a long budget, using a thorough iterative workflow.
 
 Run `python train_model.py` early to validate the full pipeline end-to-end.
 
+Execution note: use shell commands to write files and verify `train_model.py` / `submission.csv` exist (avoid IDE/editor tools).
+
 XGBoost (`xgboost`) is available and allowed for this run (you may use it if you choose).
 
 Use the time budget aggressively:

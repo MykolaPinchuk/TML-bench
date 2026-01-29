@@ -4,6 +4,8 @@ Goal: produce a valid `submission.csv` reliably under a short budget, then make 
 
 Time management: prioritize reliability. Within the first ~25% of the budget, ensure you can generate a valid `submission.csv` end-to-end (create `train_model.py` and run `python train_model.py`).
 
+Execution note: use shell commands to write files and verify `train_model.py` / `submission.csv` exist (avoid IDE/editor tools).
+
 Use the remaining time to try a couple of alternative approaches and keep the one with the best local validation score.
 
 Always leave a valid `submission.csv` behind.

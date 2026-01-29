@@ -30,7 +30,7 @@ You have access only to:
 ## Execution environment note (headless)
 
 - Prefer shell commands for inspection and file I/O (`ls`, `cat`, `head`, `python ...`).
-- Avoid editor/IDE-specific tools (e.g. `readFile`, `writeFile`, `newFileCreated`, `updateTodoList`); they may not execute in this headless run mode.
+- Do NOT use editor/IDE-specific tools (e.g. `readFile`, `writeFile`, `newFileCreated`, `updateTodoList`). Assume they may silently fail or create empty files.
 - Create/edit files using shell redirection or heredocs (example pattern): `cat > train_model.py <<'PY' ... PY`.
 
 ## Output and reporting
@@ -44,8 +44,10 @@ You have access only to:
    - trains a model,
    - prints a local validation score,
    - writes `submission.csv` that matches `public/sample_submission.csv`.
-2) Run `python train_model.py` early to ensure you can generate a valid `submission.csv`.
-3) Use the time budget to improve your local validation score via iteration.
+2) After writing `train_model.py`, verify it is non-empty and runnable (e.g. `wc -c train_model.py` and `python -m py_compile train_model.py`).
+3) Run `python train_model.py` early to ensure you can generate a valid `submission.csv`.
+4) Verify `submission.csv` exists and matches the required format (same columns + row count as the sample).
+5) Use the remaining time budget to improve your local validation score via iteration.
    - You may try multiple approaches and re-run training multiple times.
    - You may write intermediate submissions, but you must leave the best one as `submission.csv` in the workspace root.
-4) Prefer not to stop early; keep improving until you are close to the time budget and confident the current `submission.csv` is your best attempt.
+6) Prefer not to stop early; keep improving until you are close to the time budget and confident the current `submission.csv` is your best attempt.
