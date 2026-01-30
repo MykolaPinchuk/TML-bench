@@ -12,6 +12,24 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+def _df_to_markdown_table(df: pd.DataFrame) -> str:
+    df = df.astype(object).where(df.notna(), "")
+    cols = list(df.columns)
+    if not cols:
+        return "_(empty)_\n"
+    header = "| " + " | ".join(cols) + " |"
+    sep = "| " + " | ".join(["---"] * len(cols)) + " |"
+    lines = [header, sep]
+    for _, row in df.iterrows():
+        vals = []
+        for c in cols:
+            v = str(row[c])
+            v = v.replace("\n", " ").replace("|", "\\|")
+            vals.append(v)
+        lines.append("| " + " | ".join(vals) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def _load_suite_competitions(suite: str) -> list[str]:
     p = _repo_root() / "orchestrator" / "suites" / f"{suite}.json"
     if not p.exists():
@@ -262,7 +280,7 @@ def main() -> int:
             "run_success_rate__sota",
         ]
         cols = [c for c in cols if c in show.columns]
-        md += show[cols].to_markdown(index=False) + "\n"
+        md += _df_to_markdown_table(show[cols]) + "\n"
 
     print(md, end="")
     if args.out_md:
@@ -275,4 +293,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
