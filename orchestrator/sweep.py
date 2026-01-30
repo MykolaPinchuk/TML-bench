@@ -8,7 +8,13 @@ from pathlib import Path
 
 from orchestrator.db import ensure_db, fetch_runs, insert_run
 from orchestrator.baselines import ensure_competition_baselines
-from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
+from orchestrator.leaderboard import (
+    LeaderboardPaths,
+    build_leaderboard,
+    load_baselines_df,
+    write_root_leaderboard,
+    write_root_leaderboard_robust,
+)
 from orchestrator.result import read_result_json
 from orchestrator.run_one import cmd_auto
 from orchestrator.run_workspace import default_run_id
@@ -323,6 +329,7 @@ def main() -> int:
             )
             baselines_df = load_baselines_df(db_path=dbp)
             write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
+            write_root_leaderboard_robust(df=df, repo_root=repo_root, baselines=baselines_df)
             print(f"updated leaderboard under: {(repo_root / 'results')}")
             print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 

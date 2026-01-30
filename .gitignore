@@ -52,6 +52,9 @@ results/**
 !results/leaderboard.json
 !results/leaderboard.csv
 !results/leaderboard.html
+!results/leaderboard_robust.json
+!results/leaderboard_robust.csv
+!results/leaderboard_robust.html
 
 *.sqlite
 *.db

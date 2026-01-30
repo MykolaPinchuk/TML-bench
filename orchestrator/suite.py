@@ -6,7 +6,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
+from orchestrator.leaderboard import (
+    LeaderboardPaths,
+    build_leaderboard,
+    load_baselines_df,
+    write_root_leaderboard,
+    write_root_leaderboard_robust,
+)
 from orchestrator.preflight import preflight_one
 
 
@@ -69,6 +75,7 @@ def _refresh_root_leaderboard(*, repo_root: Path, db_path: Path) -> None:
     df = build_leaderboard(db_path=db_path, out_paths=lb_paths, competition_id=None)
     baselines_df = load_baselines_df(db_path=db_path)
     write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
+    write_root_leaderboard_robust(df=df, repo_root=repo_root, baselines=baselines_df)
 
 
 def main() -> int:

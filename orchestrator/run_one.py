@@ -12,7 +12,13 @@ from datetime import datetime, timedelta, timezone
 from orchestrator.db import insert_run
 from orchestrator.kilo_cli import run_kilo, write_clean_jsonl
 from orchestrator.baselines import ensure_competition_baselines
-from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
+from orchestrator.leaderboard import (
+    LeaderboardPaths,
+    build_leaderboard,
+    load_baselines_df,
+    write_root_leaderboard,
+    write_root_leaderboard_robust,
+)
 from orchestrator.prompting import render_prompt
 from orchestrator.provenance import kilo_config_hash, kilo_version, public_manifest
 from orchestrator.result import ModelConfig, Provenance, make_result, read_result_json, write_result_json
@@ -175,6 +181,7 @@ def _write_and_maybe_record(
     df = build_leaderboard(db_path=dbp, out_paths=lb_paths, competition_id=competition_id if per_competition else None)
     baselines_df = load_baselines_df(db_path=dbp)
     write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
+    write_root_leaderboard_robust(df=df, repo_root=repo_root, baselines=baselines_df)
 
 
 def cmd_create(args: argparse.Namespace) -> int:
