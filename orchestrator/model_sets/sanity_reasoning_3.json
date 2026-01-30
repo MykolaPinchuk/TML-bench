@@ -1,0 +1,22 @@
+{
+  "name": "sanity_reasoning_3",
+  "description": "3-model sanity set for checking monotonic improvement across budgets/prompts.",
+  "models": [
+    {
+      "provider": "nanogpt",
+      "model_id": "deepseek/deepseek-v3.2",
+      "label": "deepseek-v3.2"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "label": "DeepSeek-V3.1-Terminus"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.6-FP8",
+      "label": "GLM-4.6-FP8"
+    }
+  ]
+}
+
