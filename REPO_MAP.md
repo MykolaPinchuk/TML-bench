@@ -23,6 +23,7 @@ Keep this file short. Update it only when something important changes.
 - `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).
 - `orchestrator/baselines.py` — compute + record host baselines (`hgb`, `constant`) into sqlite for absolute normalization.
 - `scripts/setup_kilo_providers.py` — configure Kilo providers from `secrets/provider_apis.txt` (untracked).
+- `orchestrator/model_sets/nanogpt_toolcapable.json` — NanoGPT models that reliably tool-call in headless Kilo runs (Qwen-only).
 
 ## Where results live
 - `agent_logs/` — per-cycle logs and index.

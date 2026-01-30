@@ -52,6 +52,9 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
   - Suite runner across the core 4 competitions: `python -m orchestrator.suite ...` (default suite at `orchestrator/suites/v5_core.json`).
   - SOTA tier profile (20 min, XGBoost allowed): `--profile sota-xgb` (1200s) on `orchestrator.sweep` / `orchestrator.run_one auto`.
   - Sweep resume support (DB-backed): `python -m orchestrator.sweep ... --resume` (skip already-recorded runs for the same budget/profile).
+  - Headless fail-fast on provider errors: `orchestrator/kilo_cli.py` terminates early when `402 status code` is seen; recorded as `provider_error` by `orchestrator/run_one.py` (commit `df0ce18`).
+  - Provider setup hardening: `scripts/setup_kilo_providers.py` aligns `~/.kilocode/cli/global/secrets.json` mode defaults to the selected provider to avoid startup calls going to the wrong gateway (commit `9f6cea8`).
+  - NanoGPT “tool-capable” model set: `orchestrator/model_sets/nanogpt_toolcapable.json` (Qwen-only) because some NanoGPT-hosted models do not reliably emit tool calls in headless mode (commit `80ac7ec`).
 
 - Leaderboard collision/variance visibility:
   - Root `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
@@ -80,6 +83,7 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
 ### Next (ordered)
 1) Phase 5 (v5): run the full suite end-to-end and refresh committed leaderboard snapshots:
    - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model N --resume`
+   - If NanoGPT runs are flaky, prefer `orchestrator/model_sets/nanogpt_toolcapable.json` over the broader NanoGPT set.
 2) Expand model sets (when ready):
    - Add/update `orchestrator/model_sets/*.json` for “SOTA” models and run them at `--profile sota-xgb` (1200s).
 3) Publishable artifact packaging + anti-leak posture (defer to v6):
@@ -116,7 +120,7 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
 
 ## Known issues / current breakage
 - Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
-- `simple-baseline` sweeps can still show occasional timeouts (e.g., NanoGPT deepseek-v3.2 @240s).
+- Some provider-hosted models appear to support completions but fail to use Kilo tool-calling in headless mode (no `ask: command`), leading to `timeout: no submission.csv produced`. This is the main reason for the `nanogpt_toolcapable` model set.
 - Some Kaggle competitions require accepting rules / entering before `kaggle competitions download` works (403). If a new competition download fails, enter via browser once, then rerun `prepare_competition.py --download`.
 
 ## Git notes (handoff)
@@ -126,3 +130,10 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
   - `b811a1b` and `7b98385` on local branch `v5` (workflow docs + log rotation).
 - v5 progress commits:
   - Added SOTA tier plumbing + sweep resume + suite runner (see recent local commits on `v5`).
+  - Recent v5 checkpoints worth knowing:
+    - `df0ce18` fail fast on provider 402
+    - `9f6cea8` setup: align kilo global secrets for headless runs
+    - `80ac7ec` add nanogpt tool-capable model set
+    - `fc6f669`/`7a2f545`/`374f389`/`ebbede6`/`f912a05` prompt reliability iterations (short output, robustness, fast baseline)
+    - `63985de` checkpoint(results): reran NanoGPT Qwen across all 3 profiles and refreshed leaderboard snapshots
+    - `a778e9c` future backlog/ideas documented
