@@ -134,7 +134,7 @@ def main() -> int:
     db_path = Path(args.db_path)
 
     models_path = Path(args.models_path)
-    if args.preflight:
+    if args.preflight and not args.dry_run:
         raw, models = _load_model_set(models_path)
         print(f"preflight: enabled (models={len(models)} timeout={int(args.preflight_timeout_seconds)}s)")
         base_dir = repo_root / "tmp" / "preflight" / "suite"
