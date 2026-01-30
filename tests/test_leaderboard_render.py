@@ -286,7 +286,7 @@ def test_overall_includes_core_suite_mean_score_columns(tmp_path: Path) -> None:
     md = (tmp_path / "LEADERBOARD.md").read_text(encoding="utf-8")
 
     # Columns appear immediately after competitions_ranked.
-    assert "| competitions_ranked | bank-customer-churn-ict-u-ai_mean |" in md
+    assert "| competitions_ranked | bank-customer-churn-ict-u-ai_auc_mean |" in md
 
     # Mean of 0.90 and 0.80 is 0.85.
     assert "| chutes | org/m1 |" in md

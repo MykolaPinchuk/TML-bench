@@ -4,6 +4,7 @@ import csv
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+import re
 
 import pandas as pd
 
@@ -180,6 +181,24 @@ def _competition_mean_score_columns(
     if d.empty:
         return pd.DataFrame(), []
 
+    metric_col = "metric_name" if "metric_name" in d.columns else None
+    if metric_col is not None:
+        d["_metric_name"] = d[metric_col].fillna("").astype(str).str.strip().str.lower()
+    else:
+        d["_metric_name"] = ""
+
+    def _pick_metric(s: pd.Series) -> str:
+        s = s.fillna("").astype(str).str.strip().str.lower()
+        s = s[s != ""]
+        if s.empty:
+            return "metric"
+        try:
+            return str(s.value_counts().index[0])
+        except Exception:
+            return str(s.iloc[0])
+
+    metric_by_comp = d.groupby("competition_id", dropna=False)["_metric_name"].agg(_pick_metric).to_dict()
+
     for c in config_cols:
         if c in d.columns:
             d[c] = d[c].fillna("").astype(str)
@@ -197,7 +216,14 @@ def _competition_mean_score_columns(
     wide = wide[cols].reset_index()
 
     # Rename to concise, explicit column names.
-    rename = {c: f"{c}_mean" for c in cols}
+    def _sanitize_metric_name(x: str) -> str:
+        s = str(x or "").strip().lower()
+        if not s:
+            return "metric"
+        s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+        return s or "metric"
+
+    rename = {c: f"{c}_{_sanitize_metric_name(metric_by_comp.get(c, 'metric'))}_mean" for c in cols}
     wide = wide.rename(columns=rename)
     return wide, [rename[c] for c in cols]
 
