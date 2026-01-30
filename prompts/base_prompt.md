@@ -43,6 +43,7 @@ You have access only to:
 ## Runtime pitfalls (short budgets)
 
 - If your preprocessing produces a wide feature matrix (e.g., after encoding categorical columns), avoid very slow models/configurations that may not finish within the time budget.
+- A simple, fast baseline (e.g., a linear model) is acceptable if it helps you reliably finish end-to-end and produce a valid `submission.csv` early.
 
 ## Output and reporting
 
