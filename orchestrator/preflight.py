@@ -60,7 +60,7 @@ def preflight_one(
     provider: str,
     model_id: str,
     base_dir: Path,
-    timeout_seconds: int = 45,
+    timeout_seconds: int = 90,
 ) -> PreflightResult:
     provider = str(provider).strip()
     model_id = str(model_id).strip()
@@ -79,9 +79,10 @@ def preflight_one(
 
     prompt = (
         "Preflight check. Do NOT train a model.\n"
-        "Immediately run the shell command: touch _PREFLIGHT_OK\n"
-        "Then run: ls -la\n"
-        "Stop after creating _PREFLIGHT_OK.\n"
+        "Do exactly these commands (no explanation):\n"
+        "1) touch _PREFLIGHT_OK\n"
+        "2) ls -la\n"
+        "Then stop.\n"
     )
     kr = run_kilo(
         workspace_dir=ws,
@@ -131,7 +132,7 @@ def main() -> int:
     )
     ap.add_argument("--only-provider", default=None, help="If set, only preflight models from this provider id.")
     ap.add_argument("--max-models", type=int, default=None, help="If set, only preflight the first N models selected.")
-    ap.add_argument("--timeout-seconds", type=int, default=45)
+    ap.add_argument("--timeout-seconds", type=int, default=90)
     ap.add_argument(
         "--out-models-path",
         default=None,
@@ -201,4 +202,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

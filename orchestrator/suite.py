@@ -91,7 +91,7 @@ def main() -> int:
     ap.add_argument(
         "--preflight-timeout-seconds",
         type=int,
-        default=45,
+        default=90,
         help="Timeout for each preflight attempt (seconds).",
     )
     ap.add_argument(
