@@ -1,0 +1,17 @@
+{
+  "name": "v5_new_models_flaky",
+  "description": "Models that passed preflight but failed a 240s simple-baseline smoke on playground-series-s6e1 (retry with --iterative).",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Thinking-TEE",
+      "label": "Kimi K2 Thinking TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "XiaomiMiMo/MiMo-V2-Flash",
+      "label": "MiMo V2 Flash (Chutes)"
+    }
+  ]
+}
+
