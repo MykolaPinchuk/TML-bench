@@ -85,6 +85,31 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
 3) Publishable artifact packaging + anti-leak posture (defer to v6):
    - Timestamped “bundle” outputs and freshness-cutoff verification during `prepare_competition.py`.
 
+### Future backlog / ideas (unprioritized)
+- Add a provider “preflight” to `orchestrator.suite` / `orchestrator.sweep`:
+  - quick auth check + tiny completion
+  - quick tool-call check (e.g. `ls`) to detect `MODEL_NO_TOOLS_USED` before scheduling multi-minute runs.
+- Add capability-aware model sets and/or metadata:
+  - Some provider-hosted models narrate actions but fail to emit tool calls in Kilo headless mode (no `ask: command`), leading to `timeout: no submission.csv`.
+  - Consider splitting model sets into “tool-capable” vs “experimental”, or adding fields like `supports_tools`, `notes`, etc.
+- Improve failure classification + fast failure:
+  - Detect and label `402`/credit failures, `MODEL_NO_TOOLS_USED`, and “unexpected API response (no assistant messages)” distinctly in results.
+  - Avoid burning the full time budget when the provider is failing.
+- Logging/auditing upgrades (space-aware):
+  - Decide whether to retain full non-code assistant outputs (excluding generated code) in run artifacts, and/or add optional compression/rotation of Kilo JSONL logs.
+  - Consider surfacing tokens/cost metadata (when present in Kilo JSON events) into `result.json` + leaderboard.
+- Leaderboard enhancements:
+  - Time-used fraction is useful; consider also surfacing tool-call counts, token usage (if available), and “success rate” summaries by `(provider, model_id, prompt_profile, budget)`.
+  - Consider a “prompt revision” tag (in addition to `prompt_sha256`) to make apples-to-apples prompt comparisons easier.
+- Prompt experiments / methodology:
+  - If results seem contradictory (e.g., stronger models underperform after a prompt change), run A/B sweeps where only the prompt changes (same models, budgets, seeds) and compare success rates + scores.
+  - Keep prompts free of ML technique hints; focus on time budget + reliability + “keep improving until budget”.
+- Model pool expansion:
+  - Add additional cheap models (while keeping costs bounded).
+  - OpenRouter policy: do **not** use `google/gemini-2.5-flash`; only allow `x-ai/grok-4.1-fast` from OpenRouter.
+- SOTA tier evolution:
+  - If/when adding a 20-minute SOTA tier (already `--profile sota-xgb` = 1200s), consider a separate “SOTA-LLM” profile and/or explicit rerun cadence for top models.
+
 ### Open questions
 - Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
 - Baseline posture: how aggressive should `simple-baseline` be about forcing diversity vs. maximizing success rate?
