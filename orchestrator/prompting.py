@@ -13,7 +13,14 @@ def render_prompt(
     base = base_prompt_path.read_text(encoding="utf-8")
     override = override_path.read_text(encoding="utf-8") if override_path and override_path.exists() else ""
     profile = profile_path.read_text(encoding="utf-8") if profile_path and profile_path.exists() else ""
-    rendered = base.replace("{{time_budget_seconds}}", str(time_budget_seconds))
+    # Allow profiles/overrides to be budget-aware too.
+    token = "{{time_budget_seconds}}"
+    budget = str(int(time_budget_seconds))
+    base = base.replace(token, budget)
+    profile = profile.replace(token, budget)
+    override = override.replace(token, budget)
+
+    rendered = base
     if profile.strip():
         rendered = rendered.rstrip() + "\n\n" + profile.strip() + "\n"
     if override.strip():

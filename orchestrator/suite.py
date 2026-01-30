@@ -112,6 +112,17 @@ def main() -> int:
         choices=["simple-baseline", "good-baseline", "sota-xgb"],
         help="Sweep profile to use for each competition (controls budget + prompt profile).",
     )
+    ap.add_argument(
+        "--budget-seconds",
+        type=int,
+        default=None,
+        help="Optional override for the run time budget passed to orchestrator.sweep (useful for time-only experiments).",
+    )
+    ap.add_argument(
+        "--prompt-profile",
+        default=None,
+        help="Optional prompt profile id passed to orchestrator.sweep (file in `prompts/prompt_profiles/<id>.md`).",
+    )
     ap.add_argument("--runs-per-model", type=int, default=1)
     ap.add_argument("--db-path", default=str(_repo_root() / "results" / "results.sqlite"))
     ap.add_argument("--concurrency", type=int, default=None)
@@ -212,6 +223,10 @@ def main() -> int:
             "--db-path",
             str(db_path),
         ]
+        if args.budget_seconds is not None:
+            cmd += ["--budget-seconds", str(int(args.budget_seconds))]
+        if args.prompt_profile is not None:
+            cmd += ["--prompt-profile", str(args.prompt_profile)]
         if args.concurrency is not None:
             cmd += ["--concurrency", str(int(args.concurrency))]
         if args.max_models is not None:

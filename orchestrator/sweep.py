@@ -141,8 +141,10 @@ def main() -> int:
     ap.add_argument(
         "--prompt-profile",
         default=None,
-        choices=["simple-baseline", "good-baseline", "sota-xgb"],
-        help="Prompt profile to pass to `run_one auto`. If not set, derives from `--profile` (if provided).",
+        help=(
+            "Prompt profile id (file in `prompts/prompt_profiles/<id>.md`) to pass to `run_one auto`. "
+            "If not set, derives from `--profile` (if provided), else from `--budget-seconds`."
+        ),
     )
     ap.add_argument(
         "--iterative",

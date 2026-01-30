@@ -944,8 +944,10 @@ def main() -> int:
     p_create.add_argument(
         "--prompt-profile",
         default=None,
-        choices=["simple-baseline", "good-baseline", "sota-xgb"],
-        help="Prompt profile. If not set, derives from the time budget (>=1200s -> sota-xgb; >=600s -> good-baseline).",
+        help=(
+            "Prompt profile id (file in `prompts/prompt_profiles/<id>.md`). "
+            "If not set, derives from time budget (>=1200s -> sota-xgb; >=600s -> good-baseline; else simple-baseline)."
+        ),
     )
     p_create.add_argument("--provider", default=None)
     p_create.add_argument("--model-id", default=None)
@@ -966,7 +968,6 @@ def main() -> int:
     p_fin.add_argument(
         "--prompt-profile",
         default=None,
-        choices=["simple-baseline", "good-baseline", "sota-xgb"],
         help="Optional prompt profile metadata to record with the run (useful for manual runs).",
     )
     p_fin.add_argument("--provider", default=None)
@@ -996,8 +997,10 @@ def main() -> int:
     p_auto.add_argument(
         "--prompt-profile",
         default=None,
-        choices=["simple-baseline", "good-baseline", "sota-xgb"],
-        help="Prompt profile for headless runs. If not set, derives from the time budget (>=1200s -> sota-xgb; >=600s -> good-baseline).",
+        help=(
+            "Prompt profile id (file in `prompts/prompt_profiles/<id>.md`) for headless runs. "
+            "If not set, derives from time budget (>=1200s -> sota-xgb; >=600s -> good-baseline; else simple-baseline)."
+        ),
     )
     p_auto.add_argument(
         "--stop-when-submission",
