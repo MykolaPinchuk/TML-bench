@@ -4378,6 +4378,28 @@
     "time_used_frac":0.0651
   },
   {
+    "run_id":"playground-series-s5e10_3c748e5e6a60",
+    "created_at":"2026-01-29T19:08:48-08:00",
+    "competition_id":"playground-series-s5e10",
+    "status":"timeout",
+    "provider":"chutes",
+    "model_id":"zai-org\/GLM-4.6-FP8",
+    "mode":null,
+    "prompt_profile":"simple-baseline",
+    "temperature":null,
+    "max_tokens":null,
+    "metric_name":null,
+    "score_raw":null,
+    "score_normalized":null,
+    "secondary_r2":null,
+    "runtime_seconds":245.829269000000011,
+    "budget_time_seconds":240,
+    "seed":718114797.0,
+    "submission_sha256":null,
+    "normalized_submission_sha256":null,
+    "time_used_frac":1.0243
+  },
+  {
     "run_id":"playground-series-s5e10_e12b9bc95298",
     "created_at":"2026-01-26T20:57:49-08:00",
     "competition_id":"playground-series-s5e10",

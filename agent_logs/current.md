@@ -16,3 +16,4 @@
 
 - 2026-01-30 (Pacific): New cycle started after handoff log rotation.
 - 2026-01-30 (Pacific): Onboarded index files + hot paths (suite/sweep/run_one/kilo_cli/leaderboard). Next: run `python -m orchestrator.suite ... --resume` to refresh snapshots, or iterate on provider/model reliability classification if runs are flaky.
+- 2026-01-30 (Pacific): Suite `v5_core` `simple-baseline` `v3_fast` `runs_per_model=2 --resume`: scheduled 1 run (`playground-series-s5e10_3c748e5e6a60` chutes/GLM-4.6-FP8) and it timed out with no `submission.csv` (recorded result + refreshed leaderboards).
