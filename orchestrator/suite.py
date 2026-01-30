@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
+from orchestrator.preflight import preflight_one
 
 
 def _repo_root() -> Path:
@@ -25,6 +26,38 @@ def _load_suite(path: Path) -> tuple[str, list[str]]:
             raise ValueError(f"Invalid competition id at index {i} in {path}")
         competition_ids.append(c.strip())
     return name, competition_ids
+
+
+def _load_model_set(path: Path) -> tuple[dict, list[dict]]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    models = raw.get("models")
+    if not isinstance(models, list) or not models:
+        raise ValueError(f"Invalid model set file (missing models list): {path}")
+    out: list[dict] = []
+    for i, m in enumerate(models):
+        if not isinstance(m, dict):
+            raise TypeError(f"Invalid model entry at index {i} in {path}: expected object")
+        provider = m.get("provider")
+        model_id = m.get("model_id")
+        if not isinstance(provider, str) or not provider.strip():
+            raise ValueError(f"Invalid model entry at index {i} in {path}: missing provider")
+        if not isinstance(model_id, str) or not model_id.strip():
+            raise ValueError(f"Invalid model entry at index {i} in {path}: missing model_id")
+        out.append(
+            {
+                "provider": provider.strip(),
+                "model_id": model_id.strip(),
+                "label": str(m.get("label") or ""),
+            }
+        )
+    return raw, out
+
+
+def _write_model_set(*, dst_path: Path, raw: dict, models: list[dict]) -> None:
+    obj = dict(raw)
+    obj["models"] = models
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    dst_path.write_text(json.dumps(obj, indent=2, sort_keys=False) + "\n", encoding="utf-8")
 
 
 def _refresh_root_leaderboard(*, repo_root: Path, db_path: Path) -> None:
@@ -49,6 +82,22 @@ def main() -> int:
         "--models-path",
         default=str(_repo_root() / "orchestrator" / "model_sets" / "v3_fast.json"),
         help="JSON file with provider/model_id entries.",
+    )
+    ap.add_argument(
+        "--preflight",
+        action="store_true",
+        help="If set, do a quick per-model tool-call preflight and skip models that fail.",
+    )
+    ap.add_argument(
+        "--preflight-timeout-seconds",
+        type=int,
+        default=45,
+        help="Timeout for each preflight attempt (seconds).",
+    )
+    ap.add_argument(
+        "--preflight-fail-fast",
+        action="store_true",
+        help="If set with --preflight, exit non-zero if any model fails preflight.",
     )
     ap.add_argument(
         "--profile",
@@ -78,15 +127,57 @@ def main() -> int:
     if missing_public:
         joined = ", ".join(missing_public)
         raise FileNotFoundError(
-            "Missing prepared competition public dirs for: "
-            f"{joined}. Run each competition's prepare_competition.py first."
+                "Missing prepared competition public dirs for: "
+                f"{joined}. Run each competition's prepare_competition.py first."
         )
 
     db_path = Path(args.db_path)
 
+    models_path = Path(args.models_path)
+    if args.preflight:
+        raw, models = _load_model_set(models_path)
+        print(f"preflight: enabled (models={len(models)} timeout={int(args.preflight_timeout_seconds)}s)")
+        base_dir = repo_root / "tmp" / "preflight" / "suite"
+        base_dir.mkdir(parents=True, exist_ok=True)
+
+        ok_models: list[dict] = []
+        failures: list[tuple[str, str, str]] = []
+        for m in models:
+            provider = m["provider"]
+            model_id = m["model_id"]
+            r = preflight_one(
+                provider=provider,
+                model_id=model_id,
+                base_dir=base_dir,
+                timeout_seconds=int(args.preflight_timeout_seconds),
+            )
+            if r.status == "ok":
+                ok_models.append(m)
+            else:
+                failures.append((provider, model_id, r.status))
+                if args.preflight_fail_fast:
+                    break
+
+        if failures and args.preflight_fail_fast:
+            joined = ", ".join([f"{p}::{mid}({st})" for p, mid, st in failures])
+            raise SystemExit(f"preflight failed: {joined}")
+
+        if not ok_models:
+            raise SystemExit("preflight: no models passed")
+
+        if failures:
+            print(f"preflight: passed={len(ok_models)} failed={len(failures)} (skipping failed models)")
+            for p, mid, st in failures:
+                print(f"- preflight FAIL: {p} :: {mid} ({st})")
+
+        filtered = repo_root / "tmp" / "preflight" / "suite_models.filtered.json"
+        _write_model_set(dst_path=filtered, raw=raw, models=ok_models)
+        print(f"preflight: using filtered models file: {filtered}")
+        models_path = filtered
+
     print(f"suite: {suite_name} ({suite_path})")
     print(f"competitions: {len(competition_ids)}")
-    print(f"models_path: {args.models_path}")
+    print(f"models_path: {models_path}")
     print(f"profile: {args.profile} (runs_per_model={args.runs_per_model})")
 
     rc_total = 0
@@ -98,7 +189,7 @@ def main() -> int:
             "--competition-id",
             cid,
             "--models-path",
-            str(args.models_path),
+            str(models_path),
             "--profile",
             str(args.profile),
             "--runs-per-model",
@@ -138,4 +229,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
