@@ -125,6 +125,83 @@ def _score_normalized_series(df: pd.DataFrame) -> pd.Series:
     return out
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _core_suite_competitions() -> list[str]:
+    """
+    Return the canonical 4-competition suite, if present.
+    Falls back to [] if the suite file can't be loaded.
+    """
+    p = _repo_root() / "orchestrator" / "suites" / "v5_core.json"
+    if not p.exists():
+        return []
+    try:
+        import json
+
+        raw = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    comps = raw.get("competitions")
+    if not isinstance(comps, list):
+        return []
+    out: list[str] = []
+    for c in comps:
+        if isinstance(c, str) and c.strip():
+            out.append(c.strip())
+    # Keep it "just 4" as requested.
+    return out[:4]
+
+
+def _competition_mean_score_columns(
+    *,
+    successes: pd.DataFrame,
+    config_cols: list[str],
+    competitions: list[str],
+) -> tuple[pd.DataFrame, list[str]]:
+    """
+    Returns a (df_wide, columns) pair where df_wide has one row per config (index=config_cols)
+    and one column per competition containing mean score_raw over successful runs.
+    """
+    if successes.empty or not competitions:
+        return pd.DataFrame(), []
+    needed = {"competition_id", "score_raw"}
+    if not needed.issubset(set(successes.columns)):
+        return pd.DataFrame(), []
+
+    d = successes.copy()
+    d["competition_id"] = d["competition_id"].fillna("").astype(str)
+    d = d[d["competition_id"].isin(set(competitions))]
+    if d.empty:
+        return pd.DataFrame(), []
+    d["score_raw"] = pd.to_numeric(d["score_raw"], errors="coerce")
+    d = d[pd.notna(d["score_raw"])]
+    if d.empty:
+        return pd.DataFrame(), []
+
+    for c in config_cols:
+        if c in d.columns:
+            d[c] = d[c].fillna("").astype(str)
+
+    comp_mean = (
+        d.groupby(["competition_id"] + config_cols, dropna=False)
+        .agg(mean_score_raw=("score_raw", "mean"))
+        .reset_index()
+    )
+    wide = comp_mean.pivot_table(index=config_cols, columns="competition_id", values="mean_score_raw", aggfunc="mean")
+    # Ensure stable column ordering and only the requested 4 competitions.
+    cols = [c for c in competitions if c in wide.columns]
+    if not cols:
+        return pd.DataFrame(), []
+    wide = wide[cols].reset_index()
+
+    # Rename to concise, explicit column names.
+    rename = {c: f"{c}_mean" for c in cols}
+    wide = wide.rename(columns=rename)
+    return wide, [rename[c] for c in cols]
+
+
 def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = None) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
@@ -203,6 +280,16 @@ def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = N
 
     out = out.merge(ranks, on=config_cols, how="left")
 
+    # Per-competition score columns (mean score_raw across successful runs).
+    core_comps = _core_suite_competitions()
+    comp_wide, comp_cols = _competition_mean_score_columns(
+        successes=successes,
+        config_cols=config_cols,
+        competitions=core_comps,
+    )
+    if not comp_wide.empty and comp_cols:
+        out = out.merge(comp_wide, on=config_cols, how="left")
+
     if "competitions_ranked" in out.columns:
         out["competitions_ranked"] = pd.to_numeric(out["competitions_ranked"], errors="coerce").astype("Int64")
 
@@ -241,6 +328,9 @@ def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = N
     out["mean_rank_pct"] = pd.to_numeric(out["mean_rank_pct"], errors="coerce").round(4)
     out["competition_success_rate"] = pd.to_numeric(out["competition_success_rate"], errors="coerce").round(4)
     out["run_success_rate"] = pd.to_numeric(out["run_success_rate"], errors="coerce").round(4)
+    for c in comp_cols:
+        if c in out.columns:
+            out[c] = pd.to_numeric(out[c], errors="coerce").round(6)
     if "runtime_mean_seconds" in out.columns:
         out["runtime_mean_seconds"] = pd.to_numeric(out["runtime_mean_seconds"], errors="coerce").round(1)
     if "mean_time_used" in out.columns:
@@ -278,6 +368,8 @@ def _overall_by_model_df(df: pd.DataFrame, *, baselines: pd.DataFrame | None = N
         "runtime_mean_seconds",
         "mean_time_used",
         "competitions_ranked",
+        # Requested: per-competition mean scores go right after competitions_ranked.
+        *comp_cols,
         "mean_rank",
         "mean_rank_pct",
         "best_rank",
@@ -844,6 +936,7 @@ def write_root_leaderboard(
                 "`mean_rank_pct` is a percentile rank within each competition (0% is best).\n"
                 "- Aggregation is shown separately per `prompt_profile`.\n\n"
             )
+            md += "- Per-competition `*_mean` columns show mean `score_raw` over successful runs for the core 4 competitions.\n\n"
             if baselines is not None and not baselines.empty:
                 md += "- Absolute signal uses two fixed host baselines per competition: `constant` and `hgb`.\n"
                 md += "  - `mean_abs_units`: 0 = constant baseline, 1 = hgb baseline (higher is better).\n"
