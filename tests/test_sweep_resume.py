@@ -16,6 +16,7 @@ def _insert_dummy_run(
     model_id: str,
     budget_seconds: int,
     prompt_profile: str,
+    mode: str | None = None,
     status: str,
 ) -> None:
     run = make_result(
@@ -27,7 +28,7 @@ def _insert_dummy_run(
         local_validation_metric=None,
         runtime_seconds=1.0,
         budget_time_seconds=budget_seconds,
-        model=ModelConfig(provider=provider, model_id=model_id),
+        model=ModelConfig(provider=provider, model_id=model_id, mode=mode),
         submission_path=None,
         normalized_submission_path=None,
         repo_root=Path("."),
@@ -67,6 +68,7 @@ def test_resume_counts_success_only(tmp_path: Path) -> None:
         model_id="m1",
         budget_seconds=1200,
         prompt_profile="sota-xgb",
+        mode=None,
         status="success",
     )
     _insert_dummy_run(
@@ -76,6 +78,7 @@ def test_resume_counts_success_only(tmp_path: Path) -> None:
         model_id="m1",
         budget_seconds=1200,
         prompt_profile="sota-xgb",
+        mode=None,
         status="timeout",
     )
     _insert_dummy_run(
@@ -85,6 +88,7 @@ def test_resume_counts_success_only(tmp_path: Path) -> None:
         model_id="m1",
         budget_seconds=600,
         prompt_profile="good-baseline",
+        mode=None,
         status="success",
     )
     _insert_dummy_run(
@@ -94,6 +98,7 @@ def test_resume_counts_success_only(tmp_path: Path) -> None:
         model_id="m2",
         budget_seconds=1200,
         prompt_profile="sota-xgb",
+        mode=None,
         status="success",
     )
 
@@ -102,6 +107,7 @@ def test_resume_counts_success_only(tmp_path: Path) -> None:
         competition_id=competition_id,
         budget_seconds=1200,
         prompt_profile="sota-xgb",
+        mode=None,
         any_status=False,
     )
     assert counts[("chutes", "m1")] == 1
@@ -119,6 +125,7 @@ def test_resume_counts_any_status(tmp_path: Path) -> None:
         model_id="m1",
         budget_seconds=240,
         prompt_profile="simple-baseline",
+        mode=None,
         status="timeout",
     )
     _insert_dummy_run(
@@ -128,6 +135,7 @@ def test_resume_counts_any_status(tmp_path: Path) -> None:
         model_id="m1",
         budget_seconds=240,
         prompt_profile="simple-baseline",
+        mode=None,
         status="invalid_submission",
     )
 
@@ -136,7 +144,7 @@ def test_resume_counts_any_status(tmp_path: Path) -> None:
         competition_id=competition_id,
         budget_seconds=240,
         prompt_profile="simple-baseline",
+        mode=None,
         any_status=True,
     )
     assert counts[("nanogpt", "m1")] == 2
-

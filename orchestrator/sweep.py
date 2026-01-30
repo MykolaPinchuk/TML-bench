@@ -73,6 +73,7 @@ def _resume_counts_by_model(
     competition_id: str,
     budget_seconds: int,
     prompt_profile: str,
+    mode: str | None,
     any_status: bool,
 ) -> dict[tuple[str, str], int]:
     ensure_db(db_path)
@@ -88,6 +89,8 @@ def _resume_counts_by_model(
             continue
 
         if str(r.get("prompt_profile") or "").strip() != str(prompt_profile):
+            continue
+        if str(r.get("mode") or "").strip() != str(mode or "").strip():
             continue
 
         try:
@@ -124,6 +127,11 @@ def main() -> int:
     ap.add_argument("--db-path", default="results/results.sqlite")
     ap.add_argument("--per-competition", action="store_true")
     ap.add_argument(
+        "--mode",
+        default=None,
+        help="Optional `mode` metadata to record with each run (also used for --resume matching).",
+    )
+    ap.add_argument(
         "--budget-seconds",
         type=int,
         default=None,
@@ -135,6 +143,17 @@ def main() -> int:
         default=None,
         choices=["simple-baseline", "good-baseline", "sota-xgb"],
         help="Prompt profile to pass to `run_one auto`. If not set, derives from `--profile` (if provided).",
+    )
+    ap.add_argument(
+        "--iterative",
+        action="store_true",
+        help="Experimental: two-stage headless run (bootstrap a valid submission quickly, then continue improving) with a validity guard for `submission.csv`.",
+    )
+    ap.add_argument(
+        "--iterative-stage1-seconds",
+        type=int,
+        default=None,
+        help="Optional stage-1 timeout for --iterative. Default: min(240, max(60, 0.2*budget)).",
     )
     ap.add_argument(
         "--resume",
@@ -198,12 +217,18 @@ def main() -> int:
     if args.resume and (args.budget_seconds is None or args.prompt_profile is None):
         raise ValueError("--resume requires --budget-seconds (or --profile) so runs can be matched deterministically.")
 
+    mode = str(args.mode or "").strip()
+    if args.iterative:
+        tag = "iter2stage"
+        mode = tag if not mode else f"{mode}+{tag}"
+
     resume_counts = (
         _resume_counts_by_model(
             db_path=args.db_path,
             competition_id=args.competition_id,
             budget_seconds=int(args.budget_seconds),
             prompt_profile=str(args.prompt_profile),
+            mode=mode,
             any_status=bool(args.resume_any_status),
         )
         if args.resume and args.db_path
@@ -230,6 +255,10 @@ def main() -> int:
         print(f"budget_seconds: {int(args.budget_seconds)}")
     if args.prompt_profile is not None:
         print(f"prompt_profile: {args.prompt_profile}")
+    if mode:
+        print(f"mode: {mode}")
+    if args.iterative:
+        print("iterative: enabled")
     print(f"total runs: {len(tasks)} (runs_per_model={args.runs_per_model})")
 
     if args.dry_run:
@@ -246,12 +275,14 @@ def main() -> int:
             per_competition=args.per_competition,
             provider=provider,
             model_id=model_id,
-            mode=None,
+            mode=mode or None,
             temperature=None,
             max_tokens=None,
             budget_seconds=args.budget_seconds,
             kilo_timeout_seconds=args.kilo_timeout_seconds,
             prompt_profile=args.prompt_profile,
+            iterative=bool(args.iterative),
+            iterative_stage1_seconds=args.iterative_stage1_seconds,
         )
         rc = int(cmd_auto(ns))
         return run_id, rc

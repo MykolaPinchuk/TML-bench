@@ -115,6 +115,14 @@ def main() -> int:
     ap.add_argument("--runs-per-model", type=int, default=1)
     ap.add_argument("--db-path", default=str(_repo_root() / "results" / "results.sqlite"))
     ap.add_argument("--concurrency", type=int, default=None)
+    ap.add_argument("--mode", default=None, help="Optional `mode` metadata to record with each run (passed through to orchestrator.sweep).")
+    ap.add_argument("--iterative", action="store_true", help="Experimental: enable sweep --iterative for each competition.")
+    ap.add_argument(
+        "--iterative-stage1-seconds",
+        type=int,
+        default=None,
+        help="Optional stage-1 timeout for --iterative (passed through to orchestrator.sweep).",
+    )
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--resume-any-status", action="store_true")
     ap.add_argument("--max-models", type=int, default=None)
@@ -214,6 +222,12 @@ def main() -> int:
             cmd += ["--resume"]
         if args.resume_any_status:
             cmd += ["--resume-any-status"]
+        if args.mode:
+            cmd += ["--mode", str(args.mode)]
+        if args.iterative:
+            cmd += ["--iterative"]
+            if args.iterative_stage1_seconds is not None:
+                cmd += ["--iterative-stage1-seconds", str(int(args.iterative_stage1_seconds))]
         if args.dry_run:
             cmd += ["--dry-run"]
 
