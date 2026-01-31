@@ -1,0 +1,9 @@
+{
+  "name": "mono_s6e1_churn",
+  "description": "2-competition suite for monotonicity experiments: one regression (s6e1) and one classification (bank churn).",
+  "competitions": [
+    "playground-series-s6e1",
+    "bank-customer-churn-ict-u-ai"
+  ]
+}
+

@@ -1,0 +1,22 @@
+{
+  "name": "mono_nanogpt_3",
+  "description": "3 NanoGPT models for monotonicity experiments across budgets.",
+  "models": [
+    {
+      "provider": "nanogpt",
+      "model_id": "deepseek/deepseek-v3.2",
+      "label": "deepseek-v3.2"
+    },
+    {
+      "provider": "nanogpt",
+      "model_id": "qwen/qwen3-next-80b-a3b-thinking",
+      "label": "qwen3-next-80b-a3b-thinking"
+    },
+    {
+      "provider": "nanogpt",
+      "model_id": "mistralai/devstral-2-123b-instruct-2512",
+      "label": "devstral-2-123b-instruct-2512"
+    }
+  ]
+}
+
