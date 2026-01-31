@@ -663,7 +663,9 @@ def cmd_auto(args: argparse.Namespace) -> int:
             stage1_seconds = max(60, int(round(0.2 * float(budget_seconds))))
             stage1_seconds = min(int(stage1_seconds), 240)
         stage1_seconds = int(max(30, min(int(stage1_seconds), int(budget_seconds))))
-        stage2_seconds = int(max(0, int(budget_seconds) - int(stage1_seconds)))
+        # Stage-2 gets the *remaining* time after stage-1 actually finishes.
+        # This avoids wasting budget when stage-1 stops early (e.g., once `submission.csv` appears).
+        stage2_seconds_planned = int(max(0, int(budget_seconds) - int(stage1_seconds)))
 
         out1 = artifacts_dir / "kilo_stdout.stage1.jsonl"
         err1 = artifacts_dir / "kilo_stderr.stage1.log"
@@ -698,6 +700,10 @@ def cmd_auto(args: argparse.Namespace) -> int:
         out2 = artifacts_dir / "kilo_stdout.stage2.jsonl"
         err2 = artifacts_dir / "kilo_stderr.stage2.log"
         clean2 = artifacts_dir / "kilo_stdout.stage2.clean.jsonl"
+        stage2_seconds = int(max(0, int(budget_seconds) - int(round(total_duration))))
+        # Keep the old planned value as a lower bound (for backward-compat thinking),
+        # but let stage2 consume extra remaining time if stage1 stopped early.
+        stage2_seconds = int(max(int(stage2_seconds), int(stage2_seconds_planned)))
         if stop_reason != "api_402" and stage2_seconds >= 1:
             kr2, cleaned2 = _run_stage(
                 label="Stage 2/2: continue improving, but keep submission valid",
