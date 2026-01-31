@@ -173,6 +173,7 @@ def build_monotonic_report(
     db_path: str | Path,
     suite: str,
     join_mode: str = "strict",
+    prompt_profile_override: str | None = None,
 ) -> pd.DataFrame:
     competitions = _load_suite_competitions(suite)
     specs = [
@@ -180,6 +181,8 @@ def build_monotonic_report(
         ("g-b", "good-baseline", 600),
         ("sota", "sota-xgb", 1200),
     ]
+    if prompt_profile_override is not None:
+        specs = [(label, str(prompt_profile_override), budget) for (label, _profile, budget) in specs]
 
     frames: list[pd.DataFrame] = []
     for label, profile, budget in specs:
@@ -246,10 +249,20 @@ def main() -> int:
         choices=["strict", "best"],
         help="strict: compare (provider, model_id, mode); best: collapse modes per model (best median per competition).",
     )
+    ap.add_argument(
+        "--prompt-profile",
+        default=None,
+        help="If set, use this prompt profile for all three budgets (240/600/1200) to run a fixed-prompt sanity check.",
+    )
     ap.add_argument("--out-md", default=None, help="If set, write Markdown report to this path.")
     args = ap.parse_args()
 
-    df = build_monotonic_report(db_path=args.db_path, suite=args.suite, join_mode=args.join_mode)
+    df = build_monotonic_report(
+        db_path=args.db_path,
+        suite=args.suite,
+        join_mode=args.join_mode,
+        prompt_profile_override=(str(args.prompt_profile).strip() if args.prompt_profile else None),
+    )
     title = f"Spec sanity ({args.suite}, join_mode={args.join_mode})"
     md = f"# {title}\n\n"
     md += f"- db: `{args.db_path}`\n"

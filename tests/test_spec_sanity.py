@@ -134,3 +134,45 @@ def test_spec_sanity_monotonic_flags(tmp_path: Path) -> None:
     b = report[report["model_id"] == "B"].iloc[0]
     assert bool(a["rank_monotonic"]) is True
     assert bool(b["rank_monotonic"]) is False
+
+
+def test_spec_sanity_prompt_profile_override(tmp_path: Path) -> None:
+    db_path = tmp_path / "results.sqlite"
+    ensure_db(db_path)
+    con = sqlite3.connect(db_path)
+    try:
+        core = [
+            "bank-customer-churn-ict-u-ai",
+            "foot-traffic-wuerzburg-retail-forecasting-2-0",
+            "playground-series-s5e10",
+            "playground-series-s6e1",
+        ]
+        budgets = [240, 600, 1200]
+        profile = "budget-aware"
+        for i, budget in enumerate(budgets):
+            for j, comp in enumerate(core):
+                _insert_run(
+                    con,
+                    run_id=f"m_{i}_{j}",
+                    competition_id=comp,
+                    prompt_profile=profile,
+                    budget=budget,
+                    provider="p",
+                    model_id="M",
+                    mode="",
+                    status="success",
+                    metric_name="rmse",
+                    score_raw=10.0 - i,
+                )
+        con.commit()
+    finally:
+        con.close()
+
+    report = build_monotonic_report(
+        db_path=db_path,
+        suite="v5_core",
+        join_mode="strict",
+        prompt_profile_override="budget-aware",
+    )
+    assert not report.empty
+    assert set(report["model_id"]) == {"M"}
