@@ -1,0 +1,21 @@
+{
+  "name": "chutes_mono_toolcapable_3",
+  "description": "Chutes-only 3-model set (tool-call preflight passed) for monotonicity sweeps.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "label": "DeepSeek-V3.1-Terminus"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-FP8",
+      "label": "GLM-4.7-FP8"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2.5-TEE",
+      "label": "Kimi-K2.5-TEE"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "chutes_mono_candidates",
+  "description": "Chutes-only candidate models for monotonicity sweeps; will be filtered by preflight.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
+      "label": "DeepSeek-V3.2-Speciale-TEE"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-R1-0528",
+      "label": "DeepSeek-R1-0528"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "label": "DeepSeek-V3.1-Terminus"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-FP8",
+      "label": "GLM-4.7-FP8"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "mistralai/mixtral-8x7b-instruct-v0.1",
+      "label": "Mixtral-8x7B-Instruct"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+      "label": "Llama-3.1-8B-Instruct"
+    }
+  ]
+}
