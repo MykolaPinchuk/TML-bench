@@ -1,0 +1,8 @@
+{
+  "name": "sanity_ps_s5e10",
+  "description": "Single-competition suite for monotonicity sanity checks (playground-series-s5e10; RMSE).",
+  "competitions": [
+    "playground-series-s5e10"
+  ]
+}
+
