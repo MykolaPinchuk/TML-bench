@@ -263,11 +263,11 @@ def _maybe_fix_global_secrets_for_headless_runs(*, preferred_config_name: str) -
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Configure Kilo CLI providers (Chutes + Nano-GPT + OpenRouter) from repo secrets.")
+    ap = argparse.ArgumentParser(description="Configure Kilo CLI providers (Chutes + OpenRouter) from repo secrets.")
     ap.add_argument(
         "--keys-file",
         default=str(_repo_root() / "secrets" / "provider_apis.txt"),
-        help="Path to a file with lines like 'chutes: <key>', 'nanogpt: <key>', and/or 'openrouter: <key>'.",
+        help="Path to a file with lines like 'chutes: <key>' and/or 'openrouter: <key>'.",
     )
     ap.add_argument(
         "--config-path",
@@ -276,7 +276,7 @@ def main() -> int:
     )
     ap.add_argument(
         "--set-default-provider",
-        choices=["keep", "chutes", "nanogpt", "openrouter"],
+        choices=["keep", "chutes", "openrouter"],
         default="chutes",
         help="Which provider id to set as the default for Kilo CLI invocations without --provider.",
     )
@@ -289,9 +289,9 @@ def main() -> int:
     args = ap.parse_args()
 
     keys = _load_provider_keys(Path(args.keys_file))
-    if not (keys.chutes_api_key or keys.nanogpt_api_key or keys.openrouter_api_key):
+    if not (keys.chutes_api_key or keys.openrouter_api_key):
         raise RuntimeError(
-            f"No provider keys found in {args.keys_file}. Add at least one of: chutes, nanogpt, openrouter."
+            f"No provider keys found in {args.keys_file}. Add at least one of: chutes, openrouter."
         )
 
     config_path = Path(args.config_path)
@@ -320,30 +320,10 @@ def main() -> int:
             },
         )
 
-    if keys.nanogpt_api_key and keys.nanogpt_base_url:
-        _upsert_provider(
-            providers,
-            provider_id="nanogpt",
-            provider_type="openai",
-            updates={
-                "openAiApiKey": keys.nanogpt_api_key,
-                "openAiBaseUrl": keys.nanogpt_base_url,
-                # Not required, but helps avoid confusion when calling Kilo without --model.
-                "openAiModelId": "mistralai/devstral-2-123b-instruct-2512",
-            },
-        )
-    elif keys.nanogpt_api_key and not keys.nanogpt_base_url:
-        removed = _remove_provider(providers, provider_id="nanogpt")
-        if removed:
-            print(
-                "note: removed non-functional provider id 'nanogpt' from Kilo config; "
-                f"add 'nanogpt_base_url: https://.../v1' to {args.keys_file} and rerun to enable NanoGPT via OpenAI-compatible API."
-            )
-        else:
-            print(
-                f"note: NanoGPT not configured (missing nanogpt_base_url in {args.keys_file}); "
-                "add 'nanogpt_base_url: https://.../v1' and rerun to enable NanoGPT via OpenAI-compatible API."
-            )
+    # NanoGPT is intentionally not supported anymore (unreliable in headless Kilo runs).
+    removed = _remove_provider(providers, provider_id="nanogpt")
+    if keys.nanogpt_api_key or keys.nanogpt_base_url or removed:
+        print("note: NanoGPT is retired and will not be configured (provider id 'nanogpt' is removed if present).")
 
     if keys.openrouter_api_key:
         base_url = keys.openrouter_base_url or "https://openrouter.ai/api/v1"
@@ -429,8 +409,6 @@ def main() -> int:
     preferred = None
     if args.set_default_provider == "chutes":
         preferred = ("chutes", "chutes", "microsoft/Phi-3.5-mini-instruct")
-    elif args.set_default_provider == "nanogpt" and keys.nanogpt_api_key and keys.nanogpt_base_url:
-        preferred = ("nanogpt", "openai", "mistralai/devstral-2-123b-instruct-2512")
     elif args.set_default_provider == "openrouter" and keys.openrouter_api_key:
         preferred = ("openrouter", "openai", "x-ai/grok-4.1-fast")
     if preferred is not None:

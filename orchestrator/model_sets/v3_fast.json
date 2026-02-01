@@ -1,6 +1,6 @@
 {
   "name": "v3_fast",
-  "description": "Small, cheap(ish) starter set for rapid Phase 3 iteration.",
+  "description": "Small, cheap(ish) starter set for rapid Phase 3 iteration (Chutes-only; NanoGPT retired).",
   "models": [
     {
       "provider": "chutes",
@@ -26,21 +26,6 @@
       "provider": "chutes",
       "model_id": "microsoft/Phi-3.5-mini-instruct",
       "label": "Phi 3.5 Mini Instruct (Chutes)"
-    },
-    {
-      "provider": "nanogpt",
-      "model_id": "deepseek/deepseek-v3.2",
-      "label": "DeepSeek V3.2 (NanoGPT)"
-    },
-    {
-      "provider": "nanogpt",
-      "model_id": "mistralai/devstral-2-123b-instruct-2512",
-      "label": "Devstral 2 123B Instruct 2512 (NanoGPT)"
-    },
-    {
-      "provider": "nanogpt",
-      "model_id": "qwen/qwen3-next-80b-a3b-thinking",
-      "label": "Qwen3 Next 80B A3B Thinking (NanoGPT)"
     }
   ]
 }

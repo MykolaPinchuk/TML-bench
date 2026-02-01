@@ -54,7 +54,7 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
   - Sweep resume support (DB-backed): `python -m orchestrator.sweep ... --resume` (skip already-recorded runs for the same budget/profile).
   - Headless fail-fast on provider errors: `orchestrator/kilo_cli.py` terminates early when `402 status code` is seen; recorded as `provider_error` by `orchestrator/run_one.py` (commit `df0ce18`).
   - Provider setup hardening: `scripts/setup_kilo_providers.py` aligns `~/.kilocode/cli/global/secrets.json` mode defaults to the selected provider to avoid startup calls going to the wrong gateway (commit `9f6cea8`).
-  - NanoGPT “tool-capable” model set: `orchestrator/model_sets/nanogpt_toolcapable.json` (Qwen-only) because some NanoGPT-hosted models do not reliably emit tool calls in headless mode (commit `80ac7ec`).
+  - NanoGPT is retired as unreliable; any NanoGPT-specific model sets/artifacts are archival only.
 
 - Leaderboard collision/variance visibility:
   - Root `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
@@ -115,7 +115,7 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
    - Current evidence suggests strict monotonicity is not guaranteed per model even with replication.
    - Consider reporting capability (median/best-of-successes) separately from reliability (success rate).
 3) Provider rationalization:
-   - NanoGPT Kilo integration appears broken (see Known issues); if Chutes covers the desired model set, consider canceling NanoGPT until resolved.
+   - NanoGPT is retired and should not be used going forward (see Known issues + `tmp/nanogpt_402_debug/` for archived debug).
 4) Publishable artifact packaging + anti-leak posture (defer to v6):
    - Timestamped “bundle” outputs and freshness-cutoff verification during `prepare_competition.py`.
 
@@ -150,10 +150,8 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
 
 ## Known issues / current breakage
 - Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
-- Some provider-hosted models appear to support completions but fail to use Kilo tool-calling in headless mode (no `ask: command`), leading to `timeout: no submission.csv produced`. This is the main reason for the `nanogpt_toolcapable` model set.
-- NanoGPT integration issue (current):
-  - Direct NanoGPT OpenAI-compatible `/chat/completions` calls succeed (200), but Kilo headless runs consistently report `402 status code (no body)`.
-  - NanoGPT support indicated they do not log failed calls; debug bundle is under `tmp/nanogpt_402_debug/` (local, untracked).
+- Some provider-hosted models appear to support completions but fail to use Kilo tool-calling in headless mode (no `ask: command`), leading to `timeout: no submission.csv produced`.
+- NanoGPT is retired (unreliable in headless Kilo runs; repeated `402 status code (no body)`); debug bundle remains under `tmp/nanogpt_402_debug/` (local, untracked).
 - Some Kaggle competitions require accepting rules / entering before `kaggle competitions download` works (403). If a new competition download fails, enter via browser once, then rerun `prepare_competition.py --download`.
 
 ## Git notes (handoff)

@@ -22,7 +22,7 @@ The intended use is both practical (choose models/settings for autonomous tabula
 A fully automated system that, given:
 
 * a set of ~5 selected recent tabular competitions/tasks,
-* a list of models (via Chutes or NanoGPT APIs),
+* a list of models (via Chutes or OpenRouter APIs),
 * and an evaluation configuration (budgets, seeds, runs-per-model),
 
 will execute autonomous agent runs end-to-end and produce:
@@ -326,7 +326,7 @@ Mount policy (Phase 4+):
 Target (Phase 6): deny all outbound traffic from the agent container except allowlist to:
 
 * Chutes base URL `https://llm.chutes.ai/v1/` (OpenAI-compatible), if using Chutes proxy ([LiteLLM][3])
-* NanoGPT base URL `https://nano-gpt.com/api/v1` (OpenAI-compatible), if using NanoGPT ([LiteLLM][4])
+* OpenRouter base URL `https://openrouter.ai/api/v1` (OpenAI-compatible), if using OpenRouter
 
 Before Phase 6: enforce “no web search / no retrieval” via prompt policy and run workflow, but treat results as non-secure.
 
@@ -371,14 +371,14 @@ Prompt policy:
 
 ---
 
-## 12) Provider integration (Chutes and NanoGPT)
+## 12) Provider integration (Chutes and OpenRouter)
 
 ### 12.1 OpenAI-compatible routing
 
 Both providers support OpenAI-compatible APIs:
 
 * Chutes (OpenAI-compatible endpoints; base URL commonly `https://llm.chutes.ai/v1/`). ([LiteLLM][3])
-* NanoGPT (base URL `https://nano-gpt.com/api/v1`; OpenAI-compatible behavior). ([LiteLLM][4])
+* OpenRouter (OpenAI-compatible endpoints; base URL commonly `https://openrouter.ai/api/v1`).
 
 Implementation approach:
 
@@ -396,7 +396,7 @@ Treat quotas as an operational parameter; no special design dependency other tha
 * backoff/retry handling
 * rate limiting at orchestrator level
 * per-run request cap optional (to avoid runaway costs)
-* for Chutes + NanoGPT (subscription-based, high daily included limits), assume cost is not the binding constraint; optimize for iteration speed instead
+* for Chutes + OpenRouter (operationally), assume cost is not the binding constraint; optimize for iteration speed instead
 
 ---
 
@@ -736,4 +736,3 @@ Then extend to Phase 4 (Docker + network policy) once the end-to-end host pipeli
 [1]: https://kilo.ai/docs/cli?utm_source=chatgpt.com "Kilo Code CLI | Kilo Code Docs"
 [2]: https://kilo.ai/docs/features/mcp/using-mcp-in-cli?utm_source=chatgpt.com "Using MCP in the CLI"
 [3]: https://docs.litellm.ai/docs/providers/chutes?utm_source=chatgpt.com "Chutes"
-[4]: https://docs.litellm.ai/docs/providers/nano-gpt?utm_source=chatgpt.com "NanoGPT"

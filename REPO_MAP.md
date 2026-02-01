@@ -24,7 +24,6 @@ Keep this file short. Update it only when something important changes.
 - `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).
 - `orchestrator/baselines.py` — compute + record host baselines (`hgb`, `constant`) into sqlite for absolute normalization.
 - `scripts/setup_kilo_providers.py` — configure Kilo providers from `secrets/provider_apis.txt` (untracked).
-- `orchestrator/model_sets/nanogpt_toolcapable.json` — NanoGPT models that reliably tool-call in headless Kilo runs (Qwen-only).
 - `orchestrator/suites/mono_chutes_churn_s6e1.json` — 2-competition suite used for monotonicity checks.
 - `orchestrator/model_sets/chutes_mono_toolcapable_3.json` — Chutes-only monotonicity model set.
 
