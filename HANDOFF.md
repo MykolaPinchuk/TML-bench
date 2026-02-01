@@ -101,14 +101,40 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
 
 - Prompt profile policy update (guarded “reasoning phase”, agent06):
   - Added a remaining-time gate to encourage bounded reasoning only after a valid submission exists:
-    - Threshold: `time_remaining >= 360s` (6 min); reasoning budget: ≤150s.
+    - Threshold: `time_remaining >= 360s` (6 min); reasoning budget: ≤150s (initial).
     - Updated profiles:
       - `prompts/prompt_profiles/good-baseline.md`
       - `prompts/prompt_profiles/sota-xgb.md`
       - `prompts/prompt_profiles/budget-aware.md`
     - Commit: `21d03fd`
+  - Follow-up (agent07):
+    - Expanded the gate wording (“think hard…”) and increased the cap to **180s** for:
+      - `prompts/prompt_profiles/good-baseline.md`
+      - `prompts/prompt_profiles/sota-xgb.md`
+    - Note: `budget-aware` remains at 150s for now.
+    - Commit: `cd14fda`
 
 ### Next (ordered)
+0) **Prompt-family experiment agreement (lock this before running anything):**
+   - **Suite (competitions):** `orchestrator/suites/v5_core.json` (4 comps)
+   - **Provider:** Chutes-only (NanoGPT is retired; do not run it)
+   - **Models (5):** the Chutes entries in `orchestrator/model_sets/v3_fast.json`
+     - `deepseek-ai/DeepSeek-V3.1-Terminus`
+     - `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`
+     - `zai-org/GLM-4.6-FP8`
+     - `meta-llama/Meta-Llama-3.1-8B-Instruct`
+     - `microsoft/Phi-3.5-mini-instruct`
+   - **Specs/budgets:** 240 / 600 / 1200 seconds
+   - **Execution knobs:** `--runs-per-model 1`, `--concurrency 2`
+   - **Prompt families to compare (3):**
+     - **Baseline (historical, same-day 2026-01-26 PT bundle):**
+       - 240: `simple-baseline` @ `git_sha=9276a569f43c19e22be92dcabcae0222b8485c15`
+       - 600: `good-baseline` @ `git_sha=f41af8d21a5e3fda3827b0d2b890f121d9a98028` (missing `playground-series-s6e1` @ 600 on Chutes → rerun just this cell)
+       - 1200: `sota-xgb` @ `git_sha=3baf1d094169b1a9497d473fa3e34d3bd371a0bf`
+     - **Time-gated (current):** `good-baseline` (600) + `sota-xgb` (1200) on current `v5` HEAD (includes the 6-min gate + “think hard” + 180s cap).
+     - **Budget-aware:** `prompt_profile=budget-aware` on 240/600/1200 (existing results are incomplete → rerun for the full suite + 5 models).
+   - **DB hygiene (avoid mixing):** write each family into its own DB path under `results/` (do not reuse `results/results.sqlite` for new comparisons).
+
 1) Validate whether the new “reasoning gate” improves outcomes without increasing `no submission.csv` failures:
    - Suggested A/B: churn and/or ps-s6e1, `--runs-per-model 3`, compare `--profile good-baseline` vs `--profile sota-xgb`.
 2) Decide how to “answer monotonicity” formally:
