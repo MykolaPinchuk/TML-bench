@@ -143,7 +143,6 @@ echo "log: $LOG_DIR/baseline_patch.log"
     --concurrency "$CONCURRENCY" \
     --db-path "$BASELINE_PATCH_DB" \
     --only-provider "$ONLY_PROVIDER" \
-    --mode pf_baseline_patch \
     --resume
 ) >"$LOG_DIR/baseline_patch.log" 2>&1 &
 echo "started PID=$!"

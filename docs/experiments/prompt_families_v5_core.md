@@ -76,4 +76,4 @@ Budget-aware (current):
 - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb       --budget-seconds 1200 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware`
 
 Baseline missing-cell patch (requires baseline worktree at `f41af8d2...`):
-- `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path tmp/models_chutes_5.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_baseline_patch.sqlite --only-provider chutes --mode pf_baseline_patch`
+- `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path tmp/models_chutes_5.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_baseline_patch.sqlite --only-provider chutes`
