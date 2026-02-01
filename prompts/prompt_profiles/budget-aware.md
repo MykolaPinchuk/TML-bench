@@ -24,3 +24,17 @@ You have **{{time_budget_seconds}} seconds** total. You must be budget-aware:
 - Keep `train_model.py` runnable and non-empty; verify with `wc -c train_model.py` and `python -m py_compile train_model.py`.
 - Do not install packages.
 
+### Remaining-time reasoning gate (6 min, 150 sec)
+
+At the very start, record the start time:
+- `START_TS=$(date +%s)`
+- `BUDGET={{time_budget_seconds}}`
+- `time_remaining() { echo $((BUDGET - ($(date +%s) - START_TS))); }`
+
+If (and only if) you already have a valid `submission.csv` **and** you estimate `time_remaining >= 360s`:
+
+1) Spend up to **150 seconds** on structured reasoning (do not exceed):
+   - Base it only on `public/README_task.md` and quick EDA you run (no external knowledge).
+   - Write down 2–4 concrete improvements to try next, then execute them.
+
+2) After reasoning, immediately execute the plan (run commands).
