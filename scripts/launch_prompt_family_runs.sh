@@ -44,7 +44,6 @@ echo "log: $LOG_DIR/timegated.log"
     --runs-per-model "$RUNS_PER_MODEL" \
     --concurrency "$CONCURRENCY" \
     --db-path "$TIMEGATED_DB" \
-    --only-provider "$ONLY_PROVIDER" \
     --mode pf_timegated \
     --resume
   python -m orchestrator.suite \
@@ -53,7 +52,6 @@ echo "log: $LOG_DIR/timegated.log"
     --runs-per-model "$RUNS_PER_MODEL" \
     --concurrency "$CONCURRENCY" \
     --db-path "$TIMEGATED_DB" \
-    --only-provider "$ONLY_PROVIDER" \
     --mode pf_timegated \
     --resume
 ) >"$LOG_DIR/timegated.log" 2>&1 &
@@ -73,7 +71,6 @@ echo "log: $LOG_DIR/budgetaware.log"
     --runs-per-model "$RUNS_PER_MODEL" \
     --concurrency "$CONCURRENCY" \
     --db-path "$BUDGETAWARE_DB" \
-    --only-provider "$ONLY_PROVIDER" \
     --mode pf_budgetaware \
     --resume
   python -m orchestrator.suite \
@@ -84,7 +81,6 @@ echo "log: $LOG_DIR/budgetaware.log"
     --runs-per-model "$RUNS_PER_MODEL" \
     --concurrency "$CONCURRENCY" \
     --db-path "$BUDGETAWARE_DB" \
-    --only-provider "$ONLY_PROVIDER" \
     --mode pf_budgetaware \
     --resume
   python -m orchestrator.suite \
@@ -95,7 +91,6 @@ echo "log: $LOG_DIR/budgetaware.log"
     --runs-per-model "$RUNS_PER_MODEL" \
     --concurrency "$CONCURRENCY" \
     --db-path "$BUDGETAWARE_DB" \
-    --only-provider "$ONLY_PROVIDER" \
     --mode pf_budgetaware \
     --resume
 ) >"$LOG_DIR/budgetaware.log" 2>&1 &
@@ -114,6 +109,12 @@ if ! git -C "$ROOT" worktree list | rg -q "$WORKTREE_DIR"; then
   git -C "$ROOT" worktree add -f "$WORKTREE_DIR" "$BASELINE_SHA" >/dev/null
 else
   echo "worktree already present: $WORKTREE_DIR"
+fi
+
+BASELINE_COMP_DIR="$WORKTREE_DIR/competitions/playground-series-s6e1"
+if [ ! -e "$BASELINE_COMP_DIR/public" ]; then
+  mkdir -p "$BASELINE_COMP_DIR"
+  ln -s "$ROOT/competitions/playground-series-s6e1/public" "$BASELINE_COMP_DIR/public"
 fi
 
 cat >"$PATCH_MODELS" <<'JSON'
@@ -153,4 +154,3 @@ echo "Tail logs:"
 echo "  tail -f $LOG_DIR/timegated.log"
 echo "  tail -f $LOG_DIR/budgetaware.log"
 echo "  tail -f $LOG_DIR/baseline_patch.log"
-
