@@ -12,6 +12,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT/tmp/prompt_family_runs"
 mkdir -p "$LOG_DIR"
+RUN_TS="$(date -u +%Y%m%d_%H%M%SZ)"
 
 MODELS_PATH="$ROOT/orchestrator/model_sets/v3_fast.json"
 SUITE_PATH="$ROOT/orchestrator/suites/v5_core.json"
@@ -35,9 +36,12 @@ echo
 
 echo "=== [1/3] time-gated (current) ==="
 echo "db: $TIMEGATED_DB"
-echo "log: $LOG_DIR/timegated.log"
+TIMEGATED_LOG="$LOG_DIR/timegated_${RUN_TS}.log"
+ln -sf "$(basename "$TIMEGATED_LOG")" "$LOG_DIR/timegated.log"
+echo "log: $TIMEGATED_LOG"
 (
   cd "$ROOT"
+  set +e
   python -m orchestrator.suite \
     --models-path "$MODELS_PATH" \
     --profile good-baseline \
@@ -45,7 +49,8 @@ echo "log: $LOG_DIR/timegated.log"
     --concurrency "$CONCURRENCY" \
     --db-path "$TIMEGATED_DB" \
     --mode pf_timegated \
-    --resume
+    --resume-any-status
+  RC_600=$?
   python -m orchestrator.suite \
     --models-path "$MODELS_PATH" \
     --profile sota-xgb \
@@ -53,16 +58,22 @@ echo "log: $LOG_DIR/timegated.log"
     --concurrency "$CONCURRENCY" \
     --db-path "$TIMEGATED_DB" \
     --mode pf_timegated \
-    --resume
-) >"$LOG_DIR/timegated.log" 2>&1 &
+    --resume-any-status
+  RC_1200=$?
+  echo "exit_codes: good-baseline(600)=$RC_600 sota-xgb(1200)=$RC_1200"
+  exit 0
+) >"$TIMEGATED_LOG" 2>&1 &
 echo "started PID=$!"
 echo
 
 echo "=== [2/3] budget-aware (current; fixed prompt_profile across budgets) ==="
 echo "db: $BUDGETAWARE_DB"
-echo "log: $LOG_DIR/budgetaware.log"
+BUDGETAWARE_LOG="$LOG_DIR/budgetaware_${RUN_TS}.log"
+ln -sf "$(basename "$BUDGETAWARE_LOG")" "$LOG_DIR/budgetaware.log"
+echo "log: $BUDGETAWARE_LOG"
 (
   cd "$ROOT"
+  set +e
   python -m orchestrator.suite \
     --models-path "$MODELS_PATH" \
     --profile simple-baseline \
@@ -72,7 +83,8 @@ echo "log: $LOG_DIR/budgetaware.log"
     --concurrency "$CONCURRENCY" \
     --db-path "$BUDGETAWARE_DB" \
     --mode pf_budgetaware \
-    --resume
+    --resume-any-status
+  RC_240=$?
   python -m orchestrator.suite \
     --models-path "$MODELS_PATH" \
     --profile good-baseline \
@@ -82,7 +94,8 @@ echo "log: $LOG_DIR/budgetaware.log"
     --concurrency "$CONCURRENCY" \
     --db-path "$BUDGETAWARE_DB" \
     --mode pf_budgetaware \
-    --resume
+    --resume-any-status
+  RC_600=$?
   python -m orchestrator.suite \
     --models-path "$MODELS_PATH" \
     --profile sota-xgb \
@@ -92,8 +105,11 @@ echo "log: $LOG_DIR/budgetaware.log"
     --concurrency "$CONCURRENCY" \
     --db-path "$BUDGETAWARE_DB" \
     --mode pf_budgetaware \
-    --resume
-) >"$LOG_DIR/budgetaware.log" 2>&1 &
+    --resume-any-status
+  RC_1200=$?
+  echo "exit_codes: budgetaware_240=$RC_240 budgetaware_600=$RC_600 budgetaware_1200=$RC_1200"
+  exit 0
+) >"$BUDGETAWARE_LOG" 2>&1 &
 echo "started PID=$!"
 echo
 
@@ -116,6 +132,9 @@ if [ ! -e "$BASELINE_COMP_DIR/public" ]; then
   mkdir -p "$BASELINE_COMP_DIR"
   ln -s "$ROOT/competitions/playground-series-s6e1/public" "$BASELINE_COMP_DIR/public"
 fi
+if [ ! -e "$BASELINE_COMP_DIR/private" ] && [ -e "$ROOT/competitions/playground-series-s6e1/private" ]; then
+  ln -s "$ROOT/competitions/playground-series-s6e1/private" "$BASELINE_COMP_DIR/private"
+fi
 
 cat >"$PATCH_MODELS" <<'JSON'
 {
@@ -132,9 +151,12 @@ cat >"$PATCH_MODELS" <<'JSON'
 JSON
 
 echo "db: $BASELINE_PATCH_DB"
-echo "log: $LOG_DIR/baseline_patch.log"
+BASELINE_PATCH_LOG="$LOG_DIR/baseline_patch_${RUN_TS}.log"
+ln -sf "$(basename "$BASELINE_PATCH_LOG")" "$LOG_DIR/baseline_patch.log"
+echo "log: $BASELINE_PATCH_LOG"
 (
   cd "$WORKTREE_DIR"
+  set +e
   python -m orchestrator.sweep \
     --competition-id playground-series-s6e1 \
     --models-path "$PATCH_MODELS" \
@@ -143,8 +165,11 @@ echo "log: $LOG_DIR/baseline_patch.log"
     --concurrency "$CONCURRENCY" \
     --db-path "$BASELINE_PATCH_DB" \
     --only-provider "$ONLY_PROVIDER" \
-    --resume
-) >"$LOG_DIR/baseline_patch.log" 2>&1 &
+    --resume-any-status
+  RC_PATCH=$?
+  echo "exit_code: baseline_patch=$RC_PATCH"
+  exit 0
+) >"$BASELINE_PATCH_LOG" 2>&1 &
 echo "started PID=$!"
 echo
 

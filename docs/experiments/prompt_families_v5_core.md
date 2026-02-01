@@ -66,14 +66,23 @@ Use separate DBs per family, e.g.:
 
 These are intentionally explicit; adjust only paths/DB names if needed.
 
+Resume behavior:
+- For this experiment we want **runs-per-model = 1** in practice; when re-launching, prefer `--resume-any-status` so we don’t accidentally rerun timeouts/failures.
+
 Time-gated (current):
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated`
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
 
 Budget-aware (current):
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --budget-seconds 240 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware`
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline  --budget-seconds 600 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware`
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb       --budget-seconds 1200 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --budget-seconds 240 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline  --budget-seconds 600 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb       --budget-seconds 1200 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
 
 Baseline missing-cell patch (requires baseline worktree at `f41af8d2...`):
-- `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path tmp/models_chutes_5.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_baseline_patch.sqlite --only-provider chutes`
+- `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path tmp/models_chutes_5.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_baseline_patch.sqlite --only-provider chutes --resume-any-status`
+
+## Launcher
+
+If you just want to run the agreed experiment with the pinned settings:
+- `bash scripts/launch_prompt_family_runs.sh`
+- Logs are written under `tmp/prompt_family_runs/` with a timestamped filename and a stable symlink (`timegated.log`, `budgetaware.log`, `baseline_patch.log`) pointing at the most recent launch.
