@@ -80,13 +80,43 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
     - `playground-series-s6e1`
     - `playground-series-s5e10`
 
+- Monotonicity investigation (specs s-b/g-b/sota) + Chutes migration (agent06):
+  - Suite + model sets used:
+    - `orchestrator/suites/mono_chutes_churn_s6e1.json` (churn + ps-s6e1) (commit `192834b`)
+    - `orchestrator/model_sets/chutes_mono_toolcapable_3.json` (commit `192834b`)
+  - Replicated spec-as-is sweeps (3 runs/model/spec, `--concurrency 2`) to reduce noise:
+    - s-b mode: `mono_chutes_suite_sb_rep3_20260131T200852Z`
+    - g-b mode: `mono_chutes_suite_gb_rep3_20260131T210629Z`
+    - sota mode: `mono_chutes_suite_sota_rep3_20260131T224713Z`
+    - Experiment-scoped report: `tmp/mono_chutes_monotonicity_experiment.md` (local, untracked)
+    - General report command:
+      - `python -m orchestrator.spec_sanity --suite mono_chutes_churn_s6e1 --join-mode best --out-md tmp/mono_chutes_monotonicity_allbest.md`
+  - Fixed-prompt control (budget-aware prompt at 240/600/1200) on churn:
+    - Modes:
+      - `mono_chutes_fixedprompt_churn_240_rep3_20260201T014957Z`
+      - `mono_chutes_fixedprompt_churn_600_rep3_20260201T022624Z`
+      - `mono_chutes_fixedprompt_churn_1200_rep3_20260201T030749Z`
+    - Summary report with score medians: `tmp/mono_chutes_fixedprompt_churn_rep3_scores.md` (local, untracked)
+  - Chutes stability smoke model set: `orchestrator/model_sets/chutes_smoke_2.json` (commit `192834b`)
+
+- Prompt profile policy update (guarded “reasoning phase”, agent06):
+  - Added a remaining-time gate to encourage bounded reasoning only after a valid submission exists:
+    - Threshold: `time_remaining >= 360s` (6 min); reasoning budget: ≤150s.
+    - Updated profiles:
+      - `prompts/prompt_profiles/good-baseline.md`
+      - `prompts/prompt_profiles/sota-xgb.md`
+      - `prompts/prompt_profiles/budget-aware.md`
+    - Commit: `21d03fd`
+
 ### Next (ordered)
-1) Phase 5 (v5): run the full suite end-to-end and refresh committed leaderboard snapshots:
-   - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model N --resume`
-   - If NanoGPT runs are flaky, prefer `orchestrator/model_sets/nanogpt_toolcapable.json` over the broader NanoGPT set.
-2) Expand model sets (when ready):
-   - Add/update `orchestrator/model_sets/*.json` for “SOTA” models and run them at `--profile sota-xgb` (1200s).
-3) Publishable artifact packaging + anti-leak posture (defer to v6):
+1) Validate whether the new “reasoning gate” improves outcomes without increasing `no submission.csv` failures:
+   - Suggested A/B: churn and/or ps-s6e1, `--runs-per-model 3`, compare `--profile good-baseline` vs `--profile sota-xgb`.
+2) Decide how to “answer monotonicity” formally:
+   - Current evidence suggests strict monotonicity is not guaranteed per model even with replication.
+   - Consider reporting capability (median/best-of-successes) separately from reliability (success rate).
+3) Provider rationalization:
+   - NanoGPT Kilo integration appears broken (see Known issues); if Chutes covers the desired model set, consider canceling NanoGPT until resolved.
+4) Publishable artifact packaging + anti-leak posture (defer to v6):
    - Timestamped “bundle” outputs and freshness-cutoff verification during `prepare_competition.py`.
 
 ### Future backlog / ideas (unprioritized)
@@ -121,6 +151,9 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
 ## Known issues / current breakage
 - Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
 - Some provider-hosted models appear to support completions but fail to use Kilo tool-calling in headless mode (no `ask: command`), leading to `timeout: no submission.csv produced`. This is the main reason for the `nanogpt_toolcapable` model set.
+- NanoGPT integration issue (current):
+  - Direct NanoGPT OpenAI-compatible `/chat/completions` calls succeed (200), but Kilo headless runs consistently report `402 status code (no body)`.
+  - NanoGPT support indicated they do not log failed calls; debug bundle is under `tmp/nanogpt_402_debug/` (local, untracked).
 - Some Kaggle competitions require accepting rules / entering before `kaggle competitions download` works (403). If a new competition download fails, enter via browser once, then rerun `prepare_competition.py --download`.
 
 ## Git notes (handoff)
@@ -137,3 +170,7 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
     - `fc6f669`/`7a2f545`/`374f389`/`ebbede6`/`f912a05` prompt reliability iterations (short output, robustness, fast baseline)
     - `63985de` checkpoint(results): reran NanoGPT Qwen across all 3 profiles and refreshed leaderboard snapshots
     - `a778e9c` future backlog/ideas documented
+  - Recent agent06 checkpoints:
+    - `192834b` checkpoint(orchestrator): Chutes mono sweeps + leaderboards
+    - `ca9e7e5` checkpoint(orchestrator): refresh leaderboards after rep sweeps
+    - `21d03fd` checkpoint(prompts): add 6min reasoning gate

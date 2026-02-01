@@ -7,3 +7,4 @@
 - 2026-01-27_agent04.md — v4: add `playground-series-s5e10`, complete 4-competition sweeps, lock suite at 4 competitions
 
 - 2026-01-30_agent05.md — v5: provider config hardening + NanoGPT Qwen reruns + prompt reliability (handoff)
+- 2026-02-01_agent06.md — chutes-only monotonicity replication + NanoGPT 402 debug + prompt gate
