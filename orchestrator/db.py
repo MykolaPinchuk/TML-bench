@@ -29,6 +29,7 @@ def ensure_db(db_path: str | Path) -> None:
               budget_time_seconds INTEGER,
               seed INTEGER,
               prompt_profile TEXT,
+              prompt_strategy TEXT,
               provider TEXT,
               model_id TEXT,
               mode TEXT,
@@ -79,6 +80,8 @@ def ensure_db(db_path: str | Path) -> None:
             con.execute("ALTER TABLE runs ADD COLUMN seed INTEGER")
         if "prompt_profile" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN prompt_profile TEXT")
+        if "prompt_strategy" not in cols:
+            con.execute("ALTER TABLE runs ADD COLUMN prompt_strategy TEXT")
         if "provider" not in cols:
             con.execute("ALTER TABLE runs ADD COLUMN provider TEXT")
         if "model_id" not in cols:
@@ -146,11 +149,13 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
         kilo_version = None
         kilo_config_sha256 = None
         prompt_profile = None
+        prompt_strategy = None
         secondary_r2 = None
         if isinstance(notes, dict):
             submission_sha256 = notes.get("submission_sha256")
             normalized_submission_sha256 = notes.get("normalized_submission_sha256")
             prompt_profile = notes.get("prompt_profile")
+            prompt_strategy = notes.get("prompt_strategy")
             secondary_r2 = notes.get("secondary_r2")
             # Backward-compatible: allow older result.json to store provenance in notes.
             spec_sha256 = notes.get("spec_sha256")
@@ -171,13 +176,13 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
               run_id, created_at, competition_id, status,
               metric_name, score_raw, score_normalized, local_validation_metric,
               secondary_r2,
-              runtime_seconds, budget_time_seconds, seed, prompt_profile,
+              runtime_seconds, budget_time_seconds, seed, prompt_profile, prompt_strategy,
               provider, model_id, mode, temperature, max_tokens,
               submission_path, normalized_submission_path,
               submission_sha256, normalized_submission_sha256,
               spec_sha256, prompt_sha256, public_manifest_sha256, kilo_version, kilo_config_sha256,
               benchmark_version, git_sha, git_dirty
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -193,6 +198,7 @@ def insert_run(db_path: str | Path, run: RunResult) -> None:
                 run.budget.time_seconds if run.budget else None,
                 run.seed,
                 str(prompt_profile) if prompt_profile is not None else None,
+                str(prompt_strategy) if prompt_strategy is not None else None,
                 model.provider if model else None,
                 model.model_id if model else None,
                 model.mode if model else None,

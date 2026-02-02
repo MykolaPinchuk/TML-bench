@@ -73,6 +73,7 @@ def _resume_counts_by_model(
     competition_id: str,
     budget_seconds: int,
     prompt_profile: str,
+    prompt_strategy: str,
     mode: str | None,
     any_status: bool,
 ) -> dict[tuple[str, str], int]:
@@ -90,6 +91,14 @@ def _resume_counts_by_model(
 
         if str(r.get("prompt_profile") or "").strip() != str(prompt_profile):
             continue
+        want_strategy = str(prompt_strategy or "").strip()
+        have_strategy = str(r.get("prompt_strategy") or "").strip()
+        if want_strategy == "active":
+            if have_strategy not in ("", "active"):
+                continue
+        else:
+            if have_strategy != want_strategy:
+                continue
         if str(r.get("mode") or "").strip() != str(mode or "").strip():
             continue
 
@@ -145,6 +154,11 @@ def main() -> int:
             "Prompt profile id (file in `prompts/prompt_profiles/<id>.md`) to pass to `run_one auto`. "
             "If not set, derives from `--profile` (if provided), else from `--budget-seconds`."
         ),
+    )
+    ap.add_argument(
+        "--prompt-strategy",
+        default="active",
+        help="Prompt strategy id. `active` uses the live `prompts/` folder; otherwise uses `prompts/strategies/<id>/`.",
     )
     ap.add_argument(
         "--iterative",
@@ -235,6 +249,7 @@ def main() -> int:
             competition_id=args.competition_id,
             budget_seconds=int(args.budget_seconds),
             prompt_profile=str(args.prompt_profile),
+            prompt_strategy=str(args.prompt_strategy),
             mode=mode,
             any_status=bool(args.resume_any_status),
         )
@@ -262,6 +277,8 @@ def main() -> int:
         print(f"budget_seconds: {int(args.budget_seconds)}")
     if args.prompt_profile is not None:
         print(f"prompt_profile: {args.prompt_profile}")
+    if args.prompt_strategy is not None:
+        print(f"prompt_strategy: {args.prompt_strategy}")
     if mode:
         print(f"mode: {mode}")
     if args.iterative:
@@ -288,6 +305,7 @@ def main() -> int:
             budget_seconds=args.budget_seconds,
             kilo_timeout_seconds=args.kilo_timeout_seconds,
             prompt_profile=args.prompt_profile,
+            prompt_strategy=args.prompt_strategy,
             iterative=bool(args.iterative),
             iterative_stage1_seconds=args.iterative_stage1_seconds,
         )

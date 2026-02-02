@@ -123,6 +123,11 @@ def main() -> int:
         default=None,
         help="Optional prompt profile id passed to orchestrator.sweep (file in `prompts/prompt_profiles/<id>.md`).",
     )
+    ap.add_argument(
+        "--prompt-strategy",
+        default="active",
+        help="Prompt strategy id passed to orchestrator.sweep (`active` uses `prompts/`; otherwise `prompts/strategies/<id>/`).",
+    )
     ap.add_argument("--runs-per-model", type=int, default=1)
     ap.add_argument("--db-path", default=str(_repo_root() / "results" / "results.sqlite"))
     ap.add_argument("--concurrency", type=int, default=None)
@@ -232,6 +237,8 @@ def main() -> int:
             cmd += ["--budget-seconds", str(int(args.budget_seconds))]
         if args.prompt_profile is not None:
             cmd += ["--prompt-profile", str(args.prompt_profile)]
+        if args.prompt_strategy is not None:
+            cmd += ["--prompt-strategy", str(args.prompt_strategy)]
         if args.concurrency is not None:
             cmd += ["--concurrency", str(int(args.concurrency))]
         if args.max_models is not None:

@@ -26,22 +26,21 @@ Goal: avoid ambiguity about what was run and how to reproduce/extend it.
 
 We compare **three** families.
 
-### A) Baseline (historical; “same-day” bundle, 2026-01-26 PT)
+### A) Baseline (frozen prompt strategy `profiled1`)
 
-Baseline is defined as specific historical `git_sha` snapshots (per spec) from which runs already exist.
-
-- 240s baseline: `simple-baseline` @ `git_sha=9276a569f43c19e22be92dcabcae0222b8485c15`
-- 600s baseline: `good-baseline` @ `git_sha=f41af8d21a5e3fda3827b0d2b890f121d9a98028`
-  - Missing cell: `playground-series-s6e1` @ 600 on Chutes → rerun just this cell to complete baseline coverage.
-- 1200s baseline: `sota-xgb` @ `git_sha=3baf1d094169b1a9497d473fa3e34d3bd371a0bf`
+Baseline is defined as:
+- `--prompt-strategy profiled1`
+- `prompt_profile=simple-baseline` for 240s
+- `prompt_profile=good-baseline` for 600s
+- `prompt_profile=sota-xgb` for 1200s
 
 Notes:
-- “Same baseline prompt for all competitions” means the same prompt **templates/policy** at a pinned git commit; the rendered prompt still differs per competition because task text differs.
+- The rendered prompt still differs per competition because the competition override differs.
 - Comparisons should filter by `provider='chutes'` to avoid historical NanoGPT results.
 
 ### B) Time-gated (current)
 
-Run on current `v5` HEAD:
+Run on `--prompt-strategy active` (or freeze into a new strategy id before treating results as stable):
 - 600s: `prompt_profile=good-baseline-timegated` (includes the remaining-time gate + “think hard” wording + 180s cap)
 - 1200s: `prompt_profile=sota-xgb-timegated` (same gate)
 
@@ -49,7 +48,7 @@ No 240s run is required for this family (it does not modify `simple-baseline`).
 
 ### C) Budget-aware
 
-Run on current `v5` HEAD:
+Run on `--prompt-strategy active` (or freeze into a new strategy id before treating results as stable):
 - `prompt_profile=budget-aware` for **all three budgets**: 240/600/1200.
 
 Existing budget-aware results in `results/results.sqlite` are incomplete/mixed; rerun the full grid for the agreed suite + 5 models.
@@ -70,13 +69,13 @@ Resume behavior:
 - For this experiment we want **runs-per-model = 1** in practice; when re-launching, prefer `--resume-any-status` so we don’t accidentally rerun timeouts/failures.
 
 Time-gated (current):
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline --prompt-profile good-baseline-timegated --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --prompt-profile sota-xgb-timegated --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline --prompt-profile good-baseline-timegated --prompt-strategy active --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --prompt-profile sota-xgb-timegated --prompt-strategy active --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
 
 Budget-aware (current):
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --budget-seconds 240 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline  --budget-seconds 600 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb       --budget-seconds 1200 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --budget-seconds 240 --prompt-profile budget-aware --prompt-strategy active --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline  --budget-seconds 600 --prompt-profile budget-aware --prompt-strategy active --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb       --budget-seconds 1200 --prompt-profile budget-aware --prompt-strategy active --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
 
 Baseline missing-cell patch (requires baseline worktree at `f41af8d2...`):
 - `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path tmp/models_chutes_5.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_baseline_patch.sqlite --only-provider chutes --resume-any-status`

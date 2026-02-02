@@ -50,6 +50,17 @@ def _prompt_profile_from_budget(*, budget_seconds: int) -> str:
     return "simple-baseline"
 
 
+def _prompt_root(*, repo_root: Path, prompt_strategy: str | None) -> Path:
+    sid = str(prompt_strategy or "active").strip()
+    if sid in ("", "active"):
+        return repo_root / "prompts"
+    root = repo_root / "prompts" / "strategies" / sid
+    base = root / "base_prompt.md"
+    if not base.exists():
+        raise FileNotFoundError(f"Invalid --prompt-strategy {sid!r}: missing {base}")
+    return root
+
+
 def _sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -198,6 +209,8 @@ def cmd_create(args: argparse.Namespace) -> int:
         raise ValueError("--budget-seconds must be >= 1")
 
     prompt_profile = getattr(args, "prompt_profile", None) or _prompt_profile_from_budget(budget_seconds=budget_seconds)
+    prompt_strategy = str(getattr(args, "prompt_strategy", None) or "active").strip()
+    prompt_root = _prompt_root(repo_root=repo_root, prompt_strategy=prompt_strategy)
 
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
@@ -213,13 +226,15 @@ def cmd_create(args: argparse.Namespace) -> int:
         mode=args.mode,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
+        prompt_profile=prompt_profile,
+        prompt_strategy=prompt_strategy,
     )
     write_run_state(state_path, state)
 
     prompt = render_prompt(
-        base_prompt_path=repo_root / "prompts" / "base_prompt.md",
-        override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
-        profile_path=repo_root / "prompts" / "prompt_profiles" / f"{prompt_profile}.md",
+        base_prompt_path=prompt_root / "base_prompt.md",
+        override_path=prompt_root / "competition_overrides" / f"{args.competition_id}.md",
+        profile_path=prompt_root / "prompt_profiles" / f"{prompt_profile}.md",
         time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(prompt, encoding="utf-8")
@@ -255,7 +270,6 @@ def cmd_finalize(args: argparse.Namespace) -> int:
 
     run_id = args.run_id
     seed = _seed_from_run_id(run_id)
-    prompt_profile = getattr(args, "prompt_profile", None)
     run_dir = repo_root / "runs" / run_id
     workspace_dir = run_dir / "workspace"
     artifacts_dir = run_dir / "artifacts"
@@ -266,6 +280,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         raise FileNotFoundError(f"Missing run_state.json: {state_path}. Create the run first.")
 
     state = read_run_state(state_path)
+    prompt_profile = getattr(args, "prompt_profile", None) or state.prompt_profile
+    prompt_strategy = getattr(args, "prompt_strategy", None) or state.prompt_strategy
     state = set_run_metadata(
         state,
         provider=args.provider,
@@ -273,6 +289,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         mode=args.mode,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
+        prompt_profile=prompt_profile,
+        prompt_strategy=prompt_strategy,
     )
     write_run_state(state_path, state)
 
@@ -462,6 +480,8 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         notes["kilo"] = kilo_meta
     if prompt_profile:
         notes["prompt_profile"] = prompt_profile
+    if prompt_strategy:
+        notes["prompt_strategy"] = prompt_strategy
     notes["seed"] = seed
     if sr.secondary_metrics and "r2" in sr.secondary_metrics:
         notes["secondary_r2"] = float(sr.secondary_metrics["r2"])
@@ -526,16 +546,32 @@ def cmd_auto(args: argparse.Namespace) -> int:
         mode=args.mode,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
+        prompt_profile=None,
+        prompt_strategy=None,
     )
     state = start_timer(state)
     write_run_state(state_path, state)
 
     prompt_profile = getattr(args, "prompt_profile", None) or _prompt_profile_from_budget(budget_seconds=budget_seconds)
+    prompt_strategy = str(getattr(args, "prompt_strategy", None) or "active").strip()
+    prompt_root = _prompt_root(repo_root=repo_root, prompt_strategy=prompt_strategy)
+    state = read_run_state(state_path)
+    state = set_run_metadata(
+        state,
+        provider=None,
+        model_id=None,
+        mode=None,
+        temperature=None,
+        max_tokens=None,
+        prompt_profile=prompt_profile,
+        prompt_strategy=prompt_strategy,
+    )
+    write_run_state(state_path, state)
 
     rendered_prompt = render_prompt(
-        base_prompt_path=repo_root / "prompts" / "base_prompt.md",
-        override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
-        profile_path=repo_root / "prompts" / "prompt_profiles" / f"{prompt_profile}.md",
+        base_prompt_path=prompt_root / "base_prompt.md",
+        override_path=prompt_root / "competition_overrides" / f"{args.competition_id}.md",
+        profile_path=prompt_root / "prompt_profiles" / f"{prompt_profile}.md",
         time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(rendered_prompt, encoding="utf-8")
@@ -546,7 +582,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
     seed_instructions = (
-        f"Run metadata:\n- RUN_ID: {paths.run_id}\n- SEED: {seed}\n- PROMPT_PROFILE: {prompt_profile}\n\n"
+        f"Run metadata:\n- RUN_ID: {paths.run_id}\n- SEED: {seed}\n- PROMPT_STRATEGY: {prompt_strategy}\n- PROMPT_PROFILE: {prompt_profile}\n\n"
         f"Use SEED={seed} consistently for any randomness (e.g., `train_test_split(random_state=SEED)`, model `random_state=SEED`, `numpy.random.seed(SEED)`).\n"
     )
 
@@ -575,9 +611,9 @@ def cmd_auto(args: argparse.Namespace) -> int:
 
     def _render_prompt_for(*, profile: str, time_budget_seconds: int) -> str:
         return render_prompt(
-            base_prompt_path=repo_root / "prompts" / "base_prompt.md",
-            override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
-            profile_path=repo_root / "prompts" / "prompt_profiles" / f"{profile}.md",
+            base_prompt_path=prompt_root / "base_prompt.md",
+            override_path=prompt_root / "competition_overrides" / f"{args.competition_id}.md",
+            profile_path=prompt_root / "prompt_profiles" / f"{profile}.md",
             time_budget_seconds=int(time_budget_seconds),
         )
 
@@ -802,6 +838,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
             temperature=args.temperature,
             max_tokens=args.max_tokens,
             prompt_profile=prompt_profile,
+            prompt_strategy=prompt_strategy,
         )
         return cmd_finalize(args2)
 
@@ -850,6 +887,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
             notes={
                 **provenance_notes,
                 "prompt_profile": prompt_profile,
+                "prompt_strategy": prompt_strategy,
                 "seed": seed,
                 "kilo": {
                     "returncode": int(stages_meta[-1]["returncode"]) if stages_meta else None,
@@ -903,6 +941,8 @@ def cmd_annotate(args: argparse.Namespace) -> int:
         mode=args.mode,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
+        prompt_profile=None,
+        prompt_strategy=None,
     )
     write_run_state(state_path, state)
     print(f"updated: {state_path}")
@@ -963,6 +1003,11 @@ def main() -> int:
             "If not set, derives from time budget (>=1200s -> sota-xgb; >=600s -> good-baseline; else simple-baseline)."
         ),
     )
+    p_create.add_argument(
+        "--prompt-strategy",
+        default="active",
+        help="Prompt strategy id. `active` uses the live `prompts/` folder; otherwise uses `prompts/strategies/<id>/`.",
+    )
     p_create.add_argument("--provider", default=None)
     p_create.add_argument("--model-id", default=None)
     p_create.add_argument("--mode", default=None)
@@ -988,6 +1033,11 @@ def main() -> int:
         "--prompt-profile",
         default=None,
         help="Optional prompt profile metadata to record with the run (useful for manual runs).",
+    )
+    p_fin.add_argument(
+        "--prompt-strategy",
+        default=None,
+        help="Optional prompt strategy metadata to record with the run (defaults to the value recorded in run_state.json).",
     )
     p_fin.add_argument("--provider", default=None)
     p_fin.add_argument("--model-id", default=None)
@@ -1025,6 +1075,11 @@ def main() -> int:
             "Prompt profile id (file in `prompts/prompt_profiles/<id>.md`) for headless runs. "
             "If not set, derives from time budget (>=1200s -> sota-xgb; >=600s -> good-baseline; else simple-baseline)."
         ),
+    )
+    p_auto.add_argument(
+        "--prompt-strategy",
+        default="active",
+        help="Prompt strategy id. `active` uses the live `prompts/` folder; otherwise uses `prompts/strategies/<id>/`.",
     )
     p_auto.add_argument(
         "--stop-when-submission",

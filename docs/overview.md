@@ -51,12 +51,14 @@ See `docs/adr/0003-default-prompt-family-baseline.md`.
 
 ### Prompt rendering strategies (important)
 
-This repo has had two distinct prompt-rendering strategies over time:
+This repo has had two distinct prompt-rendering strategies over time.
+To keep things unambiguous, we name them as **single-word ids** under `prompts/strategies/` and select them via `--prompt-strategy`:
 
-- **Strategy 1 (legacy):** `prompts/base_prompt.md` + `prompts/competition_overrides/<competition_id>.md`
-- **Strategy 2 (current default):** `prompts/base_prompt.md` + `prompts/prompt_profiles/<profile>.md` + `prompts/competition_overrides/<competition_id>.md`
+- **Strategy 1 = `legacy1`:** `prompts/strategies/legacy1/base_prompt.md` + `prompts/strategies/legacy1/competition_overrides/<competition_id>.md`
+- **Strategy 2 = `profiled1`:** `prompts/strategies/profiled1/base_prompt.md` + `prompts/strategies/profiled1/prompt_profiles/<profile>.md` + `prompts/strategies/profiled1/competition_overrides/<competition_id>.md`
+- **`active`:** the live prompt files under `prompts/` (may evolve; avoid for stable comparisons)
 
-`results.md` includes a legacy snapshot produced under Strategy 1 and a newer snapshot produced under Strategy 2. Treat cross-snapshot comparisons as non-apples-to-apples unless you rerun both model sets under the same strategy and git SHA.
+`results.md` includes a legacy snapshot produced under Strategy 1 and a newer snapshot produced under Strategy 2. Treat cross-snapshot comparisons as non-apples-to-apples unless you rerun both model sets under the same prompt strategy id and the same replication/selection policy.
 
 ## Multi-competition suite (Phase 5)
 Run the benchmark across the core 4-competition suite:

@@ -5,14 +5,16 @@ Decision: baseline prompt family is the project default. See `docs/adr/0003-defa
 
 ## Prompting strategies (definitions)
 
-This repo has used two prompt rendering strategies:
+We define prompt strategies by **single-word ids** under `prompts/strategies/`.
 
-- **Strategy 1 (legacy, “base+override”)**
-  - Rendered prompt = `prompts/base_prompt.md` + `prompts/competition_overrides/<competition_id>.md`
-  - No `prompts/prompt_profiles/*` layer.
-- **Strategy 2 (current, “base+profile+override”)**
-  - Rendered prompt = `prompts/base_prompt.md` + `prompts/prompt_profiles/<profile>.md` + `prompts/competition_overrides/<competition_id>.md`
-  - `<profile>` is one of `simple-baseline` / `good-baseline` / `sota-xgb` (and other experimental profiles when explicitly chosen).
+- **Strategy 1 = `legacy1`** (“base+override”, no profile layer)
+  - Rendered prompt = `prompts/strategies/legacy1/base_prompt.md` + `prompts/strategies/legacy1/competition_overrides/<competition_id>.md`
+- **Strategy 2 = `profiled1`** (“base+profile+override”)
+  - Rendered prompt = `prompts/strategies/profiled1/base_prompt.md` + `prompts/strategies/profiled1/prompt_profiles/<profile>.md` + `prompts/strategies/profiled1/competition_overrides/<competition_id>.md`
+  - `<profile>` is one of `simple-baseline` / `good-baseline` / `sota-xgb`.
+
+Also:
+- **`active`** = the live prompt files under `prompts/` (may evolve; do not use for “paper-grade” comparisons).
 
 This file currently includes two snapshots:
 - **v5.5 working models (recommended current view):** 6 new Chutes models that passed preflight and produced submissions across the full suite.
@@ -22,7 +24,7 @@ Prompting strategy note:
 - The v5 legacy snapshot was generated under **Strategy 1**.
 - The v5.5 working6 snapshot was generated under **Strategy 2**.
 
-Note: these two snapshots are not guaranteed apples-to-apples unless the older models are re-run under the same prompt strategy, same git SHA, and the same replication/selection policy.
+Note: these two snapshots are not guaranteed apples-to-apples unless the models are re-run under the same **prompt strategy id** and the same replication/selection policy.
 
 Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
@@ -35,6 +37,7 @@ Scope:
 - Models: 6-model set from `orchestrator/model_sets/v5_5_chutes_working6.json`
 - Budgets: 240 / 600 / 1200 seconds
 - Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
+- Prompt strategy: **Strategy 2 = `profiled1`**
 - Source DB (not committed): `results/results_v5_5_working6_suite.sqlite`
 - Selection rule: per cell, best successful `score_raw` over runs in `mode in {v5_5_working6, v5_5_working6_retry1}`
 
@@ -78,6 +81,7 @@ Scope:
 - Models: 5-model set from `orchestrator/model_sets/v3_fast.json`
 - Budgets: 240 / 600 / 1200 seconds
 - Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
+- Prompt strategy: **Strategy 1 = `legacy1`**
 
 Notes:
 - For the full prompt-family comparison (baseline vs budget-aware vs time-gated), see `docs/experiments/prompt_family_comparison_v5_core.md`.

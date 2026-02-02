@@ -15,9 +15,11 @@ Legacy root leaderboards were moved to `archive/leaderboards/2026-02-02/` and le
 Goal: make results less noisy and broaden the benchmark before starting v6 (security) for the first paper draft.
 
 Important (prompting clarity; avoid confusion):
-- **Strategy 1 (legacy):** render prompt as `base_prompt.md` + `competition_overrides/<id>.md` (no `prompt_profiles/*` layer).
-- **Strategy 2 (current default):** render prompt as `base_prompt.md` + `prompt_profiles/<profile>.md` + `competition_overrides/<id>.md`.
-- `results.md` currently includes both a “v5 legacy” snapshot (Strategy 1) and a “v5.5 working6” snapshot (Strategy 2). Do not treat them as apples-to-apples unless both model sets are rerun under the same strategy, same git SHA, and the same replication policy.
+- **Strategy 1 = `legacy1`:** render prompt as `prompts/strategies/legacy1/base_prompt.md` + `prompts/strategies/legacy1/competition_overrides/<id>.md` (no profile layer).
+- **Strategy 2 = `profiled1`:** render prompt as `prompts/strategies/profiled1/base_prompt.md` + `prompts/strategies/profiled1/prompt_profiles/<profile>.md` + `prompts/strategies/profiled1/competition_overrides/<id>.md`.
+- `active` = the live prompt files under `prompts/` (may evolve).
+- Select explicitly via `--prompt-strategy <id>` (supported by `orchestrator.run_one auto`, `orchestrator.sweep`, `orchestrator.suite`).
+- `results.md` currently includes both a “v5 legacy” snapshot (Strategy 1) and a “v5.5 working6” snapshot (Strategy 2). Do not treat them as apples-to-apples unless both model sets are rerun under the same prompt strategy id and the same replication policy.
 
 Scope:
 - Add more models (split into a “main” tool-capable set vs “experimental” as needed).
@@ -163,11 +165,11 @@ Exit criteria for v5.5:
    - **Specs/budgets:** 240 / 600 / 1200 seconds
    - **Execution knobs:** `--runs-per-model 1`, `--concurrency 2`
    - **Prompt families to compare (3):**
-     - **Baseline (historical, same-day 2026-01-26 PT bundle):**
-       - 240: `simple-baseline` @ `git_sha=9276a569f43c19e22be92dcabcae0222b8485c15`
-       - 600: `good-baseline` @ `git_sha=f41af8d21a5e3fda3827b0d2b890f121d9a98028` (missing `playground-series-s6e1` @ 600 on Chutes → rerun just this cell)
-       - 1200: `sota-xgb` @ `git_sha=3baf1d094169b1a9497d473fa3e34d3bd371a0bf`
-     - **Time-gated (current):** `good-baseline` (600) + `sota-xgb` (1200) on current `v5` HEAD (includes the 6-min gate + “think hard” + 180s cap).
+     - **Baseline:** `--prompt-strategy profiled1` with `--prompt-profile` set to:
+       - 240: `simple-baseline`
+       - 600: `good-baseline`
+       - 1200: `sota-xgb`
+     - **Time-gated (experimental):** `good-baseline-timegated` (600) and `sota-xgb-timegated` (1200) (freeze into a new prompt strategy id before treating results as stable).
      - **Budget-aware:** `prompt_profile=budget-aware` on 240/600/1200 (existing results are incomplete → rerun for the full suite + 5 models).
    - **DB hygiene (avoid mixing):** write each family into its own DB path under `results/` (do not reuse `results/results.sqlite` for new comparisons).
 
