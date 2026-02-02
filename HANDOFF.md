@@ -14,6 +14,11 @@ Legacy root leaderboards were moved to `archive/leaderboards/2026-02-02/` and le
 
 Goal: make results less noisy and broaden the benchmark before starting v6 (security) for the first paper draft.
 
+Important (prompting clarity; avoid confusion):
+- **Strategy 1 (legacy):** render prompt as `base_prompt.md` + `competition_overrides/<id>.md` (no `prompt_profiles/*` layer).
+- **Strategy 2 (current default):** render prompt as `base_prompt.md` + `prompt_profiles/<profile>.md` + `competition_overrides/<id>.md`.
+- `results.md` currently includes both a “v5 legacy” snapshot (Strategy 1) and a “v5.5 working6” snapshot (Strategy 2). Do not treat them as apples-to-apples unless both model sets are rerun under the same strategy, same git SHA, and the same replication policy.
+
 Scope:
 - Add more models (split into a “main” tool-capable set vs “experimental” as needed).
 - Add 1 more real competition (bringing the suite to 5 competitions; keep `toy_regression` as fixtures only).

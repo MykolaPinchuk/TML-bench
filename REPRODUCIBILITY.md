@@ -54,6 +54,16 @@ Both are ignored by git; do not commit them.
 
 ## Run modes
 
+## Prompt rendering strategies (important)
+
+This repo has had two distinct prompt-rendering strategies:
+
+- **Strategy 1 (legacy):** prompt is rendered as `prompts/base_prompt.md` + `prompts/competition_overrides/<competition_id>.md`.
+- **Strategy 2 (current default):** prompt is rendered as `prompts/base_prompt.md` + `prompts/prompt_profiles/<profile>.md` + `prompts/competition_overrides/<competition_id>.md`.
+
+Current CLI workflows (`orchestrator.run_one auto`, `orchestrator.sweep`, `orchestrator.suite`) use Strategy 2.
+If you need to reproduce a legacy snapshot that used Strategy 1, you must check out the historical git SHA used for those runs.
+
 ### Host baseline (sanity)
 
 ```bash

@@ -44,6 +44,16 @@ All artifacts:
 
 ## Results (key takeaways)
 
+### Important note on terminology (“baseline” vs prompt text)
+
+“Baseline” here refers to the **policy choice** of which profile IDs we target at 240/600/1200.
+However, the **exact prompt text** can differ across time because the prompt rendering strategy evolved:
+
+- Legacy runs (including the historical baseline bundle above) used **Strategy 1**: `base_prompt.md` + `competition_overrides/<id>.md` (no `prompt_profiles/*` layer).
+- Current runs use **Strategy 2**: `base_prompt.md` + `prompt_profiles/<profile>.md` + `competition_overrides/<id>.md`.
+
+This is why “baseline” comparisons across different run batches must be treated carefully unless the runs are rerun under the same git SHA and prompt-rendering strategy.
+
 ### 1) Reliability (success rate) strongly favors baseline
 
 Across the full v5_core grid:

@@ -49,6 +49,15 @@ Project default is the **baseline** prompt family:
 Other prompt policies (e.g. “budget-aware”, “time-gated”) are **experimental** and should only be used via explicit `--prompt-profile ...` overrides for targeted experiments.
 See `docs/adr/0003-default-prompt-family-baseline.md`.
 
+### Prompt rendering strategies (important)
+
+This repo has had two distinct prompt-rendering strategies over time:
+
+- **Strategy 1 (legacy):** `prompts/base_prompt.md` + `prompts/competition_overrides/<competition_id>.md`
+- **Strategy 2 (current default):** `prompts/base_prompt.md` + `prompts/prompt_profiles/<profile>.md` + `prompts/competition_overrides/<competition_id>.md`
+
+`results.md` includes a legacy snapshot produced under Strategy 1 and a newer snapshot produced under Strategy 2. Treat cross-snapshot comparisons as non-apples-to-apples unless you rerun both model sets under the same strategy and git SHA.
+
 ## Multi-competition suite (Phase 5)
 Run the benchmark across the core 4-competition suite:
 - `python -m orchestrator.suite --profile simple-baseline --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --resume`

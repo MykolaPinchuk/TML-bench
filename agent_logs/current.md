@@ -41,3 +41,6 @@
 - Wrote health reports to:
   - `tmp/reports/v5_5_working6_suite.md`
   - `tmp/reports/v5_5_working6_suite_with_retries.md`
+
+### 2026-02-02 13:51:43 PST
+- Documentation pass: clarified the two prompt rendering strategies (legacy base+override vs current base+profile+override) so `results.md` snapshots aren’t misread as apples-to-apples.

@@ -7,7 +7,11 @@ This file currently includes two snapshots:
 - **v5.5 working models (recommended current view):** 6 new Chutes models that passed preflight and produced submissions across the full suite.
 - **v5 legacy snapshot:** the older 5-model `v3_fast.json` table, kept for reference.
 
-Note: these two snapshots are not guaranteed apples-to-apples unless the older models are re-run into the same DB with the same mode/profile settings.
+Prompting strategy note:
+- The v5 legacy snapshot was generated under a **legacy prompt rendering strategy** (no `prompt_profiles/*` layer): `base_prompt.md` + `competition_overrides/<id>.md`.
+- The v5.5 working6 snapshot was generated under the **current prompt rendering strategy**: `base_prompt.md` + `prompt_profiles/<profile>.md` + `competition_overrides/<id>.md`.
+
+Note: these two snapshots are not guaranteed apples-to-apples unless the older models are re-run under the same prompt strategy, same git SHA, and the same replication/selection policy.
 
 Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
