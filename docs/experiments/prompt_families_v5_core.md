@@ -42,8 +42,8 @@ Notes:
 ### B) Time-gated (current)
 
 Run on current `v5` HEAD:
-- 600s: `prompt_profile=good-baseline` (includes the remaining-time gate + “think hard” wording + 180s cap)
-- 1200s: `prompt_profile=sota-xgb` (same gate)
+- 600s: `prompt_profile=good-baseline-timegated` (includes the remaining-time gate + “think hard” wording + 180s cap)
+- 1200s: `prompt_profile=sota-xgb-timegated` (same gate)
 
 No 240s run is required for this family (it does not modify `simple-baseline`).
 
@@ -70,8 +70,8 @@ Resume behavior:
 - For this experiment we want **runs-per-model = 1** in practice; when re-launching, prefer `--resume-any-status` so we don’t accidentally rerun timeouts/failures.
 
 Time-gated (current):
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
-- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile good-baseline --prompt-profile good-baseline-timegated --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
+- `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --prompt-profile sota-xgb-timegated --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_timegated.sqlite --mode pf_timegated --resume-any-status`
 
 Budget-aware (current):
 - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --budget-seconds 240 --prompt-profile budget-aware --runs-per-model 1 --concurrency 2 --db-path results/exp_promptfam_budgetaware.sqlite --mode pf_budgetaware --resume-any-status`
@@ -86,3 +86,11 @@ Baseline missing-cell patch (requires baseline worktree at `f41af8d2...`):
 If you just want to run the agreed experiment with the pinned settings:
 - `bash scripts/launch_prompt_family_runs.sh`
 - Logs are written under `tmp/prompt_family_runs/` with a timestamped filename and a stable symlink (`timegated.log`, `budgetaware.log`, `baseline_patch.log`) pointing at the most recent launch.
+
+## Outcome / decision
+
+Based on the measured reliability + monotonicity behavior, baseline is the project default going forward; time-gated and budget-aware are kept as experimental variants.
+
+References:
+- Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
+- Results table: `docs/experiments/prompt_family_comparison_v5_core.md`

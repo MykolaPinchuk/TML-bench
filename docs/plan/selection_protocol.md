@@ -18,6 +18,17 @@ With longer budgets, agents may explore more and end a run with a worse final `s
 - inability to improve the model, or
 - inability to choose the best candidate.
 
+## Always-run analysis (project standard)
+
+Whenever we compare prompt/policy variants (prompt “families”, budget policies, gating, etc.), always report:
+
+- **Reliability:** success/timeout/runtime_error rates by model × budget × competition.
+- **Monotonicity:** whether performance improves as budgets increase (per model and in aggregate), and whether success-rate changes with budget.
+- **Tables:** 5×3 per-competition (models × prompt families) at a fixed budget (usually 600s), plus per-model 3×3 (budgets × families) for key models.
+
+Implementation note: for the v5_core prompt-family experiment, `scripts/report_prompt_families_v5_core.py` produces the merged per-run CSV + an aggregated markdown report under `docs/experiments/`.
+Decision context: `docs/adr/0003-default-prompt-family-baseline.md`.
+
 ## Protocol (per run)
 
 ### A) Agent responsibilities (no oracle)
@@ -83,4 +94,3 @@ Optionally record in `result.json` (and DB) fields like:
 - `oracle_selected_eval_score` (diagnostic)
 - `oracle_selected_selection_score` (diagnostic)
 - `selection_regret`
-

@@ -45,6 +45,7 @@ echo "log: $TIMEGATED_LOG"
   python -m orchestrator.suite \
     --models-path "$MODELS_PATH" \
     --profile good-baseline \
+    --prompt-profile good-baseline-timegated \
     --runs-per-model "$RUNS_PER_MODEL" \
     --concurrency "$CONCURRENCY" \
     --db-path "$TIMEGATED_DB" \
@@ -54,6 +55,7 @@ echo "log: $TIMEGATED_LOG"
   python -m orchestrator.suite \
     --models-path "$MODELS_PATH" \
     --profile sota-xgb \
+    --prompt-profile sota-xgb-timegated \
     --runs-per-model "$RUNS_PER_MODEL" \
     --concurrency "$CONCURRENCY" \
     --db-path "$TIMEGATED_DB" \

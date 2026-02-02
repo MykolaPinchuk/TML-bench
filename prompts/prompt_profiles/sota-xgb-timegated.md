@@ -18,5 +18,24 @@ Always leave a valid `submission.csv` behind.
 Do not install packages.
 Use any remaining time for comprehensive EDA + diagnostics to identify failure modes and iterate on fixes.
 
-Variants:
-- Experimental time-gated version: `prompt_profile=sota-xgb-timegated`
+## Remaining-time reasoning gate (6 min, 180 sec)
+
+At the very start, record the start time:
+- `START_TS=$(date +%s)`
+- `BUDGET={{time_budget_seconds}}`
+- `time_remaining() { echo $((BUDGET - ($(date +%s) - START_TS))); }`
+
+If (and only if) you already have a valid `submission.csv` **and** you estimate `time_remaining >= 360s`:
+
+1) Spend up to **180 seconds** on structured reasoning (do not exceed):
+   - Think hard about the problem we are solving.
+   - Base it only on `public/README_task.md` and quick EDA you run (no external knowledge).
+   - Think hard about domain, target variable, and feature types; what they imply for feature engineering and validation.
+   - Identify leakage risks and 2–4 concrete improvements to try next.
+   - Use the reasoning and insights to try building a better model.
+
+2) After reasoning, immediately execute the plan (run commands).
+
+Safety:
+- Never break your last-known-valid `submission.csv`. If you experiment, keep a backup copy and restore if needed.
+

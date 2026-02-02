@@ -39,6 +39,16 @@ Use `orchestrator.sweep` to run many models headlessly via Kilo CLI:
 Example:
 - `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline`
 
+### Prompt policy (default vs experimental)
+
+Project default is the **baseline** prompt family:
+- 240: `simple-baseline`
+- 600: `good-baseline`
+- 1200: `sota-xgb`
+
+Other prompt policies (e.g. “budget-aware”, “time-gated”) are **experimental** and should only be used via explicit `--prompt-profile ...` overrides for targeted experiments.
+See `docs/adr/0003-default-prompt-family-baseline.md`.
+
 ## Multi-competition suite (Phase 5)
 Run the benchmark across the core 4-competition suite:
 - `python -m orchestrator.suite --profile simple-baseline --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --resume`
