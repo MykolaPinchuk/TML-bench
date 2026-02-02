@@ -3,13 +3,24 @@ This file is the **repo-root summary** of current benchmark results.
 
 Decision: baseline prompt family is the project default. See `docs/adr/0003-default-prompt-family-baseline.md`.
 
+## Prompting strategies (definitions)
+
+This repo has used two prompt rendering strategies:
+
+- **Strategy 1 (legacy, “base+override”)**
+  - Rendered prompt = `prompts/base_prompt.md` + `prompts/competition_overrides/<competition_id>.md`
+  - No `prompts/prompt_profiles/*` layer.
+- **Strategy 2 (current, “base+profile+override”)**
+  - Rendered prompt = `prompts/base_prompt.md` + `prompts/prompt_profiles/<profile>.md` + `prompts/competition_overrides/<competition_id>.md`
+  - `<profile>` is one of `simple-baseline` / `good-baseline` / `sota-xgb` (and other experimental profiles when explicitly chosen).
+
 This file currently includes two snapshots:
 - **v5.5 working models (recommended current view):** 6 new Chutes models that passed preflight and produced submissions across the full suite.
 - **v5 legacy snapshot:** the older 5-model `v3_fast.json` table, kept for reference.
 
 Prompting strategy note:
-- The v5 legacy snapshot was generated under a **legacy prompt rendering strategy** (no `prompt_profiles/*` layer): `base_prompt.md` + `competition_overrides/<id>.md`.
-- The v5.5 working6 snapshot was generated under the **current prompt rendering strategy**: `base_prompt.md` + `prompt_profiles/<profile>.md` + `competition_overrides/<id>.md`.
+- The v5 legacy snapshot was generated under **Strategy 1**.
+- The v5.5 working6 snapshot was generated under **Strategy 2**.
 
 Note: these two snapshots are not guaranteed apples-to-apples unless the older models are re-run under the same prompt strategy, same git SHA, and the same replication/selection policy.
 
