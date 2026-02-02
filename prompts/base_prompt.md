@@ -27,6 +27,23 @@ You have access only to:
 
 - Never “read a CSV into chat context” or paste whole files. This will fill up the context window and break the agent.
 
+## Execution environment note (headless)
+
+- Prefer shell commands for inspection and file I/O (`ls`, `cat`, `head`, `python ...`).
+- Do NOT use editor/IDE-specific tools (e.g. `readFile`, `writeFile`, `newFileCreated`, `updateTodoList`). Assume they may silently fail or create empty files.
+- Create/edit files using shell redirection or heredocs (example pattern): `cat > train_model.py <<'PY' ... PY`.
+
+## Output discipline (important)
+
+- Keep chat output short. Avoid long reasoning, long plans, or large code blocks.
+- Do **not** write the full `train_model.py` code in the chat. Write it to a file via shell redirection/heredocs.
+- Do **not** create or update “todo lists” in the chat. If you must plan, use ≤5 short bullets and then execute immediately.
+- If you are about to produce a long response, stop and run the next shell command instead.
+
+## Runtime pitfalls (short budgets)
+
+- If your preprocessing produces a wide feature matrix (e.g., after encoding categorical columns), avoid very slow models/configurations that may not finish within the time budget.
+- A simple, fast baseline (e.g., a linear model) is acceptable if it helps you reliably finish end-to-end and produce a valid `submission.csv` early.
 
 ## Output and reporting
 
@@ -39,6 +56,11 @@ You have access only to:
    - trains a model,
    - prints a local validation score,
    - writes `submission.csv` that matches `public/sample_submission.csv`.
-2) Run `python train_model.py` early to ensure you can generate a valid `submission.csv`.
-3) Spend the remaining budget doing 1–3 fast iterations to improve local validation (model choice, hyperparameters, encoding, simple feature engineering).
-4) Keep the best approach and leave a final `submission.csv` in the workspace root.
+   - robustly handles typical tabular issues (missing values, categorical columns, string columns) so training does not crash.
+2) After writing `train_model.py`, verify it is non-empty and runnable (e.g. `wc -c train_model.py` and `python -m py_compile train_model.py`).
+3) Run `python train_model.py` early to ensure you can generate a valid `submission.csv`.
+4) Verify `submission.csv` exists and matches the required format (same columns + row count as the sample).
+5) Use the remaining time budget to improve your local validation score via iteration.
+   - You may try multiple approaches and re-run training multiple times.
+   - You may write intermediate submissions, but you must leave the best one as `submission.csv` in the workspace root.
+6) Prefer not to stop early; keep improving until you are close to the time budget and confident the current `submission.csv` is your best attempt.

@@ -1,0 +1,16 @@
+{
+  "name": "chutes_smoke_2",
+  "description": "2-model Chutes-only set for validating provider stability (no NanoGPT).",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "label": "DeepSeek-V3.1-Terminus"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.6-FP8",
+      "label": "GLM-4.6-FP8"
+    }
+  ]
+}

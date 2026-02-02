@@ -22,7 +22,7 @@ The intended use is both practical (choose models/settings for autonomous tabula
 A fully automated system that, given:
 
 * a set of ~5 selected recent tabular competitions/tasks,
-* a list of models (via Chutes or NanoGPT APIs),
+* a list of models (via Chutes or OpenRouter APIs),
 * and an evaluation configuration (budgets, seeds, runs-per-model),
 
 will execute autonomous agent runs end-to-end and produce:
@@ -231,6 +231,38 @@ Scoring is performed outside the agent container using private labels:
 
 Important: the scoring code and holdout labels are never accessible to the agent container.
 
+### 9.3 Candidate submissions + selection vs evaluation (diagnostic protocol)
+
+Problem observed in Phase 5: with larger budgets, agents often explore more and can end a run by leaving a **worse final** `submission.csv` even if a better submission existed earlier in the run. This breaks the intuitive expectation that more budget should help.
+
+To diagnose this cleanly (without leaking the evaluation holdout), we use a **two-holdout protocol**:
+
+1. **Agent-generated candidates (no oracle):**
+   - During a run, the agent writes multiple candidate submissions, e.g. `submissions/sub_001.csv`, `submissions/sub_002.csv`, …
+   - The agent writes a machine-readable `submissions/summary.json` including:
+     - list of candidates + filenames,
+     - local validation score(s) and CV scheme,
+     - a short note of what changed,
+     - and which candidate the agent selected as the final `submission.csv`.
+
+2. **Selection holdout (private, not evaluation):**
+   - In addition to the final evaluation holdout, maintain a separate **selection holdout** that is also hidden from the agent.
+   - The harness scores *all* valid candidates on the selection holdout and picks the best candidate (`oracle_selected_submission`).
+   - This is used only to measure whether the agent *could* have selected a better candidate if it had perfect-but-non-eval feedback.
+
+3. **Evaluation holdout (official leaderboard):**
+   - The official leaderboard remains the score of the agent’s final `submission.csv` on the evaluation holdout.
+   - Optionally (for debugging only), also compute the evaluation-holdout score of `oracle_selected_submission` to quantify “selection regret”.
+
+Interpretation:
+- If selection-holdout best improves with budget but agent’s final does not: the issue is mostly **selection** (agent can generate better candidates but fails to pick them).
+- If neither improves: the issue is mostly **search/modeling** (extra time is not producing better candidates).
+- If selection holdout improvements do not translate to evaluation holdout: splits are misaligned or agents are overfitting to spurious patterns.
+
+Guardrails:
+- Cap the number of candidates per run (or dedupe by normalized submission hash) so “more time → more candidates → mechanically better best-of-K” is explicit and controlled.
+- Treat “oracle-selected best” as a diagnostic metric, not the primary leaderboard metric.
+
 ---
 
 ## 10) System architecture
@@ -294,7 +326,7 @@ Mount policy (Phase 4+):
 Target (Phase 6): deny all outbound traffic from the agent container except allowlist to:
 
 * Chutes base URL `https://llm.chutes.ai/v1/` (OpenAI-compatible), if using Chutes proxy ([LiteLLM][3])
-* NanoGPT base URL `https://nano-gpt.com/api/v1` (OpenAI-compatible), if using NanoGPT ([LiteLLM][4])
+* OpenRouter base URL `https://openrouter.ai/api/v1` (OpenAI-compatible), if using OpenRouter
 
 Before Phase 6: enforce “no web search / no retrieval” via prompt policy and run workflow, but treat results as non-secure.
 
@@ -339,14 +371,14 @@ Prompt policy:
 
 ---
 
-## 12) Provider integration (Chutes and NanoGPT)
+## 12) Provider integration (Chutes and OpenRouter)
 
 ### 12.1 OpenAI-compatible routing
 
 Both providers support OpenAI-compatible APIs:
 
 * Chutes (OpenAI-compatible endpoints; base URL commonly `https://llm.chutes.ai/v1/`). ([LiteLLM][3])
-* NanoGPT (base URL `https://nano-gpt.com/api/v1`; OpenAI-compatible behavior). ([LiteLLM][4])
+* OpenRouter (OpenAI-compatible endpoints; base URL commonly `https://openrouter.ai/api/v1`).
 
 Implementation approach:
 
@@ -364,7 +396,7 @@ Treat quotas as an operational parameter; no special design dependency other tha
 * backoff/retry handling
 * rate limiting at orchestrator level
 * per-run request cap optional (to avoid runaway costs)
-* for Chutes + NanoGPT (subscription-based, high daily included limits), assume cost is not the binding constraint; optimize for iteration speed instead
+* for Chutes + OpenRouter (operationally), assume cost is not the binding constraint; optimize for iteration speed instead
 
 ---
 
@@ -704,4 +736,3 @@ Then extend to Phase 4 (Docker + network policy) once the end-to-end host pipeli
 [1]: https://kilo.ai/docs/cli?utm_source=chatgpt.com "Kilo Code CLI | Kilo Code Docs"
 [2]: https://kilo.ai/docs/features/mcp/using-mcp-in-cli?utm_source=chatgpt.com "Using MCP in the CLI"
 [3]: https://docs.litellm.ai/docs/providers/chutes?utm_source=chatgpt.com "Chutes"
-[4]: https://docs.litellm.ai/docs/providers/nano-gpt?utm_source=chatgpt.com "NanoGPT"

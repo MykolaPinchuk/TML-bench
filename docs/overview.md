@@ -16,7 +16,7 @@ Many existing “agent benchmarks” test code correctness or synthetic tasks, n
 - focused on tabular tasks,
 - and “contamination-resistant enough” by using recent tasks + no browsing + private holdout scoring.
 
-Operational assumption (current workflow): for Chutes and NanoGPT runs, treat cost as a non-constraint (high daily included limits) and optimize for iteration speed.
+Operational assumption (current workflow): treat cost as a non-constraint (within reason) and optimize for iteration speed.
 
 ## Phase posture (important)
 - **Phases 1–5 are functionality-only (not secure).**
@@ -34,9 +34,24 @@ In Phase 2, the agent is run manually (VSCode + Kilo) in a per-run workspace:
 Use `orchestrator.sweep` to run many models headlessly via Kilo CLI:
 - Simple baseline (fast/cheap): `--profile simple-baseline` (240s) and default `--concurrency 4`
 - Good baseline (more effort): `--profile good-baseline` (600s) and default `--concurrency 4`
+- SOTA tier (20 min, XGBoost allowed): `--profile sota-xgb` (1200s)
 
 Example:
 - `python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline`
+
+### Prompt policy (default vs experimental)
+
+Project default is the **baseline** prompt family:
+- 240: `simple-baseline`
+- 600: `good-baseline`
+- 1200: `sota-xgb`
+
+Other prompt policies (e.g. “budget-aware”, “time-gated”) are **experimental** and should only be used via explicit `--prompt-profile ...` overrides for targeted experiments.
+See `docs/adr/0003-default-prompt-family-baseline.md`.
+
+## Multi-competition suite (Phase 5)
+Run the benchmark across the core 4-competition suite:
+- `python -m orchestrator.suite --profile simple-baseline --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --resume`
 
 ## Audit trail (what proves an agent actually ran)
 
@@ -44,7 +59,7 @@ For any run `runs/<run_id>/`:
 - `runs/<run_id>/workspace/` contains the concrete artifacts the agent produced/edited (e.g. `train_model.py`, `submission.csv`).
 - `runs/<run_id>/result.json` contains the final private-holdout score plus `submission_sha256` (when recorded) so you can detect identical submissions across “different” runs/models.
 - Phase 3 (headless Kilo CLI) additionally writes `runs/<run_id>/artifacts/kilo_stdout.clean.jsonl`, which is Kilo’s JSON event stream (API request events, tool calls, and command outputs).
-- To rebuild the leaderboard from `runs/*/result.json` on disk: `python -m orchestrator.leaderboard --import-results --write-root`.
+- To rebuild generated leaderboards from `runs/*/result.json` on disk (optional): `python -m orchestrator.leaderboard --import-results --write-root`. The committed repo-root snapshot is `results.md`; legacy snapshots live under `archive/leaderboards/`.
 
 ## Core protocol (Phase 1)
 Per competition we generate:

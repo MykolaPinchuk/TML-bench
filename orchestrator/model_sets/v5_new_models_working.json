@@ -1,0 +1,37 @@
+{
+  "name": "v5_new_models_working",
+  "description": "New models that passed headless smoke on playground-series-s6e1. Note: Kimi K2 Thinking and MiMo V2 Flash required --iterative to succeed reliably.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-FP8",
+      "label": "GLM 4.7 FP8 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
+      "label": "DeepSeek V3.2 Speciale TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Thinking-TEE",
+      "label": "Kimi K2 Thinking TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2.5-TEE",
+      "label": "Kimi K2.5 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "MiniMaxAI/MiniMax-M2.1-TEE",
+      "label": "MiniMax M2.1 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "XiaomiMiMo/MiMo-V2-Flash",
+      "label": "MiMo V2 Flash (Chutes)"
+    }
+  ]
+}
+

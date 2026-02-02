@@ -1,0 +1,36 @@
+{
+  "name": "chutes_mono_candidates2",
+  "description": "More Chutes candidates for monotonicity experiments (aim: stable tool-capable models).",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "label": "DeepSeek-V3.1-Terminus"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-FP8",
+      "label": "GLM-4.7-FP8"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2.5-TEE",
+      "label": "Kimi-K2.5-TEE"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+      "label": "Qwen3-Coder-480B-A35B-FP8"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "XiaomiMiMo/MiMo-V2-Flash",
+      "label": "MiMo-V2-Flash"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "MiniMaxAI/MiniMax-M2.1-TEE",
+      "label": "MiniMax-M2.1-TEE"
+    }
+  ]
+}

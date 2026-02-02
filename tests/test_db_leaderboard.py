@@ -46,5 +46,6 @@ def test_insert_and_leaderboard(tmp_path: Path) -> None:
     assert len(df) == 1
     assert df.iloc[0]["competition_id"] == "toy_regression"
     assert float(df.iloc[0]["score_raw"]) == 1.23
+    assert abs(float(df.iloc[0]["time_used_frac"]) - (12.0 / 600.0)) < 1e-9
     assert df.iloc[0]["submission_sha256"] == ("a" * 16 + "…")
     assert df.iloc[0]["normalized_submission_sha256"] == ("b" * 16 + "…")

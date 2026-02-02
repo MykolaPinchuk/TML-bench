@@ -1,0 +1,8 @@
+{
+  "name": "sanity_s6e1",
+  "description": "Single-competition suite for fast monotonicity sanity checks.",
+  "competitions": [
+    "playground-series-s6e1"
+  ]
+}
+

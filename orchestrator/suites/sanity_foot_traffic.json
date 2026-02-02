@@ -1,0 +1,8 @@
+{
+  "name": "sanity_foot_traffic",
+  "description": "Single-competition suite for monotonicity sanity checks (foot traffic; RMSE).",
+  "competitions": [
+    "foot-traffic-wuerzburg-retail-forecasting-2-0"
+  ]
+}
+

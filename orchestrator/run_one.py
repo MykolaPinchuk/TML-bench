@@ -12,7 +12,13 @@ from datetime import datetime, timedelta, timezone
 from orchestrator.db import insert_run
 from orchestrator.kilo_cli import run_kilo, write_clean_jsonl
 from orchestrator.baselines import ensure_competition_baselines
-from orchestrator.leaderboard import LeaderboardPaths, build_leaderboard, load_baselines_df, write_root_leaderboard
+from orchestrator.leaderboard import (
+    LeaderboardPaths,
+    build_leaderboard,
+    load_baselines_df,
+    write_root_leaderboard,
+    write_root_leaderboard_robust,
+)
 from orchestrator.prompting import render_prompt
 from orchestrator.provenance import kilo_config_hash, kilo_version, public_manifest
 from orchestrator.result import ModelConfig, Provenance, make_result, read_result_json, write_result_json
@@ -21,6 +27,7 @@ from orchestrator.run_workspace import copy_public_inputs, create_run_dirs, defa
 from orchestrator.schemas import load_spec
 from orchestrator.score import score_submission
 from orchestrator.validate import validate_and_normalize_submission
+from orchestrator.submission_guard import SubmissionGuard
 
 
 def _repo_root() -> Path:
@@ -33,6 +40,14 @@ def _competition_dir(repo_root: Path, competition_id: str) -> Path:
 
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _prompt_profile_from_budget(*, budget_seconds: int) -> str:
+    if int(budget_seconds) >= 1200:
+        return "sota-xgb"
+    if int(budget_seconds) >= 600:
+        return "good-baseline"
+    return "simple-baseline"
 
 
 def _sha256_file(path: Path) -> str:
@@ -142,6 +157,7 @@ def _write_and_maybe_record(
     result,
     db_path: str | None,
     per_competition: bool,
+    write_leaderboards: bool,
 ) -> None:
     write_result_json(result, result_path)
     if not db_path:
@@ -159,6 +175,8 @@ def _write_and_maybe_record(
     except Exception:  # noqa: BLE001
         pass
     insert_run(dbp, result)
+    if not write_leaderboards:
+        return
     lb_paths = LeaderboardPaths(
         json_path=repo_root / "results" / "leaderboard.json",
         csv_path=repo_root / "results" / "leaderboard.csv",
@@ -167,6 +185,7 @@ def _write_and_maybe_record(
     df = build_leaderboard(db_path=dbp, out_paths=lb_paths, competition_id=competition_id if per_competition else None)
     baselines_df = load_baselines_df(db_path=dbp)
     write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
+    write_root_leaderboard_robust(df=df, repo_root=repo_root, baselines=baselines_df)
 
 
 def cmd_create(args: argparse.Namespace) -> int:
@@ -174,12 +193,18 @@ def cmd_create(args: argparse.Namespace) -> int:
     competition_dir = _competition_dir(repo_root, args.competition_id)
     spec = load_spec(competition_dir / "spec.yaml")
 
+    budget_seconds = int(getattr(args, "budget_seconds", None) or int(spec.budgets.time_seconds))
+    if budget_seconds < 1:
+        raise ValueError("--budget-seconds must be >= 1")
+
+    prompt_profile = getattr(args, "prompt_profile", None) or _prompt_profile_from_budget(budget_seconds=budget_seconds)
+
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
     paths = create_run_dirs(runs_root=runs_root, run_id=run_id)
 
     copy_public_inputs(competition_dir=competition_dir, workspace_dir=paths.workspace_dir)
-    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=spec.budgets.time_seconds)
+    state_path = init_run_state(run_dir=paths.run_dir, time_budget_seconds=budget_seconds)
     state = read_run_state(state_path)
     state = set_run_metadata(
         state,
@@ -194,14 +219,15 @@ def cmd_create(args: argparse.Namespace) -> int:
     prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
         override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
-        time_budget_seconds=spec.budgets.time_seconds,
+        profile_path=repo_root / "prompts" / "prompt_profiles" / f"{prompt_profile}.md",
+        time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(prompt, encoding="utf-8")
 
     print("Run created.")
     print(f"run_id: {paths.run_id}")
     print(f"workspace: {paths.workspace_dir}")
-    print(f"time budget: {spec.budgets.time_seconds} seconds (enforced at finalize)")
+    print(f"time budget: {budget_seconds} seconds (enforced at finalize)")
     print("before you start Kilo, start the timer:")
     print(f"  python -m orchestrator.run_one start --run-id {paths.run_id}")
     print(f"then: create {paths.workspace_dir/'submission.csv'} (via VSCode/Kilo), then run finalize:")
@@ -286,7 +312,9 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     )
 
     # Enforce time budget after submission exists (manual Phase 2 timing is coarse but standardized).
-    if runtime_seconds is not None and runtime_seconds > float(budget_seconds):
+    # Headless runs can exceed by a small amount due to process/clock granularity; allow a tiny grace window.
+    grace_seconds = 5.0 if kilo_meta is not None else 0.0
+    if runtime_seconds is not None and runtime_seconds > (float(budget_seconds) + float(grace_seconds)):
         model = ModelConfig(
             provider=state.provider or "unknown",
             model_id=state.model_id or "unknown",
@@ -333,8 +361,12 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             result=result,
             db_path=args.db_path,
             per_competition=args.per_competition,
+            write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
         )
-        print(f"timeout: runtime_seconds={runtime_seconds:.1f} > budget_seconds={budget_seconds}; wrote: {result_path}")
+        extra = f" (grace {grace_seconds:.0f}s)" if grace_seconds else ""
+        print(
+            f"timeout: runtime_seconds={runtime_seconds:.1f} > budget_seconds={budget_seconds}{extra}; wrote: {result_path}"
+        )
         return 3
 
     if not vr.ok:
@@ -384,6 +416,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             result=result,
             db_path=args.db_path,
             per_competition=args.per_competition,
+            write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
         )
         print(f"invalid submission; wrote: {result_path}")
         for e in vr.errors:
@@ -452,6 +485,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         result=result,
         db_path=args.db_path,
         per_competition=args.per_competition,
+        write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
     )
     print(f"wrote: {result_path}")
     print(f"private_holdout_{sr.metric_name}: {sr.score_raw}")
@@ -460,7 +494,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     print(f"submission_sha256: {submission_sha256[:16]}…")
     if runtime_seconds is not None:
         print(f"runtime_seconds: {runtime_seconds:.1f} (budget {budget_seconds}s)")
-    if args.db_path:
+    if args.db_path and bool(getattr(args, "write_leaderboards", False)):
         print(f"updated leaderboard under: {(repo_root / 'results')}")
         print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 
@@ -473,9 +507,9 @@ def cmd_auto(args: argparse.Namespace) -> int:
     spec = load_spec(competition_dir / "spec.yaml")
 
     spec_budget_seconds = int(spec.budgets.time_seconds)
-    budget_seconds = (
-        min(spec_budget_seconds, int(args.kilo_timeout_seconds)) if args.kilo_timeout_seconds else spec_budget_seconds
-    )
+    budget_seconds = int(getattr(args, "budget_seconds", None) or spec_budget_seconds)
+    if budget_seconds < 1:
+        raise ValueError("--budget-seconds must be >= 1")
 
     run_id = args.run_id or default_run_id(competition_id=args.competition_id)
     runs_root = repo_root / "runs"
@@ -496,9 +530,12 @@ def cmd_auto(args: argparse.Namespace) -> int:
     state = start_timer(state)
     write_run_state(state_path, state)
 
+    prompt_profile = getattr(args, "prompt_profile", None) or _prompt_profile_from_budget(budget_seconds=budget_seconds)
+
     rendered_prompt = render_prompt(
         base_prompt_path=repo_root / "prompts" / "base_prompt.md",
         override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
+        profile_path=repo_root / "prompts" / "prompt_profiles" / f"{prompt_profile}.md",
         time_budget_seconds=budget_seconds,
     )
     paths.instructions_path.write_text(rendered_prompt, encoding="utf-8")
@@ -508,71 +545,249 @@ def cmd_auto(args: argparse.Namespace) -> int:
     kilo_stderr = artifacts_dir / "kilo_stderr.log"
     kilo_clean = artifacts_dir / "kilo_stdout.clean.jsonl"
 
-    prompt_profile = getattr(args, "prompt_profile", None) or ("good-baseline" if budget_seconds >= 600 else "simple-baseline")
-
     seed_instructions = (
         f"Run metadata:\n- RUN_ID: {paths.run_id}\n- SEED: {seed}\n- PROMPT_PROFILE: {prompt_profile}\n\n"
         f"Use SEED={seed} consistently for any randomness (e.g., `train_test_split(random_state=SEED)`, model `random_state=SEED`, `numpy.random.seed(SEED)`).\n"
     )
 
-    if prompt_profile == "good-baseline":
-        harness_instructions = (
-            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
-            "Then spend most of the remaining time improving performance: do 2–4 quick iterations (encoding/model choice/hyperparameters), and consider light feature engineering. "
-            "Prefer scikit-learn options that work well on mixed numeric/categorical data under a time budget (e.g., `HistGradientBoostingRegressor` + `OrdinalEncoder`, or a strong linear baseline like `Ridge`). "
-            "Avoid extremely slow approaches unless you keep them small and reliable. Always leave a valid `submission.csv` behind. "
-            "Do not install packages."
-        )
-    else:
-        harness_instructions = (
-            "Create a single script `train_model.py` that trains on `public/train_public.csv` and writes `submission.csv` matching `public/sample_submission.csv`. "
-            "Run `python train_model.py` early to validate the full pipeline end-to-end. "
-            "Start with a fast baseline that reliably finishes. Then do a minimal diversity pass: implement exactly TWO candidate models/pipelines and pick the best by local validation using SEED. "
-            "Suggested choices: if this looks like regression, try `Ridge` vs `HistGradientBoostingRegressor`; if classification, try `LogisticRegression` vs `HistGradientBoostingClassifier`. "
-            "Keep preprocessing simple and fast (numeric: `SimpleImputer`; categorical: `OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)` + `SimpleImputer`). "
-            "If validation scores are extremely close, break ties deterministically using SEED (e.g., SEED parity) so different runs don't always choose the same pipeline. "
-            "Avoid very slow choices (full `OneHotEncoder` on high-cardinality categoricals, large `RandomForest*`/`ExtraTrees*`, etc.). "
-            "If your training run exceeds ~60s, simplify so you always leave a valid `submission.csv` behind. "
-            "Do not install packages."
-        )
-
+    # Pass the full rendered prompt directly to Kilo to avoid runs stalling if a model
+    # fails to open/read RUN_INSTRUCTIONS.md reliably.
     kilo_prompt = (
-        f"Read {paths.instructions_path.name} and follow it exactly.\n"
         "You are running inside a restricted workspace:\n"
         "- Do NOT read or write outside the workspace.\n"
         "- Do NOT use paths with `..` and do NOT run commands like `find ..`.\n"
         "- All required inputs are under `public/` in this workspace.\n\n"
+        f"{rendered_prompt}\n\n"
         f"{seed_instructions}\n"
-        f"{harness_instructions}\n"
     )
     kilo_timeout = int(args.kilo_timeout_seconds or budget_seconds)
 
-    kr = run_kilo(
-        workspace_dir=paths.workspace_dir,
-        prompt=kilo_prompt,
-        provider_id=args.provider,
-        model_id=args.model_id,
-        timeout_seconds=kilo_timeout,
-        stdout_path=kilo_stdout,
-        stderr_path=kilo_stderr,
-        stop_when_submission_path=(paths.workspace_dir / "submission.csv") if getattr(args, "stop_when_submission", False) else None,
-    )
+    iterative = bool(getattr(args, "iterative", False))
+
+    def _stage_header(label: str, *, stage_seconds: int, total_seconds: int) -> str:
+        return (
+            f"\n# Harness note: {label}\n\n"
+            f"- This is a headless benchmark run with a total time budget of {int(total_seconds)} seconds.\n"
+            f"- Current stage budget: {int(stage_seconds)} seconds.\n"
+            "- Use shell commands only (no IDE/extension tools).\n"
+            "- Keep `submission.csv` valid at all times if possible.\n\n"
+        )
+
+    def _render_prompt_for(*, profile: str, time_budget_seconds: int) -> str:
+        return render_prompt(
+            base_prompt_path=repo_root / "prompts" / "base_prompt.md",
+            override_path=repo_root / "prompts" / "competition_overrides" / f"{args.competition_id}.md",
+            profile_path=repo_root / "prompts" / "prompt_profiles" / f"{profile}.md",
+            time_budget_seconds=int(time_budget_seconds),
+        )
+
+    def _kilo_prompt_for(*, profile: str, stage_seconds: int, header: str) -> str:
+        rendered = _render_prompt_for(profile=profile, time_budget_seconds=int(stage_seconds))
+        return (
+            "You are running inside a restricted workspace:\n"
+            "- Do NOT read or write outside the workspace.\n"
+            "- Do NOT use paths with `..` and do NOT run commands like `find ..`.\n"
+            "- All required inputs are under `public/` in this workspace.\n\n"
+            f"{header}"
+            f"{rendered}\n\n"
+            f"{seed_instructions}\n"
+        )
+
+    def _run_stage(
+        *,
+        label: str,
+        stage_seconds: int,
+        profile: str,
+        stop_when_submission: bool,
+        stdout_path: Path,
+        stderr_path: Path,
+        clean_path: Path,
+    ):
+        header = _stage_header(label, stage_seconds=int(stage_seconds), total_seconds=int(budget_seconds))
+        prompt = _kilo_prompt_for(profile=profile, stage_seconds=int(stage_seconds), header=header)
+        kr = run_kilo(
+            workspace_dir=paths.workspace_dir,
+            prompt=prompt,
+            provider_id=args.provider,
+            model_id=args.model_id,
+            timeout_seconds=int(stage_seconds),
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            stop_when_submission_path=(paths.workspace_dir / "submission.csv") if stop_when_submission else None,
+        )
+        try:
+            cleaned_events = write_clean_jsonl(src_jsonl=stdout_path, dst_jsonl=clean_path)
+        except Exception:  # noqa: BLE001
+            cleaned_events = 0
+        return kr, cleaned_events
+
+    guard: SubmissionGuard | None = None
+    spec = load_spec(competition_dir / "spec.yaml")
+    if iterative:
+        guard = SubmissionGuard(
+            spec=spec,
+            public_dir=competition_dir / "public",
+            workspace_dir=paths.workspace_dir,
+            artifacts_dir=artifacts_dir,
+        )
+        guard.start()
+
+    stages_meta: list[dict] = []
+    total_duration = 0.0
+    stop_reason: str | None = None
+
+    if not iterative:
+        kr, cleaned_events = _run_stage(
+            label="Single-stage run",
+            stage_seconds=int(kilo_timeout),
+            profile=prompt_profile,
+            stop_when_submission=bool(getattr(args, "stop_when_submission", False)),
+            stdout_path=kilo_stdout,
+            stderr_path=kilo_stderr,
+            clean_path=kilo_clean,
+        )
+        stages_meta.append(
+            {
+                "label": "single",
+                "profile": prompt_profile,
+                "timeout_seconds": int(kilo_timeout),
+                "returncode": int(kr.returncode),
+                "stop_reason": kr.stop_reason,
+                "duration_seconds": float(kr.duration_seconds),
+                "stdout_path": str(kilo_stdout),
+                "stderr_path": str(kilo_stderr),
+                "clean_jsonl_events": int(cleaned_events),
+                "argv": kr.argv,
+            }
+        )
+        total_duration += float(kr.duration_seconds)
+        stop_reason = kr.stop_reason
+    else:
+        # Stage 1: get a valid submission quickly, then continue for improvement.
+        stage1_seconds = getattr(args, "iterative_stage1_seconds", None)
+        if stage1_seconds is None:
+            stage1_seconds = max(60, int(round(0.2 * float(budget_seconds))))
+            stage1_seconds = min(int(stage1_seconds), 240)
+        stage1_seconds = int(max(30, min(int(stage1_seconds), int(budget_seconds))))
+        # Stage-2 gets the *remaining* time after stage-1 actually finishes.
+        # This avoids wasting budget when stage-1 stops early (e.g., once `submission.csv` appears).
+        stage2_seconds_planned = int(max(0, int(budget_seconds) - int(stage1_seconds)))
+
+        out1 = artifacts_dir / "kilo_stdout.stage1.jsonl"
+        err1 = artifacts_dir / "kilo_stderr.stage1.log"
+        clean1 = artifacts_dir / "kilo_stdout.stage1.clean.jsonl"
+        kr1, cleaned1 = _run_stage(
+            label="Stage 1/2: bootstrap a valid submission quickly",
+            stage_seconds=stage1_seconds,
+            profile="simple-baseline",
+            stop_when_submission=True,
+            stdout_path=out1,
+            stderr_path=err1,
+            clean_path=clean1,
+        )
+        stages_meta.append(
+            {
+                "label": "stage1",
+                "profile": "simple-baseline",
+                "timeout_seconds": int(stage1_seconds),
+                "returncode": int(kr1.returncode),
+                "stop_reason": kr1.stop_reason,
+                "duration_seconds": float(kr1.duration_seconds),
+                "stdout_path": str(out1),
+                "stderr_path": str(err1),
+                "clean_jsonl_events": int(cleaned1),
+                "argv": kr1.argv,
+            }
+        )
+        total_duration += float(kr1.duration_seconds)
+        if kr1.stop_reason == "api_402":
+            stop_reason = "api_402"
+
+        out2 = artifacts_dir / "kilo_stdout.stage2.jsonl"
+        err2 = artifacts_dir / "kilo_stderr.stage2.log"
+        clean2 = artifacts_dir / "kilo_stdout.stage2.clean.jsonl"
+        stage2_seconds = int(max(0, int(budget_seconds) - int(round(total_duration))))
+        # Keep the old planned value as a lower bound (for backward-compat thinking),
+        # but let stage2 consume extra remaining time if stage1 stopped early.
+        stage2_seconds = int(max(int(stage2_seconds), int(stage2_seconds_planned)))
+        if stop_reason != "api_402" and stage2_seconds >= 1:
+            kr2, cleaned2 = _run_stage(
+                label="Stage 2/2: continue improving, but keep submission valid",
+                stage_seconds=stage2_seconds,
+                profile=prompt_profile,
+                stop_when_submission=False,
+                stdout_path=out2,
+                stderr_path=err2,
+                clean_path=clean2,
+            )
+            stages_meta.append(
+                {
+                    "label": "stage2",
+                    "profile": prompt_profile,
+                    "timeout_seconds": int(stage2_seconds),
+                    "returncode": int(kr2.returncode),
+                    "stop_reason": kr2.stop_reason,
+                    "duration_seconds": float(kr2.duration_seconds),
+                    "stdout_path": str(out2),
+                    "stderr_path": str(err2),
+                    "clean_jsonl_events": int(cleaned2),
+                    "argv": kr2.argv,
+                }
+            )
+            total_duration += float(kr2.duration_seconds)
+            if stop_reason is None:
+                stop_reason = kr2.stop_reason
+
+        # Restore the last known valid submission if the final file is missing/invalid.
+        if guard is not None:
+            guard.ensure_workspace_has_valid_submission()
+
+        # For backward compatibility with code that expects these names.
+        # (They may be large; keep them as small summaries for this run.)
+        src_out = out2 if out2.exists() else out1
+        src_err = err2 if err2.exists() else err1
+        if src_out.exists():
+            try:
+                shutil.copyfile(src_out, kilo_stdout)
+            except Exception:
+                pass
+        if src_err.exists():
+            try:
+                shutil.copyfile(src_err, kilo_stderr)
+            except Exception:
+                pass
+        try:
+            cleaned_events = write_clean_jsonl(src_jsonl=src_out if src_out.exists() else out1, dst_jsonl=kilo_clean)
+        except Exception:  # noqa: BLE001
+            cleaned_events = 0
+
+    if guard is not None:
+        guard.stop()
+        guard_stats = guard.stats()
+    else:
+        guard_stats = None
+
+    # Persist a single summary file used by finalize to derive headless runtime.
     _write_json(
         artifacts_dir / "kilo_run.json",
         {
-            "argv": kr.argv,
-            "returncode": kr.returncode,
-            "duration_seconds": kr.duration_seconds,
+            "argv": stages_meta[-1]["argv"] if stages_meta else [],
+            "returncode": int(stages_meta[-1]["returncode"]) if stages_meta else 0,
+            "duration_seconds": float(total_duration),
+            "stop_reason": stop_reason,
             "provider_id": args.provider,
             "model_id": args.model_id,
-            "timeout_seconds": kilo_timeout,
+            "timeout_seconds": int(kilo_timeout),
+            "stages": stages_meta,
+            "submission_guard": {
+                "valid_snapshots": guard_stats.valid_snapshots,
+                "last_valid_path": guard_stats.last_valid_path,
+                "last_valid_normalized_path": guard_stats.last_valid_normalized_path,
+            }
+            if guard_stats is not None
+            else None,
         },
     )
-    try:
-        cleaned_events = write_clean_jsonl(src_jsonl=kilo_stdout, dst_jsonl=kilo_clean)
-    except Exception:  # noqa: BLE001
-        cleaned_events = 0
 
     submission_in = paths.workspace_dir / "submission.csv"
     if submission_in.exists():
@@ -591,7 +806,12 @@ def cmd_auto(args: argparse.Namespace) -> int:
         return cmd_finalize(args2)
 
     runtime_seconds = state.elapsed_seconds(now=_now_utc()) if state.started_at is not None else None
-    status = "timeout" if kr.returncode == 124 else "runtime_error"
+    if stop_reason == "api_402":
+        status = "provider_error"
+    else:
+        # For iterative runs, if any stage hit the Kilo timeout boundary, treat as timeout.
+        last_rc = int(stages_meta[-1]["returncode"]) if stages_meta else 0
+        status = "timeout" if last_rc == 124 else "runtime_error"
     model = ModelConfig(
         provider=args.provider,
         model_id=args.model_id,
@@ -632,13 +852,21 @@ def cmd_auto(args: argparse.Namespace) -> int:
                 "prompt_profile": prompt_profile,
                 "seed": seed,
                 "kilo": {
-                    "returncode": kr.returncode,
+                    "returncode": int(stages_meta[-1]["returncode"]) if stages_meta else None,
                     "timeout_seconds": kilo_timeout,
-                    "duration_seconds": kr.duration_seconds,
+                    "duration_seconds": float(total_duration),
                     "stdout_path": str(kilo_stdout),
                     "stderr_path": str(kilo_stderr),
                     "clean_jsonl_events": cleaned_events,
-                    "argv": kr.argv,
+                    "argv": stages_meta[-1]["argv"] if stages_meta else [],
+                    "stages": stages_meta,
+                    "submission_guard": {
+                        "valid_snapshots": guard_stats.valid_snapshots,
+                        "last_valid_path": guard_stats.last_valid_path,
+                        "last_valid_normalized_path": guard_stats.last_valid_normalized_path,
+                    }
+                    if guard_stats is not None
+                    else None,
                 }
             },
         )
@@ -653,6 +881,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
         result=result,
         db_path=args.db_path,
         per_competition=args.per_competition,
+        write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
     )
     print(f"{status}: no submission.csv produced; wrote: {result_path}")
     return 4 if status == "runtime_error" else 3
@@ -705,6 +934,7 @@ def cmd_annotate(args: argparse.Namespace) -> int:
             result=result,
             db_path=args.db_path,
             per_competition=args.per_competition,
+            write_leaderboards=True,
         )
         print(f"updated leaderboard under: {(repo_root / 'results')}")
         print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
@@ -719,6 +949,20 @@ def main() -> int:
     p_create = sub.add_parser("create", help="Create a run workspace for a manual VSCode/Kilo agent run.")
     p_create.add_argument("--competition-id", required=True)
     p_create.add_argument("--run-id", default=None)
+    p_create.add_argument(
+        "--budget-seconds",
+        type=int,
+        default=None,
+        help="Optional override for the run time budget (defaults to spec.yaml budgets.time_seconds).",
+    )
+    p_create.add_argument(
+        "--prompt-profile",
+        default=None,
+        help=(
+            "Prompt profile id (file in `prompts/prompt_profiles/<id>.md`). "
+            "If not set, derives from time budget (>=1200s -> sota-xgb; >=600s -> good-baseline; else simple-baseline)."
+        ),
+    )
     p_create.add_argument("--provider", default=None)
     p_create.add_argument("--model-id", default=None)
     p_create.add_argument("--mode", default=None)
@@ -735,6 +979,16 @@ def main() -> int:
     p_fin.add_argument("--run-id", required=True)
     p_fin.add_argument("--db-path", default="results/results.sqlite")
     p_fin.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this competition only.")
+    p_fin.add_argument(
+        "--write-leaderboards",
+        action="store_true",
+        help="If set, write leaderboard artifacts (default: off; see `results.md` and `archive/leaderboards/`).",
+    )
+    p_fin.add_argument(
+        "--prompt-profile",
+        default=None,
+        help="Optional prompt profile metadata to record with the run (useful for manual runs).",
+    )
     p_fin.add_argument("--provider", default=None)
     p_fin.add_argument("--model-id", default=None)
     p_fin.add_argument("--mode", default=None)
@@ -747,22 +1001,46 @@ def main() -> int:
     p_auto.add_argument("--run-id", default=None)
     p_auto.add_argument("--db-path", default="results/results.sqlite")
     p_auto.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this competition only.")
+    p_auto.add_argument(
+        "--write-leaderboards",
+        action="store_true",
+        help="If set, write leaderboard artifacts (default: off; see `results.md` and `archive/leaderboards/`).",
+    )
     p_auto.add_argument("--provider", required=True, help="Kilo provider id (e.g. chutes, nanogpt).")
     p_auto.add_argument("--model-id", required=True, help="Model id to pass to Kilo (provider-specific).")
     p_auto.add_argument("--mode", default=None)
     p_auto.add_argument("--temperature", type=float, default=None)
     p_auto.add_argument("--max-tokens", type=int, default=None)
+    p_auto.add_argument(
+        "--budget-seconds",
+        type=int,
+        default=None,
+        help="Optional override for the run time budget (defaults to spec.yaml budgets.time_seconds).",
+    )
     p_auto.add_argument("--kilo-timeout-seconds", type=int, default=None, help="Optional override for Kilo CLI timeout.")
     p_auto.add_argument(
         "--prompt-profile",
         default=None,
-        choices=["simple-baseline", "good-baseline"],
-        help="Prompt profile for headless runs. If not set, derives from the time budget (>=600s -> good-baseline).",
+        help=(
+            "Prompt profile id (file in `prompts/prompt_profiles/<id>.md`) for headless runs. "
+            "If not set, derives from time budget (>=1200s -> sota-xgb; >=600s -> good-baseline; else simple-baseline)."
+        ),
     )
     p_auto.add_argument(
         "--stop-when-submission",
         action="store_true",
         help="If set, terminate the Kilo process shortly after `submission.csv` first appears. Useful for quick smoke runs; disabled by default for sweeps.",
+    )
+    p_auto.add_argument(
+        "--iterative",
+        action="store_true",
+        help="Experimental: two-stage headless run (bootstrap a valid submission quickly, then continue improving) with a validity guard for `submission.csv`.",
+    )
+    p_auto.add_argument(
+        "--iterative-stage1-seconds",
+        type=int,
+        default=None,
+        help="Optional stage-1 timeout for --iterative. Default: min(240, max(60, 0.2*budget)).",
     )
     p_auto.set_defaults(func=cmd_auto)
 

@@ -1,0 +1,77 @@
+{
+  "name": "v3_fast_plus",
+  "description": "v3_fast plus additional Chutes models (GLM 4.7, DeepSeek V3.2 Speciale, Kimi K2/K2.5, MiniMax M2.1, MiMo V2 Flash).",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "label": "DeepSeek V3.1 Terminus (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+      "label": "Qwen3 Coder 480B A35B Instruct FP8 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.6-FP8",
+      "label": "GLM 4.6 FP8 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+      "label": "Llama 3.1 8B Instruct (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "microsoft/Phi-3.5-mini-instruct",
+      "label": "Phi 3.5 Mini Instruct (Chutes)"
+    },
+    {
+      "provider": "nanogpt",
+      "model_id": "deepseek/deepseek-v3.2",
+      "label": "DeepSeek V3.2 (NanoGPT)"
+    },
+    {
+      "provider": "nanogpt",
+      "model_id": "mistralai/devstral-2-123b-instruct-2512",
+      "label": "Devstral 2 123B Instruct 2512 (NanoGPT)"
+    },
+    {
+      "provider": "nanogpt",
+      "model_id": "qwen/qwen3-next-80b-a3b-thinking",
+      "label": "Qwen3 Next 80B A3B Thinking (NanoGPT)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-FP8",
+      "label": "GLM 4.7 FP8 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.2-Speciale-TEE",
+      "label": "DeepSeek V3.2 Speciale TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Thinking-TEE",
+      "label": "Kimi K2 Thinking TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2.5-TEE",
+      "label": "Kimi K2.5 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "MiniMaxAI/MiniMax-M2.1-TEE",
+      "label": "MiniMax M2.1 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "XiaomiMiMo/MiMo-V2-Flash",
+      "label": "MiMo V2 Flash (Chutes)"
+    }
+  ]
+}
+

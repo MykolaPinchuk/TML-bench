@@ -1,0 +1,8 @@
+{
+  "name": "sanity_bank_churn",
+  "description": "Single-competition suite for monotonicity sanity checks (bank churn; AUC).",
+  "competitions": [
+    "bank-customer-churn-ict-u-ai"
+  ]
+}
+

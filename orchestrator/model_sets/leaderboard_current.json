@@ -30,21 +30,6 @@
       "label": "chutes::zai-org/GLM-4.6-FP8",
       "model_id": "zai-org/GLM-4.6-FP8",
       "provider": "chutes"
-    },
-    {
-      "label": "nanogpt::deepseek/deepseek-v3.2",
-      "model_id": "deepseek/deepseek-v3.2",
-      "provider": "nanogpt"
-    },
-    {
-      "label": "nanogpt::mistralai/devstral-2-123b-instruct-2512",
-      "model_id": "mistralai/devstral-2-123b-instruct-2512",
-      "provider": "nanogpt"
-    },
-    {
-      "label": "nanogpt::qwen/qwen3-next-80b-a3b-thinking",
-      "model_id": "qwen/qwen3-next-80b-a3b-thinking",
-      "provider": "nanogpt"
     }
   ],
   "name": "leaderboard_current"

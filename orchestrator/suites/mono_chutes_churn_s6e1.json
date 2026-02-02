@@ -1,0 +1,8 @@
+{
+  "name": "mono_chutes_churn_s6e1",
+  "description": "Chutes-only 2-competition suite for answering the s-b < g-b < sota monotonicity question.",
+  "competitions": [
+    "bank-customer-churn-ict-u-ai",
+    "playground-series-s6e1"
+  ]
+}

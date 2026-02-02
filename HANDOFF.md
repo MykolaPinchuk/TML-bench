@@ -1,7 +1,32 @@
 # HANDOFF
 
 ## Current slice
-v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve auditability; no security yet).
+v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget tiers (incl. SOTA 20m).
+
+Latest decision (important): baseline prompt family is the default; time-gated and budget-aware are experimental.
+- Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
+- Evidence + results tables: `docs/experiments/prompt_family_comparison_v5_core.md`, `results/exp_promptfam_comparison_runs.csv`
+- Repo-root snapshot for humans: `results.md`
+
+Legacy root leaderboards were moved to `archive/leaderboards/2026-02-02/` and leaderboard generation is now opt-in (`--write-leaderboards`).
+
+## Next slice (approved): v5.5 (Phase 5.5) — reduce noise + expand coverage
+
+Goal: make results less noisy and broaden the benchmark before starting v6 (security) for the first paper draft.
+
+Scope:
+- Add more models (split into a “main” tool-capable set vs “experimental” as needed).
+- Add 1 more real competition (bringing the suite to 5 competitions; keep `toy_regression` as fixtures only).
+- Increase replication (e.g., `--runs-per-model 3–5`) to reduce variance/noise.
+- Keep baseline prompt family as default; run experimental prompt profiles only by explicit override.
+- Produce a fresh DB-backed run batch (new `--db-path`) and refresh:
+  - `results.md` snapshot (committed)
+  - optionally archive generated leaderboards under `archive/leaderboards/YYYY-MM-DD/` (opt-in via `--write-leaderboards`)
+
+Exit criteria for v5.5:
+- 5-competition suite file exists and runs end-to-end (at least `--dry-run` works with the updated suite/models).
+- Expanded model set(s) exist and are referenced by the intended sweep/suite commands.
+- “Less noisy” results are captured in a dedicated sqlite DB and summarized in `results.md`.
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -27,9 +52,10 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
   - run lifecycle: `python -m orchestrator.run_one create/start/finalize`
   - optional retroactive metadata: `python -m orchestrator.run_one annotate`
   - enforced time budget at finalize (per `competitions/<id>/spec.yaml`)
-  - leaderboard outputs:
-    - root: `LEADERBOARD.md`, `LEADERBOARD.html` (committed snapshot for GitHub UI)
-    - under `results/`: `results/leaderboard.json`, `results/leaderboard.csv`, `results/leaderboard.html`
+  - results / reporting:
+    - repo-root summary: `results.md` (committed snapshot)
+    - legacy leaderboards are archived under `archive/leaderboards/` (snapshots)
+    - leaderboard generation is optional (off by default; use `--write-leaderboards` or `python -m orchestrator.leaderboard --write-root` when needed)
 - Phase 3 headless batch execution (no Docker; functionality-only):
   - Kilo CLI runner: `orchestrator/kilo_cli.py` (headless `kilo --auto --json ...` with cleaned JSONL)
   - End-to-end headless run: `python -m orchestrator.run_one auto ...` (run → validate → score → record → leaderboards)
@@ -48,8 +74,16 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
   - Default sweep parallelism: if >4 models selected, default `--concurrency 5` (else 4): `orchestrator/sweep.py`.
   - Per-run deterministic `seed` recorded (derived from `run_id`) to track within-model variance: `orchestrator/run_one.py`.
 
+- Phase 5 runner + SOTA tier (v5):
+  - Suite runner across the core 4 competitions: `python -m orchestrator.suite ...` (default suite at `orchestrator/suites/v5_core.json`).
+  - SOTA tier profile (20 min, XGBoost allowed): `--profile sota-xgb` (1200s) on `orchestrator.sweep` / `orchestrator.run_one auto`.
+  - Sweep resume support (DB-backed): `python -m orchestrator.sweep ... --resume` (skip already-recorded runs for the same budget/profile).
+  - Headless fail-fast on provider errors: `orchestrator/kilo_cli.py` terminates early when `402 status code` is seen; recorded as `provider_error` by `orchestrator/run_one.py` (commit `df0ce18`).
+  - Provider setup hardening: `scripts/setup_kilo_providers.py` aligns `~/.kilocode/cli/global/secrets.json` mode defaults to the selected provider to avoid startup calls going to the wrong gateway (commit `9f6cea8`).
+  - NanoGPT is retired as unreliable; any NanoGPT-specific model sets/artifacts are archival only.
+
 - Leaderboard collision/variance visibility:
-  - Root `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
+  - If generated, `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
   - Secondary regression metric `r2` recorded as `secondary_r2` and surfaced in leaderboard outputs when present: `orchestrator/score.py`, `orchestrator/db.py`, `orchestrator/leaderboard.py`.
 
 - Host baselines:
@@ -57,7 +91,7 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
   - Trivial constant baseline floor: `python scripts/run_baseline.py --competition-dir ... --baseline-type constant`
   - Baseline recording into DB (for absolute normalization across competitions):
     - `python -m orchestrator.baselines --competition-id <id>` records `hgb` + `constant` into `results/results.sqlite`.
-    - Root `LEADERBOARD.md` “Overall” tables include `mean_abs_units` (0=constant, 1=hgb) and `beat_hgb_rate`.
+    - If generated, `LEADERBOARD.md` “Overall” tables include `mean_abs_units` (0=constant, 1=hgb) and `beat_hgb_rate`.
 
 - Competition expansion (v4):
   - Added competition scaffolds:
@@ -66,13 +100,106 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
     - `competitions/playground-series-s5e10/` (regression RMSE; target `accident_risk`)
   - Regenerated leaderboards including the new competitions:
     - latest committed leaderboard refresh: commit `9583af5`
+  - Benchmark suite posture (v4 completion): **4 competitions** total (no further expansion in v4):
+    - `bank-customer-churn-ict-u-ai`
+    - `foot-traffic-wuerzburg-retail-forecasting-2-0`
+    - `playground-series-s6e1`
+    - `playground-series-s5e10`
+
+- Monotonicity investigation (specs s-b/g-b/sota) + Chutes migration (agent06):
+  - Suite + model sets used:
+    - `orchestrator/suites/mono_chutes_churn_s6e1.json` (churn + ps-s6e1) (commit `192834b`)
+    - `orchestrator/model_sets/chutes_mono_toolcapable_3.json` (commit `192834b`)
+  - Replicated spec-as-is sweeps (3 runs/model/spec, `--concurrency 2`) to reduce noise:
+    - s-b mode: `mono_chutes_suite_sb_rep3_20260131T200852Z`
+    - g-b mode: `mono_chutes_suite_gb_rep3_20260131T210629Z`
+    - sota mode: `mono_chutes_suite_sota_rep3_20260131T224713Z`
+    - Experiment-scoped report: `tmp/mono_chutes_monotonicity_experiment.md` (local, untracked)
+    - General report command:
+      - `python -m orchestrator.spec_sanity --suite mono_chutes_churn_s6e1 --join-mode best --out-md tmp/mono_chutes_monotonicity_allbest.md`
+  - Fixed-prompt control (budget-aware prompt at 240/600/1200) on churn:
+    - Modes:
+      - `mono_chutes_fixedprompt_churn_240_rep3_20260201T014957Z`
+      - `mono_chutes_fixedprompt_churn_600_rep3_20260201T022624Z`
+      - `mono_chutes_fixedprompt_churn_1200_rep3_20260201T030749Z`
+    - Summary report with score medians: `tmp/mono_chutes_fixedprompt_churn_rep3_scores.md` (local, untracked)
+  - Chutes stability smoke model set: `orchestrator/model_sets/chutes_smoke_2.json` (commit `192834b`)
+
+- Prompt profile policy update (guarded “reasoning phase”, agent06/agent07):
+  - Time-gated variants exist as **experimental** profiles (not default):
+    - `prompts/prompt_profiles/good-baseline-timegated.md`
+    - `prompts/prompt_profiles/sota-xgb-timegated.md`
+  - Baseline defaults have no time-gate:
+    - `prompts/prompt_profiles/simple-baseline.md`
+    - `prompts/prompt_profiles/good-baseline.md`
+    - `prompts/prompt_profiles/sota-xgb.md`
+  - Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
 
 ### Next (ordered)
-1) v4 completeness (current posture):
-   - Treat the benchmark suite as complete at **4 competitions** for now (no further competition expansion in v4).
-   - Keep baselines recorded (`hgb` + `constant`) and leaderboards refreshed from local runs DB.
-2) (Optional, next phase) Automation / ops:
-   - If/when you start Phase 5, focus on making “one command” reruns cheap and reliable (no new competition scope unless explicitly requested).
+0) Use baseline prompt family as the default for new runs:
+   - 240: `simple-baseline`
+   - 600: `good-baseline`
+   - 1200: `sota-xgb`
+   - Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
+
+1) If/when experimenting with prompt-policy changes again:
+   - Use the standardized reporting artifacts:
+     - `scripts/report_prompt_families_v5_core.py` (writes `docs/experiments/prompt_family_comparison_v5_core.md`)
+   - Always report reliability + monotonicity (see `docs/plan/selection_protocol.md`).
+
+2) Optional cleanup for future convenience:
+   - Remove old baseline worktree under `tmp/worktrees/` if it’s no longer needed (it can interfere with `pytest` without `pytest.ini`).
+   - **Models (5):** the Chutes entries in `orchestrator/model_sets/v3_fast.json`
+     - `deepseek-ai/DeepSeek-V3.1-Terminus`
+     - `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`
+     - `zai-org/GLM-4.6-FP8`
+     - `meta-llama/Meta-Llama-3.1-8B-Instruct`
+     - `microsoft/Phi-3.5-mini-instruct`
+   - **Specs/budgets:** 240 / 600 / 1200 seconds
+   - **Execution knobs:** `--runs-per-model 1`, `--concurrency 2`
+   - **Prompt families to compare (3):**
+     - **Baseline (historical, same-day 2026-01-26 PT bundle):**
+       - 240: `simple-baseline` @ `git_sha=9276a569f43c19e22be92dcabcae0222b8485c15`
+       - 600: `good-baseline` @ `git_sha=f41af8d21a5e3fda3827b0d2b890f121d9a98028` (missing `playground-series-s6e1` @ 600 on Chutes → rerun just this cell)
+       - 1200: `sota-xgb` @ `git_sha=3baf1d094169b1a9497d473fa3e34d3bd371a0bf`
+     - **Time-gated (current):** `good-baseline` (600) + `sota-xgb` (1200) on current `v5` HEAD (includes the 6-min gate + “think hard” + 180s cap).
+     - **Budget-aware:** `prompt_profile=budget-aware` on 240/600/1200 (existing results are incomplete → rerun for the full suite + 5 models).
+   - **DB hygiene (avoid mixing):** write each family into its own DB path under `results/` (do not reuse `results/results.sqlite` for new comparisons).
+
+1) Validate whether the new “reasoning gate” improves outcomes without increasing `no submission.csv` failures:
+   - Suggested A/B: churn and/or ps-s6e1, `--runs-per-model 3`, compare `--profile good-baseline` vs `--profile sota-xgb`.
+2) Decide how to “answer monotonicity” formally:
+   - Current evidence suggests strict monotonicity is not guaranteed per model even with replication.
+   - Consider reporting capability (median/best-of-successes) separately from reliability (success rate).
+3) Provider rationalization:
+   - NanoGPT is retired and should not be used going forward (see Known issues + `tmp/nanogpt_402_debug/` for archived debug).
+4) Publishable artifact packaging + anti-leak posture (defer to v6):
+   - Timestamped “bundle” outputs and freshness-cutoff verification during `prepare_competition.py`.
+
+### Future backlog / ideas (unprioritized)
+- Add a provider “preflight” to `orchestrator.suite` / `orchestrator.sweep`:
+  - quick auth check + tiny completion
+  - quick tool-call check (e.g. `ls`) to detect `MODEL_NO_TOOLS_USED` before scheduling multi-minute runs.
+- Add capability-aware model sets and/or metadata:
+  - Some provider-hosted models narrate actions but fail to emit tool calls in Kilo headless mode (no `ask: command`), leading to `timeout: no submission.csv`.
+  - Consider splitting model sets into “tool-capable” vs “experimental”, or adding fields like `supports_tools`, `notes`, etc.
+- Improve failure classification + fast failure:
+  - Detect and label `402`/credit failures, `MODEL_NO_TOOLS_USED`, and “unexpected API response (no assistant messages)” distinctly in results.
+  - Avoid burning the full time budget when the provider is failing.
+- Logging/auditing upgrades (space-aware):
+  - Decide whether to retain full non-code assistant outputs (excluding generated code) in run artifacts, and/or add optional compression/rotation of Kilo JSONL logs.
+  - Consider surfacing tokens/cost metadata (when present in Kilo JSON events) into `result.json` + leaderboard.
+- Leaderboard enhancements:
+  - Time-used fraction is useful; consider also surfacing tool-call counts, token usage (if available), and “success rate” summaries by `(provider, model_id, prompt_profile, budget)`.
+  - Consider a “prompt revision” tag (in addition to `prompt_sha256`) to make apples-to-apples prompt comparisons easier.
+- Prompt experiments / methodology:
+  - If results seem contradictory (e.g., stronger models underperform after a prompt change), run A/B sweeps where only the prompt changes (same models, budgets, seeds) and compare success rates + scores.
+  - Keep prompts free of ML technique hints; focus on time budget + reliability + “keep improving until budget”.
+- Model pool expansion:
+  - Add additional cheap models (while keeping costs bounded).
+  - OpenRouter policy: do **not** use `google/gemini-2.5-flash`; only allow `x-ai/grok-4.1-fast` from OpenRouter.
+- SOTA tier evolution:
+  - If/when adding a 20-minute SOTA tier (already `--profile sota-xgb` = 1200s), consider a separate “SOTA-LLM” profile and/or explicit rerun cadence for top models.
 
 ### Open questions
 - Provider attribution: Kilo’s JSON event stream may not clearly report the upstream endpoint/provider dashboards; decide what additional logging (without secrets) is acceptable/possible.
@@ -80,9 +207,25 @@ v4 (Phase 4): reproducibility packaging + baselines (reduce drift; improve audit
 
 ## Known issues / current breakage
 - Provider dashboards may not reflect activity even when local Kilo logs show API events; treat local per-run artifacts as the current audit source-of-truth.
-- `simple-baseline` sweeps can still show occasional timeouts (e.g., NanoGPT deepseek-v3.2 @240s).
+- Some provider-hosted models appear to support completions but fail to use Kilo tool-calling in headless mode (no `ask: command`), leading to `timeout: no submission.csv produced`.
+- NanoGPT is retired (unreliable in headless Kilo runs; repeated `402 status code (no body)`); debug bundle remains under `tmp/nanogpt_402_debug/` (local, untracked).
 - Some Kaggle competitions require accepting rules / entering before `kaggle competitions download` works (403). If a new competition download fails, enter via browser once, then rerun `prepare_competition.py --download`.
 
 ## Git notes (handoff)
 - `.gitignore` updates made:
   - Ignore competition data, runs, and sqlite DBs; allow small leaderboard outputs under `results/`.
+- v5 initialization commits:
+  - `b811a1b` and `7b98385` on local branch `v5` (workflow docs + log rotation).
+- v5 progress commits:
+  - Added SOTA tier plumbing + sweep resume + suite runner (see recent local commits on `v5`).
+  - Recent v5 checkpoints worth knowing:
+    - `df0ce18` fail fast on provider 402
+    - `9f6cea8` setup: align kilo global secrets for headless runs
+    - `80ac7ec` add nanogpt tool-capable model set
+    - `fc6f669`/`7a2f545`/`374f389`/`ebbede6`/`f912a05` prompt reliability iterations (short output, robustness, fast baseline)
+    - `63985de` checkpoint(results): reran NanoGPT Qwen across all 3 profiles and refreshed leaderboard snapshots
+    - `a778e9c` future backlog/ideas documented
+  - Recent agent06 checkpoints:
+    - `192834b` checkpoint(orchestrator): Chutes mono sweeps + leaderboards
+    - `ca9e7e5` checkpoint(orchestrator): refresh leaderboards after rep sweeps
+    - `21d03fd` checkpoint(prompts): add 6min reasoning gate

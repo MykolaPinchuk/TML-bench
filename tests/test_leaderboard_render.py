@@ -192,3 +192,102 @@ def test_overall_includes_baseline_normalization_when_provided(tmp_path: Path) -
     assert "beat_hgb_rate" in md
     # abs_units = (0.875 - 0.5) / (0.75 - 0.5) = 1.5
     assert "| 1.5 |" in md or "| 1.5" in md
+
+
+def test_overall_includes_core_suite_mean_score_columns(tmp_path: Path) -> None:
+    df = pd.DataFrame(
+        [
+            # Two successful runs for the same model+competition -> mean should be averaged.
+            {
+                "run_id": "r1",
+                "created_at": "2026-01-24T12:00:00-08:00",
+                "competition_id": "bank-customer-churn-ict-u-ai",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "simple-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.90,
+                "runtime_seconds": 10.0,
+                "budget_time_seconds": 240,
+                "submission_sha256": "1" * 16 + "…",
+                "normalized_submission_sha256": "a" * 16 + "…",
+            },
+            {
+                "run_id": "r2",
+                "created_at": "2026-01-24T12:01:00-08:00",
+                "competition_id": "bank-customer-churn-ict-u-ai",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "simple-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.80,
+                "runtime_seconds": 12.0,
+                "budget_time_seconds": 240,
+                "submission_sha256": "2" * 16 + "…",
+                "normalized_submission_sha256": "b" * 16 + "…",
+            },
+            # Additional core-suite competitions so the 4 columns are present.
+            {
+                "run_id": "r3",
+                "created_at": "2026-01-24T12:02:00-08:00",
+                "competition_id": "foot-traffic-wuerzburg-retail-forecasting-2-0",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "simple-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.70,
+                "runtime_seconds": 11.0,
+                "budget_time_seconds": 240,
+                "submission_sha256": "3" * 16 + "…",
+                "normalized_submission_sha256": "c" * 16 + "…",
+            },
+            {
+                "run_id": "r4",
+                "created_at": "2026-01-24T12:03:00-08:00",
+                "competition_id": "playground-series-s5e10",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "simple-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.60,
+                "runtime_seconds": 9.0,
+                "budget_time_seconds": 240,
+                "submission_sha256": "4" * 16 + "…",
+                "normalized_submission_sha256": "d" * 16 + "…",
+            },
+            {
+                "run_id": "r5",
+                "created_at": "2026-01-24T12:04:00-08:00",
+                "competition_id": "playground-series-s6e1",
+                "status": "success",
+                "provider": "chutes",
+                "model_id": "org/m1",
+                "mode": "",
+                "prompt_profile": "simple-baseline",
+                "metric_name": "auc",
+                "score_raw": 0.50,
+                "runtime_seconds": 9.0,
+                "budget_time_seconds": 240,
+                "submission_sha256": "5" * 16 + "…",
+                "normalized_submission_sha256": "e" * 16 + "…",
+            },
+        ]
+    )
+
+    write_root_leaderboard(df=df, repo_root=tmp_path)
+    md = (tmp_path / "LEADERBOARD.md").read_text(encoding="utf-8")
+
+    # Columns appear immediately after competitions_ranked.
+    assert "| competitions_ranked | bank-customer-churn-ict-u-ai_auc_mean |" in md
+
+    # Mean of 0.90 and 0.80 is 0.85.
+    assert "| chutes | org/m1 |" in md
+    assert "| 0.85 |" in md

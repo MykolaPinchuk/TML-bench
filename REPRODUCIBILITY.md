@@ -27,6 +27,9 @@ python -m pip install -r requirements-dev.txt
 chutes: <key>
 nanogpt: <key>
 nanogpt_base_url: https://.../v1
+openrouter: <key>
+# optional:
+openrouter_base_url: https://openrouter.ai/api/v1
 ```
 
 2) Configure Kilo providers:
@@ -75,6 +78,28 @@ python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --pr
 python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --concurrency 1
 ```
 
+Resume a sweep without re-running completed configs (DB-backed):
+
+```bash
+python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 3 --resume
+```
+
+### Multi-competition suite (Phase 5)
+
+Run a fixed suite of 4 competitions end-to-end:
+
+```bash
+python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume
+```
+
+### SOTA tier (20 min, XGBoost allowed)
+
+Use the `sota-xgb` sweep profile (budget 1200s) or set `--budget-seconds 1200` explicitly:
+
+```bash
+python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --profile sota-xgb --runs-per-model 1 --concurrency 1
+```
+
 ## Rebuild leaderboards
 
 ```bash
@@ -98,7 +123,7 @@ python -m orchestrator.baselines --competition-id playground-series-s6e1
 python -m orchestrator.baselines --competition-id bank-customer-churn-ict-u-ai
 ```
 
-Then regenerate the root leaderboard to include baseline-normalized aggregates:
+Optionally regenerate the root leaderboard to include baseline-normalized aggregates (not tracked by default):
 
 ```bash
 python -m orchestrator.leaderboard --write-root
@@ -112,4 +137,4 @@ Each run under `runs/<run_id>/` includes:
   - `kilo_version`, `kilo_config_sha256` (redacted hash; no secrets)
 - `artifacts/public_manifest.json` (hashed inventory of `competitions/<id>/public/`)
 
-The root `LEADERBOARD.md` also includes a “Duplicate submissions (by normalized hash)” section to surface identical outputs.
+If generated, `LEADERBOARD.md` includes a “Duplicate submissions (by normalized hash)” section to surface identical outputs. Legacy snapshots live under `archive/leaderboards/`; the committed repo-root summary is `results.md`.
