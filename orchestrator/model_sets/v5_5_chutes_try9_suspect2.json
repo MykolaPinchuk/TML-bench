@@ -1,0 +1,16 @@
+{
+  "name": "v5_5_chutes_try9_suspect2",
+  "description": "v5.5: models that timed out in 90s preflight; run them anyway on a single competition to confirm tool-call behavior.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Instruct-0905",
+      "label": "Kimi K2 Instruct 0905 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "unsloth/gemma-3-27b-it",
+      "label": "Gemma 3 27B IT (Chutes)"
+    }
+  ]
+}
