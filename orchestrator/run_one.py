@@ -157,6 +157,7 @@ def _write_and_maybe_record(
     result,
     db_path: str | None,
     per_competition: bool,
+    write_leaderboards: bool,
 ) -> None:
     write_result_json(result, result_path)
     if not db_path:
@@ -174,6 +175,8 @@ def _write_and_maybe_record(
     except Exception:  # noqa: BLE001
         pass
     insert_run(dbp, result)
+    if not write_leaderboards:
+        return
     lb_paths = LeaderboardPaths(
         json_path=repo_root / "results" / "leaderboard.json",
         csv_path=repo_root / "results" / "leaderboard.csv",
@@ -358,6 +361,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             result=result,
             db_path=args.db_path,
             per_competition=args.per_competition,
+            write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
         )
         extra = f" (grace {grace_seconds:.0f}s)" if grace_seconds else ""
         print(
@@ -412,6 +416,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
             result=result,
             db_path=args.db_path,
             per_competition=args.per_competition,
+            write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
         )
         print(f"invalid submission; wrote: {result_path}")
         for e in vr.errors:
@@ -480,6 +485,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
         result=result,
         db_path=args.db_path,
         per_competition=args.per_competition,
+        write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
     )
     print(f"wrote: {result_path}")
     print(f"private_holdout_{sr.metric_name}: {sr.score_raw}")
@@ -488,7 +494,7 @@ def cmd_finalize(args: argparse.Namespace) -> int:
     print(f"submission_sha256: {submission_sha256[:16]}…")
     if runtime_seconds is not None:
         print(f"runtime_seconds: {runtime_seconds:.1f} (budget {budget_seconds}s)")
-    if args.db_path:
+    if args.db_path and bool(getattr(args, "write_leaderboards", False)):
         print(f"updated leaderboard under: {(repo_root / 'results')}")
         print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 
@@ -875,6 +881,7 @@ def cmd_auto(args: argparse.Namespace) -> int:
         result=result,
         db_path=args.db_path,
         per_competition=args.per_competition,
+        write_leaderboards=bool(getattr(args, "write_leaderboards", False)),
     )
     print(f"{status}: no submission.csv produced; wrote: {result_path}")
     return 4 if status == "runtime_error" else 3
@@ -927,6 +934,7 @@ def cmd_annotate(args: argparse.Namespace) -> int:
             result=result,
             db_path=args.db_path,
             per_competition=args.per_competition,
+            write_leaderboards=True,
         )
         print(f"updated leaderboard under: {(repo_root / 'results')}")
         print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
@@ -972,6 +980,11 @@ def main() -> int:
     p_fin.add_argument("--db-path", default="results/results.sqlite")
     p_fin.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this competition only.")
     p_fin.add_argument(
+        "--write-leaderboards",
+        action="store_true",
+        help="If set, write leaderboard artifacts (default: off; see `results.md` and `archive/leaderboards/`).",
+    )
+    p_fin.add_argument(
         "--prompt-profile",
         default=None,
         help="Optional prompt profile metadata to record with the run (useful for manual runs).",
@@ -988,6 +1001,11 @@ def main() -> int:
     p_auto.add_argument("--run-id", default=None)
     p_auto.add_argument("--db-path", default="results/results.sqlite")
     p_auto.add_argument("--per-competition", action="store_true", help="If set, leaderboard is filtered to this competition only.")
+    p_auto.add_argument(
+        "--write-leaderboards",
+        action="store_true",
+        help="If set, write leaderboard artifacts (default: off; see `results.md` and `archive/leaderboards/`).",
+    )
     p_auto.add_argument("--provider", required=True, help="Kilo provider id (e.g. chutes, nanogpt).")
     p_auto.add_argument("--model-id", required=True, help="Model id to pass to Kilo (provider-specific).")
     p_auto.add_argument("--mode", default=None)

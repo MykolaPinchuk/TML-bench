@@ -176,6 +176,11 @@ def main() -> int:
         default=None,
         help="If >1, run multiple headless runs in parallel. Default: 5 if >4 models selected, else 4. DB/leaderboard updates are done once at the end.",
     )
+    ap.add_argument(
+        "--write-leaderboards",
+        action="store_true",
+        help="If set, write leaderboard artifacts (default: off; see `results.md` and `archive/leaderboards/`).",
+    )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -350,21 +355,22 @@ def main() -> int:
                 rr = read_result_json(result_path)
                 insert_run(dbp, rr)
 
-            lb_paths = LeaderboardPaths(
-                json_path=repo_root / "results" / "leaderboard.json",
-                csv_path=repo_root / "results" / "leaderboard.csv",
-                html_path=repo_root / "results" / "leaderboard.html",
-            )
-            df = build_leaderboard(
-                db_path=dbp,
-                out_paths=lb_paths,
-                competition_id=args.competition_id if args.per_competition else None,
-            )
-            baselines_df = load_baselines_df(db_path=dbp)
-            write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
-            write_root_leaderboard_robust(df=df, repo_root=repo_root, baselines=baselines_df)
-            print(f"updated leaderboard under: {(repo_root / 'results')}")
-            print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
+            if args.write_leaderboards:
+                lb_paths = LeaderboardPaths(
+                    json_path=repo_root / "results" / "leaderboard.json",
+                    csv_path=repo_root / "results" / "leaderboard.csv",
+                    html_path=repo_root / "results" / "leaderboard.html",
+                )
+                df = build_leaderboard(
+                    db_path=dbp,
+                    out_paths=lb_paths,
+                    competition_id=args.competition_id if args.per_competition else None,
+                )
+                baselines_df = load_baselines_df(db_path=dbp)
+                write_root_leaderboard(df=df, repo_root=repo_root, baselines=baselines_df)
+                write_root_leaderboard_robust(df=df, repo_root=repo_root, baselines=baselines_df)
+                print(f"updated leaderboard under: {(repo_root / 'results')}")
+                print(f"updated root leaderboard: {repo_root/'LEADERBOARD.md'}")
 
     if failures:
         print(f"\ncompleted with failures={failures}")

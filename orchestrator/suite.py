@@ -136,6 +136,11 @@ def main() -> int:
     )
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--resume-any-status", action="store_true")
+    ap.add_argument(
+        "--write-leaderboards",
+        action="store_true",
+        help="If set, write leaderboard artifacts (default: off; see `results.md` and `archive/leaderboards/`).",
+    )
     ap.add_argument("--max-models", type=int, default=None)
     ap.add_argument("--max-runs", type=int, default=None, help="If set, applies per-competition.")
     ap.add_argument("--dry-run", action="store_true")
@@ -255,7 +260,7 @@ def main() -> int:
         if proc.returncode != 0:
             rc_total = proc.returncode if rc_total == 0 else rc_total
 
-    if not args.dry_run:
+    if not args.dry_run and args.write_leaderboards:
         _refresh_root_leaderboard(repo_root=repo_root, db_path=db_path)
         print(f"\nupdated root leaderboard: {repo_root / 'LEADERBOARD.md'}")
         print(f"updated results leaderboard: {repo_root / 'results' / 'leaderboard.json'}")

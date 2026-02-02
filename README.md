@@ -12,7 +12,7 @@ This repo’s end goal is an auditable leaderboard with per-run artifacts and pr
   - unit tests (`pytest -q`)
 
 ## Read me next (humans)
-- `LEADERBOARD.md` — current committed leaderboard snapshot.
+- `results.md` — current committed results snapshot (baseline).
 - `docs/overview.md` — high-level description of what we’re building and why.
 - `REPRODUCIBILITY.md` — pinned versions + rerun instructions (Phase 4).
 - `prd.md` — full PRD (phases, architecture, requirements).
@@ -53,10 +53,11 @@ Start here (in order):
 2) Start the timer (immediately before launching Kilo):
    - `python -m orchestrator.run_one start --run-id <run_id>`
 3) Open the printed `workspace` path in VSCode and run Kilo there; produce `submission.csv` in the workspace root.
-4) Finalize (validate + private score + record to sqlite + update `results/leaderboard.*`):
+4) Finalize (validate + private score + record to sqlite):
    - `python -m orchestrator.run_one finalize --competition-id playground-series-s6e1 --run-id <run_id>`
 
-Note: the run time budget is recorded at `create` and enforced at `finalize` (timeouts are marked `status=timeout`). Finalize also updates `LEADERBOARD.md` / `LEADERBOARD.html` at repo root.
+Note: the run time budget is recorded at `create` and enforced at `finalize` (timeouts are marked `status=timeout`).
+Writing repo-root leaderboards is optional and off by default; use `--write-leaderboards` or `python -m orchestrator.leaderboard --write-root` when explicitly needed.
 
 ## Phase 3 (headless sweeps)
 Run models headlessly via Kilo CLI (single competition):
@@ -90,8 +91,8 @@ Each run lives under `runs/<run_id>/`:
 
 Across runs:
 - `results/results.sqlite` — local DB of recorded runs (source-of-truth for leaderboards)
-- `results/leaderboard.{json,csv,html}` and `LEADERBOARD.{md,html}` — generated views from the DB
-- Rebuild/refresh from on-disk `runs/*/result.json`: `python -m orchestrator.leaderboard --import-results --write-root`
+- Legacy leaderboards are archived under `archive/leaderboards/` (snapshots); current repo-root summary is `results.md`.
+- Rebuild/refresh generated leaderboards from on-disk `runs/*/result.json` (optional): `python -m orchestrator.leaderboard --import-results --write-root`
 
 ## Data policy
 - Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).

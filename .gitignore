@@ -49,12 +49,10 @@ tmp/
 results/**
 !results/
 !results/README.md
-!results/leaderboard.json
-!results/leaderboard.csv
-!results/leaderboard.html
-!results/leaderboard_robust.json
-!results/leaderboard_robust.csv
-!results/leaderboard_robust.html
+
+# Legacy leaderboards (no longer tracked; see `results.md` and `archive/leaderboards/`)
+/LEADERBOARD*.md
+/LEADERBOARD*.html
 
 *.sqlite
 *.db

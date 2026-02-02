@@ -59,7 +59,7 @@ For any run `runs/<run_id>/`:
 - `runs/<run_id>/workspace/` contains the concrete artifacts the agent produced/edited (e.g. `train_model.py`, `submission.csv`).
 - `runs/<run_id>/result.json` contains the final private-holdout score plus `submission_sha256` (when recorded) so you can detect identical submissions across “different” runs/models.
 - Phase 3 (headless Kilo CLI) additionally writes `runs/<run_id>/artifacts/kilo_stdout.clean.jsonl`, which is Kilo’s JSON event stream (API request events, tool calls, and command outputs).
-- To rebuild the leaderboard from `runs/*/result.json` on disk: `python -m orchestrator.leaderboard --import-results --write-root`.
+- To rebuild generated leaderboards from `runs/*/result.json` on disk (optional): `python -m orchestrator.leaderboard --import-results --write-root`. The committed repo-root snapshot is `results.md`; legacy snapshots live under `archive/leaderboards/`.
 
 ## Core protocol (Phase 1)
 Per competition we generate:

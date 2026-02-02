@@ -27,9 +27,10 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
   - run lifecycle: `python -m orchestrator.run_one create/start/finalize`
   - optional retroactive metadata: `python -m orchestrator.run_one annotate`
   - enforced time budget at finalize (per `competitions/<id>/spec.yaml`)
-  - leaderboard outputs:
-    - root: `LEADERBOARD.md`, `LEADERBOARD.html` (committed snapshot for GitHub UI)
-    - under `results/`: `results/leaderboard.json`, `results/leaderboard.csv`, `results/leaderboard.html`
+  - results / reporting:
+    - repo-root summary: `results.md` (committed snapshot)
+    - legacy leaderboards are archived under `archive/leaderboards/` (snapshots)
+    - leaderboard generation is optional (off by default; use `--write-leaderboards` or `python -m orchestrator.leaderboard --write-root` when needed)
 - Phase 3 headless batch execution (no Docker; functionality-only):
   - Kilo CLI runner: `orchestrator/kilo_cli.py` (headless `kilo --auto --json ...` with cleaned JSONL)
   - End-to-end headless run: `python -m orchestrator.run_one auto ...` (run → validate → score → record → leaderboards)
@@ -57,7 +58,7 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
   - NanoGPT is retired as unreliable; any NanoGPT-specific model sets/artifacts are archival only.
 
 - Leaderboard collision/variance visibility:
-  - Root `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
+  - If generated, `LEADERBOARD.md` groups “Duplicate submissions” by `(budget_time_seconds, prompt_profile)` and includes a “Variance (per model/config)” table: `orchestrator/leaderboard.py`.
   - Secondary regression metric `r2` recorded as `secondary_r2` and surfaced in leaderboard outputs when present: `orchestrator/score.py`, `orchestrator/db.py`, `orchestrator/leaderboard.py`.
 
 - Host baselines:
@@ -65,7 +66,7 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
   - Trivial constant baseline floor: `python scripts/run_baseline.py --competition-dir ... --baseline-type constant`
   - Baseline recording into DB (for absolute normalization across competitions):
     - `python -m orchestrator.baselines --competition-id <id>` records `hgb` + `constant` into `results/results.sqlite`.
-    - Root `LEADERBOARD.md` “Overall” tables include `mean_abs_units` (0=constant, 1=hgb) and `beat_hgb_rate`.
+    - If generated, `LEADERBOARD.md` “Overall” tables include `mean_abs_units` (0=constant, 1=hgb) and `beat_hgb_rate`.
 
 - Competition expansion (v4):
   - Added competition scaffolds:
@@ -99,20 +100,15 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
     - Summary report with score medians: `tmp/mono_chutes_fixedprompt_churn_rep3_scores.md` (local, untracked)
   - Chutes stability smoke model set: `orchestrator/model_sets/chutes_smoke_2.json` (commit `192834b`)
 
-- Prompt profile policy update (guarded “reasoning phase”, agent06):
-  - Added a remaining-time gate to encourage bounded reasoning only after a valid submission exists:
-    - Threshold: `time_remaining >= 360s` (6 min); reasoning budget: ≤150s (initial).
-    - Updated profiles:
-      - `prompts/prompt_profiles/good-baseline.md`
-      - `prompts/prompt_profiles/sota-xgb.md`
-      - `prompts/prompt_profiles/budget-aware.md`
-    - Commit: `21d03fd`
-  - Follow-up (agent07):
-    - Expanded the gate wording (“think hard…”) and increased the cap to **180s** for:
-      - `prompts/prompt_profiles/good-baseline.md`
-      - `prompts/prompt_profiles/sota-xgb.md`
-    - Note: `budget-aware` remains at 150s for now.
-    - Commit: `cd14fda`
+- Prompt profile policy update (guarded “reasoning phase”, agent06/agent07):
+  - Time-gated variants exist as **experimental** profiles (not default):
+    - `prompts/prompt_profiles/good-baseline-timegated.md`
+    - `prompts/prompt_profiles/sota-xgb-timegated.md`
+  - Baseline defaults have no time-gate:
+    - `prompts/prompt_profiles/simple-baseline.md`
+    - `prompts/prompt_profiles/good-baseline.md`
+    - `prompts/prompt_profiles/sota-xgb.md`
+  - Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
 
 ### Next (ordered)
 0) **Prompt-family experiment agreement (lock this before running anything):**

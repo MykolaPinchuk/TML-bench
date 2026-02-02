@@ -123,7 +123,7 @@ python -m orchestrator.baselines --competition-id playground-series-s6e1
 python -m orchestrator.baselines --competition-id bank-customer-churn-ict-u-ai
 ```
 
-Then regenerate the root leaderboard to include baseline-normalized aggregates:
+Optionally regenerate the root leaderboard to include baseline-normalized aggregates (not tracked by default):
 
 ```bash
 python -m orchestrator.leaderboard --write-root
@@ -137,4 +137,4 @@ Each run under `runs/<run_id>/` includes:
   - `kilo_version`, `kilo_config_sha256` (redacted hash; no secrets)
 - `artifacts/public_manifest.json` (hashed inventory of `competitions/<id>/public/`)
 
-The root `LEADERBOARD.md` also includes a “Duplicate submissions (by normalized hash)” section to surface identical outputs.
+If generated, `LEADERBOARD.md` includes a “Duplicate submissions (by normalized hash)” section to surface identical outputs. Legacy snapshots live under `archive/leaderboards/`; the committed repo-root summary is `results.md`.
