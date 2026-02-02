@@ -10,6 +10,24 @@ Latest decision (important): baseline prompt family is the default; time-gated a
 
 Legacy root leaderboards were moved to `archive/leaderboards/2026-02-02/` and leaderboard generation is now opt-in (`--write-leaderboards`).
 
+## Next slice (approved): v5.5 (Phase 5.5) — reduce noise + expand coverage
+
+Goal: make results less noisy and broaden the benchmark before starting v6 (security) for the first paper draft.
+
+Scope:
+- Add more models (split into a “main” tool-capable set vs “experimental” as needed).
+- Add 1 more real competition (bringing the suite to 5 competitions; keep `toy_regression` as fixtures only).
+- Increase replication (e.g., `--runs-per-model 3–5`) to reduce variance/noise.
+- Keep baseline prompt family as default; run experimental prompt profiles only by explicit override.
+- Produce a fresh DB-backed run batch (new `--db-path`) and refresh:
+  - `results.md` snapshot (committed)
+  - optionally archive generated leaderboards under `archive/leaderboards/YYYY-MM-DD/` (opt-in via `--write-leaderboards`)
+
+Exit criteria for v5.5:
+- 5-competition suite file exists and runs end-to-end (at least `--dry-run` works with the updated suite/models).
+- Expanded model set(s) exist and are referenced by the intended sweep/suite commands.
+- “Less noisy” results are captured in a dedicated sqlite DB and summarized in `results.md`.
+
 ## Invariants (do not break)
 - No secrets or credentials in git.
 - No Kaggle datasets / generated competition data in git.
