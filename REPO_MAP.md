@@ -30,7 +30,9 @@ Keep this file short. Update it only when something important changes.
 ## Where results live
 - `agent_logs/` — per-cycle logs and index.
 - `runs/` — run artifacts (always ignored; do not commit).
-- `results/` — leaderboard artifacts (small files only; see `.gitignore`).
+- `results.md` — **committed** snapshot of baseline results (time × model tables per competition).
+- `archive/leaderboards/` — legacy leaderboard snapshots (committed for reference only).
+- `results/` — local outputs/DBs (mostly ignored; see `.gitignore`).
 
 ## Hot paths (last 1–2 cycles)
 - `prd.md` — PRD updates and phase definitions.

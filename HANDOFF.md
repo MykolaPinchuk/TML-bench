@@ -1,7 +1,14 @@
 # HANDOFF
 
 ## Current slice
-v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget tiers (incl. SOTA 20m). Publishable artifact packaging is deferred until v6.
+v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget tiers (incl. SOTA 20m).
+
+Latest decision (important): baseline prompt family is the default; time-gated and budget-aware are experimental.
+- Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
+- Evidence + results tables: `docs/experiments/prompt_family_comparison_v5_core.md`, `results/exp_promptfam_comparison_runs.csv`
+- Repo-root snapshot for humans: `results.md`
+
+Legacy root leaderboards were moved to `archive/leaderboards/2026-02-02/` and leaderboard generation is now opt-in (`--write-leaderboards`).
 
 ## Invariants (do not break)
 - No secrets or credentials in git.
@@ -111,9 +118,19 @@ v5 (Phase 5): multi-competition benchmark runner (“one command”) + budget ti
   - Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
 
 ### Next (ordered)
-0) **Prompt-family experiment agreement (lock this before running anything):**
-   - **Suite (competitions):** `orchestrator/suites/v5_core.json` (4 comps)
-   - **Provider:** Chutes-only (NanoGPT is retired; do not run it)
+0) Use baseline prompt family as the default for new runs:
+   - 240: `simple-baseline`
+   - 600: `good-baseline`
+   - 1200: `sota-xgb`
+   - Decision record: `docs/adr/0003-default-prompt-family-baseline.md`
+
+1) If/when experimenting with prompt-policy changes again:
+   - Use the standardized reporting artifacts:
+     - `scripts/report_prompt_families_v5_core.py` (writes `docs/experiments/prompt_family_comparison_v5_core.md`)
+   - Always report reliability + monotonicity (see `docs/plan/selection_protocol.md`).
+
+2) Optional cleanup for future convenience:
+   - Remove old baseline worktree under `tmp/worktrees/` if it’s no longer needed (it can interfere with `pytest` without `pytest.ini`).
    - **Models (5):** the Chutes entries in `orchestrator/model_sets/v3_fast.json`
      - `deepseek-ai/DeepSeek-V3.1-Terminus`
      - `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`
