@@ -1,0 +1,36 @@
+{
+  "name": "v5_5_chutes_working6",
+  "description": "v5.5: Chutes-only models that produced submissions on bank-customer-churn-ict-u-ai at both 240s and 600s; used for full 4-competition suite runs.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "tngtech/DeepSeek-TNG-R1T2-Chimera",
+      "label": "DeepSeek TNG R1T2 Chimera (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Instruct-0905",
+      "label": "Kimi K2 Instruct 0905 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "mistralai/Devstral-2-123B-Instruct-2512-TEE",
+      "label": "Devstral 2 123B Instruct 2512 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+      "label": "NVIDIA Nemotron 3 Nano 30B A3B BF16 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-Flash",
+      "label": "GLM 4.7 Flash (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "openai/gpt-oss-120b-TEE",
+      "label": "GPT OSS 120B TEE (Chutes)"
+    }
+  ]
+}

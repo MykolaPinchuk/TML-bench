@@ -66,7 +66,9 @@ def build_health_report(
     if "score_normalized" in df.columns:
         df["score_normalized"] = pd.to_numeric(df["score_normalized"], errors="coerce")
 
-    group_cols = ["competition_id", "provider", "model_id", "budget_time_seconds", "prompt_profile"]
+    # Include `mode` to avoid mixing runs from different execution modes (e.g., iterative vs non-iterative,
+    # experimental tags, retry batches). This keeps health reports interpretable when using a shared DB.
+    group_cols = ["competition_id", "provider", "model_id", "mode", "budget_time_seconds", "prompt_profile"]
     group_cols = [c for c in group_cols if c in df.columns]
     if not group_cols:
         group_cols = ["competition_id"] if "competition_id" in df.columns else []
