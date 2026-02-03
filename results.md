@@ -117,3 +117,48 @@ Notes:
 | 240 | 8.808302 | 8.806239 | 8.807874 | 8.808455 | 8.807136 |
 | 600 | timeout | 8.780673 | 8.798304 | timeout | timeout |
 | 1200 | 8.748496 | 8.746522 | 8.745623 | 8.760336 | timeout |
+
+## Snapshot: v5.5 old5 profiled1 rep2 (Chutes-only; `v3_fast.json` 5-model set)
+
+Scope:
+- Suite: v5_core (4 competitions)
+- Provider: Chutes-only
+- Models: 5-model set from `orchestrator/model_sets/v3_fast.json`
+- Budgets: 240 / 600 / 1200 seconds
+- Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
+- Prompt strategy: **Strategy 2 = `profiled1`**
+- Source DB (not committed): `results/results_v5_5_v3fast_profiled1_r2.sqlite`
+- Runs per cell: 2
+- Selection rule: per cell, best successful `score_raw` over the 2 runs; if no success, show the most common failure status.
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | 0.928373 | 0.922710 | 0.927815 | timeout | timeout |
+| 600 | 0.924451 | 0.928659 | 0.926028 | timeout | timeout |
+| 1200 | 0.924792 | 0.928123 | 0.926563 | timeout | timeout |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | 0.068472 | 0.066768 | 0.067363 | timeout | timeout |
+| 600 | 0.166052 | 0.066198 | 0.066245 | timeout | timeout |
+| 1200 | 0.065960 | 0.065874 | timeout | 0.081453 | timeout |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | 0.056328 | 0.056353 | 0.056334 | timeout | timeout |
+| 600 | 0.056272 | 0.056199 | 0.056224 | timeout | timeout |
+| 1200 | 0.056199 | 0.056176 | 0.056175 | timeout | timeout |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | 9.150546 | 9.117905 | 9.103240 | timeout | timeout |
+| 600 | 8.792208 | 8.741439 | 8.779253 | 9.939816 | timeout |
+| 1200 | 8.791701 | 8.728897 | 8.696671 | timeout | timeout |
