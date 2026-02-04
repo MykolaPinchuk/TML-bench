@@ -85,7 +85,7 @@ Each run lives under `runs/<run_id>/`:
 - `runs/<run_id>/run_state.json` — run metadata (provider/model/time budget)
 - `runs/<run_id>/result.json` — final outcome: status, private-holdout score, and `submission_sha256` (when available)
 - `runs/<run_id>/artifacts/` — raw agent logs (Phase 3 headless runs):
-  - `kilo_stdout.jsonl` / `kilo_stdout.clean.jsonl` — Kilo’s JSON event stream (API request events, tool calls, command outputs)
+  - `kilo_stdout.jsonl` / `kilo_stdout.clean.jsonl` — Kilo’s JSON event stream (API request events, tool calls, command outputs). **Capped by default** via `TML_KILO_STDOUT_MAX_BYTES` (default `200000`, `0` disables, `-1` unlimited).
   - `kilo_stderr.log` — Kilo stderr
   - `kilo_run.json` — the exact `kilo ... --provider ... --model ...` argv used (newer runs)
 

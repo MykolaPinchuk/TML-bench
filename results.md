@@ -16,18 +16,16 @@ We define prompt strategies by **single-word ids** under `prompts/strategies/`.
 Also:
 - **`active`** = the live prompt files under `prompts/` (may evolve; do not use for “paper-grade” comparisons).
 
-This file currently includes two snapshots:
-- **v5.5 working models (recommended current view):** 6 new Chutes models that passed preflight and produced submissions across the full suite.
+This file currently includes three snapshots:
+- **v5.5 working models (recommended current view):** 6 new Chutes models, reported under both Strategy 2 (`profiled1`) and Strategy 1 (`legacy1`) with 2-run replication.
 - **v5 legacy snapshot:** the older 5-model `v3_fast.json` table, kept for reference.
+- **v5.5 old5 under Strategy 2:** the same older 5-model `v3_fast.json` set, re-run under `profiled1` for strategy comparison.
 
-Prompting strategy note:
-- The v5 legacy snapshot was generated under **Strategy 1**.
-- The v5.5 working6 snapshot was generated under **Strategy 2**.
-
-Note: these two snapshots are not guaranteed apples-to-apples unless the models are re-run under the same **prompt strategy id** and the same replication/selection policy.
+Note: snapshots are not guaranteed apples-to-apples unless the models are re-run under the same **prompt strategy id** and the same replication/selection policy.
 
 Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
+- Each snapshot explicitly defines its replication/selection policy (e.g., “best of 2 successful runs”).
 
 ## Snapshot: v5.5 working6 (Chutes-only; 6 models)
 
@@ -37,41 +35,89 @@ Scope:
 - Models: 6-model set from `orchestrator/model_sets/v5_5_chutes_working6.json`
 - Budgets: 240 / 600 / 1200 seconds
 - Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
+
+### Strategy 2: `profiled1` (2 reps; best-of-2)
+
+Scope:
 - Prompt strategy: **Strategy 2 = `profiled1`**
-- Source DB (not committed): `results/results_v5_5_working6_suite.sqlite`
-- Selection rule: per cell, best successful `score_raw` over runs in `mode in {v5_5_working6, v5_5_working6_retry1}`
+- Rep 1 source DB (not committed): `results/results_v5_5_working6_suite.sqlite` (runs in `mode in {v5_5_working6, v5_5_working6_retry1}`)
+- Rep 2 source DB (not committed): `results/results_v5_5_working6_profiled1_rep2.sqlite` (runs in `mode like v5_5_working6_profiled1_rep2%`)
+- Runs per cell: 2 reps
+- Selection rule: per cell, take the best successful `score_raw` from each rep (if any), then pick the best of the 2 reps; if neither rep succeeded, show the most common failure status.
 
 ### bank-customer-churn-ict-u-ai (AUC; higher is better)
 
 | budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|
-| 240 | 0.909941 | 0.924814 | 0.924826 | 0.925424 | 0.925413 | 0.826780 |
-| 600 | 0.850738 | 0.919885 | 0.926785 | 0.927687 | 0.928364 | 0.926987 |
-| 1200 | 0.922933 | 0.925431 | 0.920605 | 0.813105 | 0.916179 | 0.927429 |
+| 240 | 0.909941 | 0.924814 | 0.924826 | 0.925424 | 0.925413 | 0.925956 |
+| 600 | 0.850738 | 0.919885 | 0.927855 | 0.927687 | 0.928364 | 0.926987 |
+| 1200 | 0.922933 | 0.925522 | 0.922392 | 0.917111 | 0.922475 | 0.928149 |
 
 ### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
 
 | budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|
-| 240 | 0.106332 | 0.067424 | 0.070876 | 0.090144 | 0.068445 | 0.102616 |
+| 240 | 0.083345 | 0.067424 | 0.070876 | 0.090144 | 0.068445 | 0.091271 |
 | 600 | 0.070319 | 0.070643 | 0.067320 | 0.082290 | 0.066317 | 0.090884 |
-| 1200 | 0.082189 | 0.066914 | 0.066512 | 0.080768 | 0.266041 | 0.080920 |
+| 1200 | 0.082189 | 0.066719 | 0.065670 | 0.078471 | 0.065235 | 0.080876 |
 
 ### playground-series-s5e10 (RMSE; lower is better)
 
 | budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|
-| 240 | 0.056991 | 0.059679 | 0.056384 | 0.059448 | 0.056362 | 0.056379 |
+| 240 | 0.056991 | 0.059679 | 0.056384 | 0.056971 | 0.056293 | 0.056324 |
 | 600 | 0.056311 | 0.056443 | 0.056274 | 0.056727 | 0.056383 | 0.056669 |
-| 1200 | 0.056315 | 0.056226 | 0.056457 | 0.056367 | 0.056298 | 0.056254 |
+| 1200 | 0.056229 | 0.056181 | 0.056232 | 0.056158 | 0.056298 | 0.056254 |
 
 ### playground-series-s6e1 (RMSE; lower is better)
 
 | budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|
-| 240 | 8.878813 | 9.106100 | 8.878806 | 10.604385 | 8.897150 | 8.837352 |
-| 600 | 13.564986 | 9.160990 | 9.123438 | 9.018375 | 9.729946 | 8.841146 |
-| 1200 | 8.721937 | 8.758513 | 8.712406 | 8.740705 | 8.822877 | 8.768616 |
+| 240 | 8.878813 | 9.106100 | 8.878806 | 10.604385 | 8.770655 | 8.837352 |
+| 600 | 13.444163 | 8.808211 | 8.780335 | 9.018375 | 8.767801 | 8.738090 |
+| 1200 | 8.721937 | 8.758513 | 8.712406 | 8.740705 | 8.822877 | 8.760239 |
+
+### Strategy 1: `legacy1` (2 runs; best-of-2)
+
+Scope:
+- Prompt strategy: **Strategy 1 = `legacy1`**
+- Source DBs (not committed):
+  - `bank-customer-churn-ict-u-ai`: `results/results_v5_5_working6_legacy1_r2_probe_churn.sqlite`
+  - Remaining 3 competitions: `results/results_v5_5_working6_legacy1_r1_remaining3.sqlite`
+- Runs per cell: 2
+- Selection rule: per cell, best successful `score_raw` over the 2 runs; if no success, show the most common failure status.
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.920076 | 0.925617 | 0.918941 | timeout | 0.928191 | 0.926983 |
+| 600 | 0.920300 | 0.928061 | 0.924196 | timeout | 0.927576 | 0.926733 |
+| 1200 | 0.916006 | 0.928219 | 0.925864 | 0.924545 | 0.925016 | 0.928108 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|
+| 240 | timeout | 0.070234 | 0.066252 | 0.078540 | 0.065724 | 0.076923 |
+| 600 | timeout | 0.069031 | 0.066033 | 0.193444 | 0.066375 | 0.084981 |
+| 1200 | 0.079781 | 0.066291 | 0.071177 | 0.109078 | 0.065199 | 0.076900 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.059462 | 0.056296 | 0.056312 | 0.059393 | 0.056295 | 0.057954 |
+| 600 | 0.059510 | 0.056318 | 0.056990 | 0.058756 | 0.056234 | 0.057928 |
+| 1200 | runtime_error | 0.056215 | 0.056209 | 0.056367 | 0.056196 | 0.058028 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| budget | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B-Instruct-2512-TEE | NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|
+| 240 | runtime_error | 9.169291 | 9.060212 | timeout | 8.807914 | 8.893176 |
+| 600 | 9.057829 | 8.952142 | 8.767334 | 8.767829 | 8.792463 | 8.842876 |
+| 1200 | 8.799415 | timeout | timeout | timeout | 8.744021 | 8.842876 |
 
 ## Snapshot: v5 legacy (Chutes-only; `v3_fast.json` 5-model set)
 
