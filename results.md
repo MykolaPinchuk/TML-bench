@@ -43,7 +43,15 @@ Current controlled batches:
   - `profiled1` (2 reps/cell): rep1 `results/results_v5_5_working6_suite.sqlite` + rep2 `results/results_v5_5_working6_profiled1_rep2.sqlite`
 - **old5 (`v3_fast.json`)**
   - `profiled1` (2 runs/cell): `results/results_v5_5_v3fast_profiled1_r2.sqlite`
-  - `legacy1` (2 runs/cell): in progress in `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`)
+  - `legacy1` (2 runs/cell): `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`)
+
+Strategy comparison summary (current; best-of-2 selection policy, 2026-02-05):
+- **old5 (60 cells = 4 comps × 3 budgets × 5 models)**:
+  - Success rate: `legacy1` 34/60 (56.7%) vs `profiled1` 37/60 (61.7%)
+  - Among 33 cells where both strategies succeeded: `profiled1` wins 23 vs `legacy1` wins 10
+- **working6 (72 cells = 4 comps × 3 budgets × 6 models)**:
+  - Success rate: `legacy1` 62/72 (86.1%) vs `profiled1` 72/72 (100.0%)
+  - Among 62 cells where both strategies succeeded: wins are tied (31 vs 31)
 
 Important: under `profiled1`, the 240/600/1200 budgets also change the **profile text layer** (`simple-baseline`/`good-baseline`/`sota-xgb`), so “monotonic with budget” reflects “more time + different profile”, not just “more time”.
 
@@ -56,50 +64,53 @@ Scope:
 - Budgets: 240 / 600 / 1200 seconds
 - Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
 
-### Strategy 1: `legacy1` (mixed sources)
+### Strategy 1: `legacy1` (2 runs; best-of-2)
 
-Notes:
-- old5 (`v3_fast.json`) values currently come from the **v5 legacy** snapshot table already in this file.
-- Once `results/results_v5_5_v3fast_legacy1_r2.sqlite` finishes, we will replace the old5 columns here with the controlled 2-run/cell `legacy1` results from that DB (so the combined11 Strategy-1 table becomes fully controlled).
-- working6 values come from 2-run sweeps under `legacy1` (best successful `score_raw` over 2 runs).
+Sources (not committed):
+- old5: `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`)
+- working6 churn: `results/results_v5_5_working6_legacy1_r2_probe_churn.sqlite`
+- working6 remaining3: `results/results_v5_5_working6_legacy1_r1_remaining3.sqlite`
+- Selection rule: per cell, best successful `score_raw` over the 2 runs; if no success, show the most common failure status.
 
 ### bank-customer-churn-ict-u-ai (AUC; higher is better)
 
 | budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 240 | invalid_submission | 0.923990 | 0.922911 | 0.924543 | 0.924707 | 0.920076 | 0.925617 | 0.918941 | timeout | 0.928191 | 0.926983 |
-| 600 | 0.912099 | 0.922015 | 0.925680 | 0.921787 | 0.921714 | 0.920300 | 0.928061 | 0.924196 | timeout | 0.927576 | 0.926733 |
-| 1200 | 0.927889 | 0.927797 | 0.926654 | 0.927300 | 0.810482 | 0.916006 | 0.928219 | 0.925864 | 0.924545 | 0.925016 | 0.928108 |
+| 240 | 0.923150 | 0.922726 | 0.922244 | timeout | timeout | 0.920076 | 0.925617 | 0.918941 | timeout | 0.928191 | 0.926983 |
+| 600 | 0.924277 | 0.924515 | 0.924082 | timeout | timeout | 0.920300 | 0.928061 | 0.924196 | timeout | 0.927576 | 0.926733 |
+| 1200 | timeout | 0.926168 | 0.926976 | timeout | timeout | 0.916006 | 0.928219 | 0.925864 | 0.924545 | 0.925016 | 0.928108 |
 
 ### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
 
 | budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 240 | 0.082159 | 0.091228 | 0.082249 | 0.091225 | 0.091214 | timeout | 0.070234 | 0.066252 | 0.078540 | 0.065724 | 0.076923 |
-| 600 | 0.080706 | 0.080576 | 0.067860 | 0.068194 | 0.067980 | timeout | 0.069031 | 0.066033 | 0.193444 | 0.066375 | 0.084981 |
-| 1200 | 0.067152 | 0.066943 | 0.066531 | 0.066203 | 0.066622 | 0.079781 | 0.066291 | 0.071177 | 0.109078 | 0.065199 | 0.076900 |
+| 240 | 0.069570 | 0.065313 | 0.066096 | timeout | timeout | timeout | 0.070234 | 0.066252 | 0.078540 | 0.065724 | 0.076923 |
+| 600 | 0.066615 | 0.065637 | 0.066919 | timeout | timeout | timeout | 0.069031 | 0.066033 | 0.193444 | 0.066375 | 0.084981 |
+| 1200 | 0.067510 | 0.065897 | 0.065686 | timeout | timeout | 0.079781 | 0.066291 | 0.071177 | 0.109078 | 0.065199 | 0.076900 |
 
 ### playground-series-s5e10 (RMSE; lower is better)
 
 | budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 240 | 0.056310 | 0.056302 | timeout | 0.056302 | 0.056313 | 0.059462 | 0.056296 | 0.056312 | 0.059393 | 0.056295 | 0.057954 |
-| 600 | 0.056312 | 0.056291 | 0.056345 | 0.056416 | 0.056442 | 0.059510 | 0.056318 | 0.056990 | 0.058756 | 0.056234 | 0.057928 |
-| 1200 | 0.056225 | 0.056231 | 0.057032 | 0.056195 | 0.056245 | runtime_error | 0.056215 | 0.056209 | 0.056367 | 0.056196 | 0.058028 |
+| 240 | timeout | 0.056819 | 0.056308 | timeout | timeout | 0.059462 | 0.056296 | 0.056312 | 0.059393 | 0.056295 | 0.057954 |
+| 600 | 0.056350 | 0.056736 | 0.056235 | timeout | timeout | 0.059510 | 0.056318 | 0.056990 | 0.058756 | 0.056234 | 0.057928 |
+| 1200 | 0.056209 | 0.056212 | 0.056208 | timeout | timeout | runtime_error | 0.056215 | 0.056209 | 0.056367 | 0.056196 | 0.058028 |
 
 ### playground-series-s6e1 (RMSE; lower is better)
 
 | budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 240 | 8.808302 | 8.806239 | 8.807874 | 8.808455 | 8.807136 | runtime_error | 9.169291 | 9.060212 | timeout | 8.807914 | 8.893176 |
-| 600 | timeout | 8.780673 | 8.798304 | timeout | timeout | 9.057829 | 8.952142 | 8.767334 | 8.767829 | 8.792463 | 8.842876 |
-| 1200 | 8.748496 | 8.746522 | 8.745623 | 8.760336 | timeout | 8.799415 | timeout | timeout | timeout | 8.744021 | 8.842876 |
+| 240 | 9.158417 | 9.085194 | 8.906414 | timeout | timeout | runtime_error | 9.169291 | 9.060212 | timeout | 8.807914 | 8.893176 |
+| 600 | 9.163334 | 8.802716 | 8.838196 | timeout | timeout | 9.057829 | 8.952142 | 8.767334 | 8.767829 | 8.792463 | 8.842876 |
+| 1200 | 8.789005 | 8.747630 | 8.731338 | timeout | timeout | 8.799415 | timeout | timeout | timeout | 8.744021 | 8.842876 |
 
 ### Strategy 2: `profiled1` (2 reps; best-of-2)
 
-Notes:
-- old5 values: `results/results_v5_5_v3fast_profiled1_r2.sqlite` (best successful `score_raw` over 2 runs).
-- working6 values: best-of-2 between rep1 (`results/results_v5_5_working6_suite.sqlite`) and rep2 (`results/results_v5_5_working6_profiled1_rep2.sqlite`).
+Sources (not committed):
+- old5: `results/results_v5_5_v3fast_profiled1_r2.sqlite` (2 runs/cell)
+- working6 rep1: `results/results_v5_5_working6_suite.sqlite` (modes `v5_5_working6` + `v5_5_working6_retry1`)
+- working6 rep2: `results/results_v5_5_working6_profiled1_rep2.sqlite` (mode prefix `v5_5_working6_profiled1_rep2%`)
+- Selection rule: per cell, take the best successful `score_raw` from each rep (if any), then pick the best of the 2 reps; if neither rep succeeded, show the most common failure status.
 
 ### bank-customer-churn-ict-u-ai (AUC; higher is better)
 
@@ -269,6 +280,52 @@ Notes:
 | 240 | 8.808302 | 8.806239 | 8.807874 | 8.808455 | 8.807136 |
 | 600 | timeout | 8.780673 | 8.798304 | timeout | timeout |
 | 1200 | 8.748496 | 8.746522 | 8.745623 | 8.760336 | timeout |
+
+## Snapshot: v5.5 old5 legacy1 rep2 (Chutes-only; `v3_fast.json` 5-model set)
+
+Scope:
+- Suite: v5_core (4 competitions)
+- Provider: Chutes-only
+- Models: 5-model set from `orchestrator/model_sets/v3_fast.json`
+- Budgets: 240 / 600 / 1200 seconds
+- Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
+- Prompt strategy: **Strategy 1 = `legacy1`**
+- Source DB (not committed): `results/results_v5_5_v3fast_legacy1_r2.sqlite`
+- Mode: `v5_5_v3fast_legacy1_r2`
+- Runs per cell: 2
+- Selection rule: per cell, best successful `score_raw` over the 2 runs; if no success, show the most common failure status.
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | 0.923150 | 0.922726 | 0.922244 | timeout | timeout |
+| 600 | 0.924277 | 0.924515 | 0.924082 | timeout | timeout |
+| 1200 | timeout | 0.926168 | 0.926976 | timeout | timeout |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | 0.069570 | 0.065313 | 0.066096 | timeout | timeout |
+| 600 | 0.066615 | 0.065637 | 0.066919 | timeout | timeout |
+| 1200 | 0.067510 | 0.065897 | 0.065686 | timeout | timeout |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | timeout | 0.056819 | 0.056308 | timeout | timeout |
+| 600 | 0.056350 | 0.056736 | 0.056235 | timeout | timeout |
+| 1200 | 0.056209 | 0.056212 | 0.056208 | timeout | timeout |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
+|---:|---:|---:|---:|---:|---:|
+| 240 | 9.158417 | 9.085194 | 8.906414 | timeout | timeout |
+| 600 | 9.163334 | 8.802716 | 8.838196 | timeout | timeout |
+| 1200 | 8.789005 | 8.747630 | 8.731338 | timeout | timeout |
 
 ## Snapshot: v5.5 old5 profiled1 rep2 (Chutes-only; `v3_fast.json` 5-model set)
 

@@ -27,7 +27,7 @@ Current status (strategy comparison; v5.5):
   - `profiled1`: 2 reps/cell (rep1 + rep2).
 - **old5 (`v3_fast.json`, 5 models)**:
   - `profiled1`: complete (2 runs/cell) in `results/results_v5_5_v3fast_profiled1_r2.sqlite`.
-  - `legacy1`: controlled 2-run/cell suite is being run into `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`) to finish apples-to-apples S1 vs S2 for old5.
+  - `legacy1`: complete (2 runs/cell) in `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`) — apples-to-apples S1 vs S2 for old5 is now ready.
 
 Operational note (avoid disk-full failures):
 - Kilo stdout event logs are capped by default via `TML_KILO_STDOUT_MAX_BYTES` (documented in `README.md`).

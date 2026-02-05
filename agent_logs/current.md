@@ -52,3 +52,8 @@
 - Mode: `v5_5_v3fast_legacy1_r2`
 - Log: `tmp/logs/v3fast_legacy1_r2_20260205T005134Z.log`
 - PID: `1554878`
+
+### 2026-02-04 19:00:00 PST
+- Completed controlled apples-to-apples dataset for **old5** under **Strategy 1 = `legacy1`** (2 runs/cell across v5_core).
+- DB (not committed): `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`).
+- `results.md` updated to include combined11 tables and a dedicated old5 legacy1 snapshot, plus a brief strategy comparison summary.
