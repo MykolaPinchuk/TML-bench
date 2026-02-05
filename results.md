@@ -59,7 +59,8 @@ Scope:
 ### Strategy 1: `legacy1` (mixed sources)
 
 Notes:
-- old5 (`v3_fast.json`) values come from the **v5 legacy** snapshot table already in this file.
+- old5 (`v3_fast.json`) values currently come from the **v5 legacy** snapshot table already in this file.
+- Once `results/results_v5_5_v3fast_legacy1_r2.sqlite` finishes, we will replace the old5 columns here with the controlled 2-run/cell `legacy1` results from that DB (so the combined11 Strategy-1 table becomes fully controlled).
 - working6 values come from 2-run sweeps under `legacy1` (best successful `score_raw` over 2 runs).
 
 ### bank-customer-churn-ict-u-ai (AUC; higher is better)
