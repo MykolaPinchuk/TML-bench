@@ -44,3 +44,11 @@
 
 ### 2026-02-02 13:51:43 PST
 - Documentation pass: clarified the two prompt rendering strategies (legacy base+override vs current base+profile+override) so `results.md` snapshots aren’t misread as apples-to-apples.
+
+### 2026-02-04 16:51:34 PST
+- Started controlled apples-to-apples dataset for **old5** (the `v3_fast.json` 5-model set) under **Strategy 1 = `legacy1`**, 2 runs/cell across the full v5_core suite.
+- Command runner: `python -m orchestrator.suite` (3 profiles, `--runs-per-model 2`, `--prompt-strategy legacy1`, `--concurrency 4`, `--resume --resume-any-status`).
+- DB (not committed): `results/results_v5_5_v3fast_legacy1_r2.sqlite`
+- Mode: `v5_5_v3fast_legacy1_r2`
+- Log: `tmp/logs/v3fast_legacy1_r2_20260205T005134Z.log`
+- PID: `1554878`

@@ -28,6 +28,25 @@ Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
 - Each snapshot explicitly defines its replication/selection policy (e.g., “best of 2 successful runs”).
 
+## Apples-to-apples strategy comparison (what to use)
+
+If you want a clean **Strategy 1 (`legacy1`) vs Strategy 2 (`profiled1`)** comparison with:
+- success rates,
+- monotonicity across budgets (240→600→1200),
+- strong models outperforming weak models,
+
+use only **controlled run batches** where both strategies have comparable replication.
+
+Current controlled batches:
+- **working6 (new6)**
+  - `legacy1` (2 runs/cell): `results/results_v5_5_working6_legacy1_r2_probe_churn.sqlite` + `results/results_v5_5_working6_legacy1_r1_remaining3.sqlite`
+  - `profiled1` (2 reps/cell): rep1 `results/results_v5_5_working6_suite.sqlite` + rep2 `results/results_v5_5_working6_profiled1_rep2.sqlite`
+- **old5 (`v3_fast.json`)**
+  - `profiled1` (2 runs/cell): `results/results_v5_5_v3fast_profiled1_r2.sqlite`
+  - `legacy1` (2 runs/cell): in progress in `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`)
+
+Important: under `profiled1`, the 240/600/1200 budgets also change the **profile text layer** (`simple-baseline`/`good-baseline`/`sota-xgb`), so “monotonic with budget” reflects “more time + different profile”, not just “more time”.
+
 ## Snapshot: v5.5 combined11 (Chutes-only; 11 models)
 
 Scope:
