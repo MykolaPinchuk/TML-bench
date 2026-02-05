@@ -25,6 +25,13 @@ Operational policy (current):
 - Use **`profiled1`** as the default baseline strategy for routine runs and reporting.
 - Use **`legacy1`** only for explicit robustness/sensitivity checks against the default.
 
+Immediate plan for next agent (agreed with user):
+- Expand model coverage by adding a few new candidate models (preflight first; keep only tool-capable/working entries).
+- Keep all primary runs on **`--prompt-strategy profiled1`**.
+- Run **`legacy1`** only when explicitly requested as a robustness check.
+- Reduce noise by running **5 reps per cell** for the selected model set and reporting **median** as the primary statistic (with success-rate alongside).
+- Update `results.md` and `HANDOFF.md` after each completed batch so strategy/comparability status stays explicit.
+
 Current status (strategy comparison; v5.5):
 - **working6 (6 models)** has controlled runs for both strategies (see `results.md` for the exact DBs and selection rules):
   - `legacy1`: 2 runs/cell for all 4 competitions (churn + remaining3 DB split).
@@ -39,7 +46,7 @@ Operational note (avoid disk-full failures):
 Scope:
 - Add more models (split into a “main” tool-capable set vs “experimental” as needed).
 - Add 1 more real competition (bringing the suite to 5 competitions; keep `toy_regression` as fixtures only).
-- Increase replication (e.g., `--runs-per-model 3–5`) to reduce variance/noise.
+- Increase replication (target `--runs-per-model 5`) and report medians to reduce variance/noise.
 - Keep baseline prompt family as default; run experimental prompt profiles only by explicit override.
 - Produce a fresh DB-backed run batch (new `--db-path`) and refresh:
   - `results.md` snapshot (committed)
