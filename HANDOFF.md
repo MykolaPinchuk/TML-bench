@@ -19,7 +19,11 @@ Important (prompting clarity; avoid confusion):
 - **Strategy 2 = `profiled1`:** render prompt as `prompts/strategies/profiled1/base_prompt.md` + `prompts/strategies/profiled1/prompt_profiles/<profile>.md` + `prompts/strategies/profiled1/competition_overrides/<id>.md`.
 - `active` = the live prompt files under `prompts/` (may evolve).
 - Select explicitly via `--prompt-strategy <id>` (supported by `orchestrator.run_one auto`, `orchestrator.sweep`, `orchestrator.suite`).
-- `results.md` includes strategy-specific snapshots (working6 under both strategies; old5 under `profiled1`). Do not treat any tables as apples-to-apples unless the strategy id and replication/selection policy match.
+- `results.md` includes strategy-specific snapshots (working6 under both strategies; old5 under both strategies). Do not treat any tables as apples-to-apples unless the strategy id and replication/selection policy match.
+
+Operational policy (current):
+- Use **`profiled1`** as the default baseline strategy for routine runs and reporting.
+- Use **`legacy1`** only for explicit robustness/sensitivity checks against the default.
 
 Current status (strategy comparison; v5.5):
 - **working6 (6 models)** has controlled runs for both strategies (see `results.md` for the exact DBs and selection rules):

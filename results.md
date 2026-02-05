@@ -16,6 +16,10 @@ We define prompt strategies by **single-word ids** under `prompts/strategies/`.
 Also:
 - **`active`** = the live prompt files under `prompts/` (may evolve; do not use for “paper-grade” comparisons).
 
+Current run policy:
+- **Default baseline strategy:** use **Strategy 2 = `profiled1`** for primary benchmark reporting.
+- **Robustness strategy:** run **Strategy 1 = `legacy1`** only when explicitly requested as a robustness/sensitivity check.
+
 This file currently includes four snapshots:
 - **v5.5 combined view (11 models):** old5 + working6, each shown under Strategy 1 and Strategy 2 (single tables for easy scanning).
 - **v5.5 working models (recommended current view):** 6 new Chutes models, reported under both Strategy 2 (`profiled1`) and Strategy 1 (`legacy1`) with 2-run replication.

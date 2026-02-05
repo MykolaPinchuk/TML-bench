@@ -102,12 +102,18 @@ However, baseline at 240/600/1200 is not a “pure” budget-scaling test becaus
 
 Time-gated and budget-aware are retained as **experimental** prompt profiles (not default) to be used only when explicitly requested for experiments.
 
+Strategy-level operating policy:
+- Use **Strategy 2 (`profiled1`)** as the default baseline strategy for routine runs and primary reporting.
+- Use **Strategy 1 (`legacy1`)** only for explicit robustness/sensitivity checks against the default.
+
 ## Consequences
 
 - Default runs should use the baseline profiles:
   - 240: `simple-baseline`
   - 600: `good-baseline`
   - 1200: `sota-xgb`
+- Default runs should use `--prompt-strategy profiled1`.
+- `legacy1` runs are robustness checks and should be labeled as such in `mode` and docs.
 - Time-gated variants are stored separately and are **not** used unless explicitly overridden:
   - `good-baseline-timegated`
   - `sota-xgb-timegated`
