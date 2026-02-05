@@ -16,7 +16,8 @@ We define prompt strategies by **single-word ids** under `prompts/strategies/`.
 Also:
 - **`active`** = the live prompt files under `prompts/` (may evolve; do not use for “paper-grade” comparisons).
 
-This file currently includes three snapshots:
+This file currently includes four snapshots:
+- **v5.5 combined view (11 models):** old5 + working6, each shown under Strategy 1 and Strategy 2 (single tables for easy scanning).
 - **v5.5 working models (recommended current view):** 6 new Chutes models, reported under both Strategy 2 (`profiled1`) and Strategy 1 (`legacy1`) with 2-run replication.
 - **v5 legacy snapshot:** the older 5-model `v3_fast.json` table, kept for reference.
 - **v5.5 old5 under Strategy 2:** the same older 5-model `v3_fast.json` set, re-run under `profiled1` for strategy comparison.
@@ -26,6 +27,91 @@ Note: snapshots are not guaranteed apples-to-apples unless the models are re-run
 Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
 - Each snapshot explicitly defines its replication/selection policy (e.g., “best of 2 successful runs”).
+
+## Snapshot: v5.5 combined11 (Chutes-only; 11 models)
+
+Scope:
+- Suite: v5_core (4 competitions)
+- Provider: Chutes-only
+- Models: old5 (`orchestrator/model_sets/v3_fast.json`) + working6 (`orchestrator/model_sets/v5_5_chutes_working6.json`)
+- Budgets: 240 / 600 / 1200 seconds
+- Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
+
+### Strategy 1: `legacy1` (mixed sources)
+
+Notes:
+- old5 (`v3_fast.json`) values come from the **v5 legacy** snapshot table already in this file.
+- working6 values come from 2-run sweeps under `legacy1` (best successful `score_raw` over 2 runs).
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | invalid_submission | 0.923990 | 0.922911 | 0.924543 | 0.924707 | 0.920076 | 0.925617 | 0.918941 | timeout | 0.928191 | 0.926983 |
+| 600 | 0.912099 | 0.922015 | 0.925680 | 0.921787 | 0.921714 | 0.920300 | 0.928061 | 0.924196 | timeout | 0.927576 | 0.926733 |
+| 1200 | 0.927889 | 0.927797 | 0.926654 | 0.927300 | 0.810482 | 0.916006 | 0.928219 | 0.925864 | 0.924545 | 0.925016 | 0.928108 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.082159 | 0.091228 | 0.082249 | 0.091225 | 0.091214 | timeout | 0.070234 | 0.066252 | 0.078540 | 0.065724 | 0.076923 |
+| 600 | 0.080706 | 0.080576 | 0.067860 | 0.068194 | 0.067980 | timeout | 0.069031 | 0.066033 | 0.193444 | 0.066375 | 0.084981 |
+| 1200 | 0.067152 | 0.066943 | 0.066531 | 0.066203 | 0.066622 | 0.079781 | 0.066291 | 0.071177 | 0.109078 | 0.065199 | 0.076900 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.056310 | 0.056302 | timeout | 0.056302 | 0.056313 | 0.059462 | 0.056296 | 0.056312 | 0.059393 | 0.056295 | 0.057954 |
+| 600 | 0.056312 | 0.056291 | 0.056345 | 0.056416 | 0.056442 | 0.059510 | 0.056318 | 0.056990 | 0.058756 | 0.056234 | 0.057928 |
+| 1200 | 0.056225 | 0.056231 | 0.057032 | 0.056195 | 0.056245 | runtime_error | 0.056215 | 0.056209 | 0.056367 | 0.056196 | 0.058028 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 8.808302 | 8.806239 | 8.807874 | 8.808455 | 8.807136 | runtime_error | 9.169291 | 9.060212 | timeout | 8.807914 | 8.893176 |
+| 600 | timeout | 8.780673 | 8.798304 | timeout | timeout | 9.057829 | 8.952142 | 8.767334 | 8.767829 | 8.792463 | 8.842876 |
+| 1200 | 8.748496 | 8.746522 | 8.745623 | 8.760336 | timeout | 8.799415 | timeout | timeout | timeout | 8.744021 | 8.842876 |
+
+### Strategy 2: `profiled1` (2 reps; best-of-2)
+
+Notes:
+- old5 values: `results/results_v5_5_v3fast_profiled1_r2.sqlite` (best successful `score_raw` over 2 runs).
+- working6 values: best-of-2 between rep1 (`results/results_v5_5_working6_suite.sqlite`) and rep2 (`results/results_v5_5_working6_profiled1_rep2.sqlite`).
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.928373 | 0.922710 | 0.927815 | timeout | timeout | 0.909941 | 0.924814 | 0.924826 | 0.925424 | 0.925413 | 0.925956 |
+| 600 | 0.924451 | 0.928659 | 0.926028 | timeout | timeout | 0.850738 | 0.919885 | 0.927855 | 0.927687 | 0.928364 | 0.926987 |
+| 1200 | 0.924792 | 0.928123 | 0.926563 | timeout | timeout | 0.922933 | 0.925522 | 0.922392 | 0.917111 | 0.922475 | 0.928149 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.068472 | 0.066768 | 0.067363 | timeout | timeout | 0.083345 | 0.067424 | 0.070876 | 0.090144 | 0.068445 | 0.091271 |
+| 600 | 0.166052 | 0.066198 | 0.066245 | timeout | timeout | 0.070319 | 0.070643 | 0.067320 | 0.082290 | 0.066317 | 0.090884 |
+| 1200 | 0.065960 | 0.065874 | timeout | 0.081453 | timeout | 0.082189 | 0.066719 | 0.065670 | 0.078471 | 0.065235 | 0.080876 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.056328 | 0.056353 | 0.056334 | timeout | timeout | 0.056991 | 0.059679 | 0.056384 | 0.056971 | 0.056293 | 0.056324 |
+| 600 | 0.056272 | 0.056199 | 0.056224 | timeout | timeout | 0.056311 | 0.056443 | 0.056274 | 0.056727 | 0.056383 | 0.056669 |
+| 1200 | 0.056199 | 0.056176 | 0.056175 | timeout | timeout | 0.056229 | 0.056181 | 0.056232 | 0.056158 | 0.056298 | 0.056254 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 9.150546 | 9.117905 | 9.103240 | timeout | timeout | 8.878813 | 9.106100 | 8.878806 | 10.604385 | 8.770655 | 8.837352 |
+| 600 | 8.792208 | 8.741439 | 8.779253 | 9.939816 | timeout | 13.444163 | 8.808211 | 8.780335 | 9.018375 | 8.767801 | 8.738090 |
+| 1200 | 8.791701 | 8.728897 | 8.696671 | timeout | timeout | 8.721937 | 8.758513 | 8.712406 | 8.740705 | 8.822877 | 8.760239 |
 
 ## Snapshot: v5.5 working6 (Chutes-only; 6 models)
 
