@@ -19,7 +19,18 @@ Important (prompting clarity; avoid confusion):
 - **Strategy 2 = `profiled1`:** render prompt as `prompts/strategies/profiled1/base_prompt.md` + `prompts/strategies/profiled1/prompt_profiles/<profile>.md` + `prompts/strategies/profiled1/competition_overrides/<id>.md`.
 - `active` = the live prompt files under `prompts/` (may evolve).
 - Select explicitly via `--prompt-strategy <id>` (supported by `orchestrator.run_one auto`, `orchestrator.sweep`, `orchestrator.suite`).
-- `results.md` currently includes both a “v5 legacy” snapshot (Strategy 1) and a “v5.5 working6” snapshot (Strategy 2). Do not treat them as apples-to-apples unless both model sets are rerun under the same prompt strategy id and the same replication policy.
+- `results.md` includes strategy-specific snapshots (working6 under both strategies; old5 under `profiled1`). Do not treat any tables as apples-to-apples unless the strategy id and replication/selection policy match.
+
+Current status (strategy comparison; v5.5):
+- **working6 (6 models)** has controlled runs for both strategies (see `results.md` for the exact DBs and selection rules):
+  - `legacy1`: 2 runs/cell for all 4 competitions (churn + remaining3 DB split).
+  - `profiled1`: 2 reps/cell (rep1 + rep2).
+- **old5 (`v3_fast.json`, 5 models)**:
+  - `profiled1`: complete (2 runs/cell) in `results/results_v5_5_v3fast_profiled1_r2.sqlite`.
+  - `legacy1`: controlled 2-run/cell suite is being run into `results/results_v5_5_v3fast_legacy1_r2.sqlite` (mode `v5_5_v3fast_legacy1_r2`) to finish apples-to-apples S1 vs S2 for old5.
+
+Operational note (avoid disk-full failures):
+- Kilo stdout event logs are capped by default via `TML_KILO_STDOUT_MAX_BYTES` (documented in `README.md`).
 
 Scope:
 - Add more models (split into a “main” tool-capable set vs “experimental” as needed).
