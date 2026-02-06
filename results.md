@@ -20,7 +20,11 @@ Current run policy:
 - **Default baseline strategy:** use **Strategy 2 = `profiled1`** for primary benchmark reporting.
 - **Robustness strategy:** run **Strategy 1 = `legacy1`** only when explicitly requested as a robustness/sensitivity check.
 
-This file currently includes four snapshots:
+This file currently includes baseline-first updates plus historical snapshots:
+- **Latest baseline-first update (Strategy 2 / `profiled1`, 2026-02-06):**
+  - new 3-model batch status (`GLM-4.7-FP8`, `MiniMax-M2.1-TEE`, `grok-4.1-fast`)
+  - Qwen-coder top-up (3 additional reps/cell) and 5-run median tables under Strategy 2
+- **v5.5 combined14 view (Strategy 2 / `profiled1`):** 4 competition tables with 14 models (old5 + working6 + new3).
 - **v5.5 combined view (11 models):** old5 + working6, each shown under Strategy 1 and Strategy 2 (single tables for easy scanning).
 - **v5.5 working models (recommended current view):** 6 new Chutes models, reported under both Strategy 2 (`profiled1`) and Strategy 1 (`legacy1`) with 2-run replication.
 - **v5 legacy snapshot:** the older 5-model `v3_fast.json` table, kept for reference.
@@ -31,6 +35,115 @@ Note: snapshots are not guaranteed apples-to-apples unless the models are re-run
 Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
 - Each snapshot explicitly defines its replication/selection policy (e.g., “best of 2 successful runs”).
+
+## Latest baseline-first update (Strategy 2 = `profiled1`, 2026-02-06)
+
+### 1) 3-model expansion batch status (GLM-4.7-FP8 + MiniMax-M2.1-TEE + grok-4.1-fast)
+
+Source DB (not committed):
+- `results/results_v5_5_user_selected3_r2_v2.sqlite`
+- mode: `v5_5_user_selected3_r2_v2`
+- target: 2 successful runs per cell across 4 competitions × 3 profiles × 3 models = 72 successful runs
+
+Status summary:
+- `simple-baseline` (240s): complete (`24/24` successful runs; plus 1 earlier timeout attempt)
+- `good-baseline` (600s): partial (`17/24` successful runs; 6 timeouts, 1 runtime_error)
+- `sota-xgb` (1200s): complete (`24/24` successful runs)
+- remaining gap for full 2-run fill: **7 successful runs across 5 cells** (all in `good-baseline`)
+
+Missing `good-baseline` cells (`successes < 2`):
+- `foot-traffic-wuerzburg-retail-forecasting-2-0` / `zai-org/GLM-4.7-FP8` (`1/2`)
+- `playground-series-s5e10` / `MiniMaxAI/MiniMax-M2.1-TEE` (`1/2`)
+- `playground-series-s5e10` / `x-ai/grok-4.1-fast` (`0/2`)
+- `playground-series-s6e1` / `MiniMaxAI/MiniMax-M2.1-TEE` (`1/2`)
+- `playground-series-s6e1` / `x-ai/grok-4.1-fast` (`0/2`)
+
+### 2) Qwen-coder top-up run (3 additional reps/cell) completed
+
+Source DBs (not committed):
+- new top-up: `results/results_v5_5_qwen_topup3.sqlite` (mode `v5_5_qwen_topup3`, Strategy 2)
+- prior 2-rep baseline: `results/results_v5_5_v3fast_profiled1_r2.sqlite` (mode `v5_5_v3fast_profiled1_r2`, Strategy 2)
+
+Top-up execution result:
+- `results/results_v5_5_qwen_topup3.sqlite`: **36/36 successes** (`4 competitions × 3 profiles × 3 runs`)
+
+Combined Qwen coverage under Strategy 2:
+- prior 2 reps + new 3 reps = **5 runs per cell**
+- medians below are computed over those 5 successful runs per cell.
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| profile | median (5 runs) |
+|---|---:|
+| simple-baseline (240s) | 0.918860 |
+| good-baseline (600s) | 0.927958 |
+| sota-xgb (1200s) | 0.926755 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| profile | median (5 runs) |
+|---|---:|
+| simple-baseline (240s) | 0.070603 |
+| good-baseline (600s) | 0.066528 |
+| sota-xgb (1200s) | 0.066263 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| profile | median (5 runs) |
+|---|---:|
+| simple-baseline (240s) | 0.059786 |
+| good-baseline (600s) | 0.056924 |
+| sota-xgb (1200s) | 0.056212 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| profile | median (5 runs) |
+|---|---:|
+| simple-baseline (240s) | 9.145977 |
+| good-baseline (600s) | 8.805455 |
+| sota-xgb (1200s) | 8.728897 |
+
+## Snapshot: v5.5 combined14 (Strategy 2 `profiled1`; 14 models)
+
+Scope:
+- Suite: v5_core (4 competitions)
+- Prompt strategy: Strategy 2 = `profiled1`
+- Budgets: 240 / 600 / 1200 seconds
+- Models: old5 + working6 + new3 = 14 models
+
+Sources (not committed):
+- `results/results_v5_5_v3fast_profiled1_r2.sqlite` (old5, 2 runs/cell)
+- `results/results_v5_5_working6_suite.sqlite` + `results/results_v5_5_working6_profiled1_rep2.sqlite` (working6, 2 reps)
+- `results/results_v5_5_user_selected3_r2_v2.sqlite` (new3, mode `v5_5_user_selected3_r2_v2`; currently has 7 missing good-baseline successful runs)
+- Selection rule: per cell, best successful `score_raw` across available Strategy-2 runs; if no success, most common failure status.
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE | GLM-4.7-FP8 | MiniMax-M2.1-TEE | grok-4.1-fast |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.928373 | 0.922710 | 0.927815 | timeout | timeout | 0.909941 | 0.924814 | 0.924826 | 0.925424 | 0.925413 | 0.925956 | 0.922968 | 0.928604 | 0.926189 |
+| 600 | 0.924451 | 0.928659 | 0.926028 | timeout | timeout | 0.850738 | 0.919885 | 0.927855 | 0.927687 | 0.928364 | 0.926987 | 0.927849 | 0.926060 | 0.927284 |
+| 1200 | 0.924792 | 0.928123 | 0.926563 | timeout | timeout | 0.922933 | 0.925522 | 0.922392 | 0.917111 | 0.922475 | 0.928149 | 0.924275 | 0.928686 | 0.927162 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE | GLM-4.7-FP8 | MiniMax-M2.1-TEE | grok-4.1-fast |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.068472 | 0.066768 | 0.067363 | timeout | timeout | 0.083345 | 0.067424 | 0.070876 | 0.090144 | 0.068445 | 0.091271 | 0.067629 | 0.066023 | 0.066299 |
+| 600 | 0.166052 | 0.066198 | 0.066245 | timeout | timeout | 0.070319 | 0.070643 | 0.067320 | 0.082290 | 0.066317 | 0.090884 | 0.066399 | 0.065737 | 0.065909 |
+| 1200 | 0.065960 | 0.065874 | timeout | 0.081453 | timeout | 0.082189 | 0.066719 | 0.065670 | 0.078471 | 0.065235 | 0.080876 | 0.066356 | 0.065363 | 0.065376 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE | GLM-4.7-FP8 | MiniMax-M2.1-TEE | grok-4.1-fast |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 0.056328 | 0.056353 | 0.056334 | timeout | timeout | 0.056991 | 0.059679 | 0.056384 | 0.056971 | 0.056293 | 0.056324 | 0.056342 | 0.056200 | 0.056216 |
+| 600 | 0.056272 | 0.056199 | 0.056224 | timeout | timeout | 0.056311 | 0.056443 | 0.056274 | 0.056727 | 0.056383 | 0.056669 | 0.056258 | 0.056208 | timeout |
+| 1200 | 0.056199 | 0.056176 | 0.056175 | timeout | timeout | 0.056229 | 0.056181 | 0.056232 | 0.056158 | 0.056298 | 0.056254 | 0.056197 | 0.056182 | 0.056156 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini | DeepSeek TNG R1T2 Chimera | Kimi K2 Instruct 0905 | Devstral-2-123B | NVIDIA-Nemotron-3-Nano | GLM 4.7 Flash | GPT OSS 120B TEE | GLM-4.7-FP8 | MiniMax-M2.1-TEE | grok-4.1-fast |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 240 | 9.150546 | 9.117905 | 9.103240 | timeout | timeout | 8.878813 | 9.106100 | 8.878806 | 10.604385 | 8.770655 | 8.837352 | 8.788779 | 8.746589 | 8.692909 |
+| 600 | 8.792208 | 8.741439 | 8.779253 | 9.939816 | timeout | 13.444163 | 8.808211 | 8.780335 | 9.018375 | 8.767801 | 8.738090 | 8.757227 | 8.755826 | timeout |
+| 1200 | 8.791701 | 8.728897 | 8.696671 | timeout | timeout | 8.721937 | 8.758513 | 8.712406 | 8.740705 | 8.822877 | 8.760239 | 8.730949 | 8.699779 | 8.701198 |
 
 ## Apples-to-apples strategy comparison (what to use)
 
