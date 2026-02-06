@@ -57,6 +57,7 @@ Write an entry:
 - after onboarding
 - after each meaningful milestone (decision, change, run result)
 - after any failure worth remembering
+- after each long async run completion/failure, including a postmortem summary (root cause + evidence paths)
 
 ## Wrap-up + handoff procedure (trigger: `wrap up` / `handoff`)
 **Goal:** produce a clean handoff and a safe git commit on the current branch.

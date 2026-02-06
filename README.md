@@ -71,6 +71,9 @@ Resume a sweep without rerunning completed configs (DB-backed):
 Run the core 4-competition suite end-to-end:
 - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume`
 
+Safety note:
+- `orchestrator.suite` now applies a per-competition safety cap for `foot-traffic-wuerzburg-retail-forecasting-2-0` and forces `--concurrency 1` there (to reduce OOM risk from high-cardinality feature explosions), while leaving concurrency unchanged for other competitions.
+
 Reliable async launcher for long unattended runs:
 - Start (detached):  
   `python scripts/async_suite_runner.py start --run-name my_batch --models-path orchestrator/model_sets/v5_5_user_selected3.json --db-path results/results_my_batch.sqlite --mode my_batch --runs-per-model 2 --concurrency 3`
@@ -80,6 +83,10 @@ Reliable async launcher for long unattended runs:
   `python scripts/async_suite_runner.py list`
 - Stop run:  
   `python scripts/async_suite_runner.py stop --run-name my_batch`
+- Generate postmortem:  
+  `python scripts/async_suite_runner.py diagnose --run-name my_batch`
+- Reconcile stale run states after crashes:  
+  `python scripts/async_suite_runner.py reconcile`
 
 ## Refreshing after prompt changes
 If you change `prompts/` (base prompt or prompt profiles) and want an apples-to-apples leaderboard, use a fresh DB path for the new run batch:

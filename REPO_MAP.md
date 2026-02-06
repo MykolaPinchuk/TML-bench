@@ -18,14 +18,14 @@ Keep this file short. Update it only when something important changes.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
-- `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite).
+- `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
 - `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
 - `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).
 - `orchestrator/spec_sanity.py` — monotonicity sanity report across s-b/g-b/sota (supports fixed-prompt via `--prompt-profile`).
 - `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).
 - `orchestrator/baselines.py` — compute + record host baselines (`hgb`, `constant`) into sqlite for absolute normalization.
 - `scripts/setup_kilo_providers.py` — configure Kilo providers from `secrets/provider_apis.txt` (untracked).
-- `scripts/async_suite_runner.py` — detached long-run launcher with PID/log/status tracking, retries, and operator status commands.
+- `scripts/async_suite_runner.py` — detached long-run launcher with PID/log/status tracking, retries, structured `events.jsonl`, and `postmortem.md` diagnostics.
 - `orchestrator/suites/mono_chutes_churn_s6e1.json` — 2-competition suite used for monotonicity checks.
 - `orchestrator/model_sets/chutes_mono_toolcapable_3.json` — Chutes-only monotonicity model set.
 

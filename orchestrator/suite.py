@@ -15,6 +15,11 @@ from orchestrator.leaderboard import (
 )
 from orchestrator.preflight import preflight_one
 
+SAFE_COMPETITION_CONCURRENCY_CAPS = {
+    # Foot-traffic has very high-cardinality `id`; some generated pipelines one-hot it and can OOM.
+    "foot-traffic-wuerzburg-retail-forecasting-2-0": 1,
+}
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -239,8 +244,18 @@ def main() -> int:
             cmd += ["--prompt-profile", str(args.prompt_profile)]
         if args.prompt_strategy is not None:
             cmd += ["--prompt-strategy", str(args.prompt_strategy)]
-        if args.concurrency is not None:
-            cmd += ["--concurrency", str(int(args.concurrency))]
+        requested_concurrency = int(args.concurrency) if args.concurrency is not None else None
+        effective_concurrency = requested_concurrency
+        safe_cap = SAFE_COMPETITION_CONCURRENCY_CAPS.get(cid)
+        if safe_cap is not None and (effective_concurrency is None or effective_concurrency > int(safe_cap)):
+            requested_label = "default" if effective_concurrency is None else str(effective_concurrency)
+            effective_concurrency = int(safe_cap)
+            print(
+                f"note: applying safe concurrency cap for {cid}: "
+                f"requested={requested_label} effective={effective_concurrency}"
+            )
+        if effective_concurrency is not None:
+            cmd += ["--concurrency", str(int(effective_concurrency))]
         if args.max_models is not None:
             cmd += ["--max-models", str(int(args.max_models))]
         if args.max_runs is not None:
