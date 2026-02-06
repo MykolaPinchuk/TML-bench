@@ -43,6 +43,10 @@ Current status (strategy comparison; v5.5):
 Operational note (avoid disk-full failures):
 - Kilo stdout event logs are capped by default via `TML_KILO_STDOUT_MAX_BYTES` (documented in `README.md`).
 
+Operational note (async reliability):
+- Read `a2a_notes.md` before launching long runs.
+- Use `python scripts/async_suite_runner.py start ...` for multi-hour suite batches so PID/log/status are durable and visible to the operator.
+
 Scope:
 - Add more models (split into a “main” tool-capable set vs “experimental” as needed).
 - Add 1 more real competition (bringing the suite to 5 competitions; keep `toy_regression` as fixtures only).

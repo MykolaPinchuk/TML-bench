@@ -294,7 +294,7 @@ def main() -> int:
         ns = argparse.Namespace(
             competition_id=args.competition_id,
             run_id=run_id,
-            # In parallel mode, avoid sqlite write contention by recording to DB once at the end.
+            # In parallel mode, each worker writes result.json; DB import happens in the main thread.
             db_path=args.db_path if args.concurrency <= 1 else None,
             per_competition=args.per_competition,
             provider=provider,
@@ -311,6 +311,17 @@ def main() -> int:
         )
         rc = int(cmd_auto(ns))
         return run_id, rc
+
+    def _import_run_result(*, db_path: Path, run_id: str) -> None:
+        result_path = repo_root / "runs" / run_id / "result.json"
+        if not result_path.exists():
+            print(f"warning: missing result.json for run_id {run_id}")
+            return
+        try:
+            rr = read_result_json(result_path)
+            insert_run(db_path, rr)
+        except Exception as e:  # noqa: BLE001
+            print(f"warning: failed DB import for run_id {run_id}: {type(e).__name__}: {e}")
 
     failures = 0
     run_ids: list[str] = []
@@ -335,10 +346,11 @@ def main() -> int:
             run_id = default_run_id(competition_id=args.competition_id)
             scheduled.append((provider, model_id, run_id))
 
-        print(f"concurrency: {args.concurrency} (DB/leaderboard updated after runs complete)")
+        print(f"concurrency: {args.concurrency} (DB updated as each run completes)")
         for i, (provider, model_id, run_id) in enumerate(scheduled, start=1):
             print(f"- scheduled {i}/{len(scheduled)}: {provider} :: {model_id} (run_id {run_id})")
 
+        dbp = Path(args.db_path) if args.db_path else None
         with ThreadPoolExecutor(max_workers=int(args.concurrency)) as ex:
             futs = [ex.submit(_run_one, provider=p, model_id=m, run_id=r) for (p, m, r) in scheduled]
             for fut in as_completed(futs):
@@ -352,10 +364,11 @@ def main() -> int:
                 if rc != 0:
                     failures += 1
                     print(f"nonzero exit: {rc} (run_id {run_id})")
+                if dbp is not None:
+                    _import_run_result(db_path=dbp, run_id=run_id)
 
-        # Import results into DB/leaderboards once, deterministically.
-        if args.db_path:
-            dbp = Path(args.db_path)
+        # Refresh baselines and do a final deterministic import pass.
+        if dbp is not None:
             try:
                 ensure_competition_baselines(
                     db_path=dbp,
@@ -367,11 +380,7 @@ def main() -> int:
             except Exception:  # noqa: BLE001
                 pass
             for run_id in run_ids:
-                result_path = repo_root / "runs" / run_id / "result.json"
-                if not result_path.exists():
-                    continue
-                rr = read_result_json(result_path)
-                insert_run(dbp, rr)
+                _import_run_result(db_path=dbp, run_id=run_id)
 
             if args.write_leaderboards:
                 lb_paths = LeaderboardPaths(

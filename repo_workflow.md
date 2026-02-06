@@ -33,6 +33,7 @@ Note: agents are allowed to create **additional** safe checkpoint commits withou
    - `onboarding.md`
    - `HANDOFF.md`
    - `REPO_MAP.md`
+   - `a2a_notes.md`
    - `README.md` (focus on "For agents" section)
    - `prd.md`
 

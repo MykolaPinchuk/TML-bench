@@ -8,6 +8,7 @@ Keep this file short. Update it only when something important changes.
 - `onboarding.md` — onboarding procedure when triggered.
 - `HANDOFF.md` — current objective, next steps, and state.
 - `REPO_MAP.md` — index of important files and hot paths.
+- `a2a_notes.md` — mandatory async-run reliability contract and lessons learned from prior failures.
 - `README.md` — repo overview and agent start points.
 - `agent_logs/current.md` — live execution log for this cycle.
 - `prd.md` — product requirements / architecture / phased plan.
@@ -24,6 +25,7 @@ Keep this file short. Update it only when something important changes.
 - `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).
 - `orchestrator/baselines.py` — compute + record host baselines (`hgb`, `constant`) into sqlite for absolute normalization.
 - `scripts/setup_kilo_providers.py` — configure Kilo providers from `secrets/provider_apis.txt` (untracked).
+- `scripts/async_suite_runner.py` — detached long-run launcher with PID/log/status tracking, retries, and operator status commands.
 - `orchestrator/suites/mono_chutes_churn_s6e1.json` — 2-competition suite used for monotonicity checks.
 - `orchestrator/model_sets/chutes_mono_toolcapable_3.json` — Chutes-only monotonicity model set.
 

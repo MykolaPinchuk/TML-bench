@@ -25,6 +25,7 @@ Start here (in order):
 - `onboarding.md` (how onboarding works here)
 - `HANDOFF.md` (current state / next steps)
 - `REPO_MAP.md` (index of important files)
+- `a2a_notes.md` (critical async-run reliability rules and failure lessons)
 - `agent_logs/current.md` (live execution log; history indexed in `agent_logs/INDEX.md`)
 - `prd.md` (product requirements; phases, architecture)
 
@@ -69,6 +70,16 @@ Resume a sweep without rerunning completed configs (DB-backed):
 ## Phase 5 (multi-competition suite)
 Run the core 4-competition suite end-to-end:
 - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume`
+
+Reliable async launcher for long unattended runs:
+- Start (detached):  
+  `python scripts/async_suite_runner.py start --run-name my_batch --models-path orchestrator/model_sets/v5_5_user_selected3.json --db-path results/results_my_batch.sqlite --mode my_batch --runs-per-model 2 --concurrency 3`
+- Check status:  
+  `python scripts/async_suite_runner.py status --run-name my_batch`
+- List runs:  
+  `python scripts/async_suite_runner.py list`
+- Stop run:  
+  `python scripts/async_suite_runner.py stop --run-name my_batch`
 
 ## Refreshing after prompt changes
 If you change `prompts/` (base prompt or prompt profiles) and want an apples-to-apples leaderboard, use a fresh DB path for the new run batch:
