@@ -23,6 +23,7 @@ Current run policy:
 This file currently includes baseline-first updates plus historical snapshots:
 - **Latest baseline-first update (Strategy 2 / `profiled1`, 2026-02-07):**
   - 3-model 5-run top-up run `v5_5_topup3models_r5_20260206_r6` completed with model circuit-breaker enabled
+  - new dedicated 5-run median tables for fully complete models (`Qwen3-Coder-480B-A35B-Instruct-FP8`, `GPT OSS 120B TEE`, `GLM-4.7-FP8`)
   - active gaps closed (`final_missing=0`), remaining underfilled cells are explicitly marked deferred for later retry
 - **Prior baseline-first update (Strategy 2 / `profiled1`, 2026-02-06):**
   - new 3-model batch status (`GLM-4.7-FP8`, `MiniMax-M2.1-TEE`, `grok-4.1-fast`)
@@ -59,6 +60,48 @@ Completion summary:
 - `simple-baseline` (240s): active gaps closed (`final_missing=0`), deferred gap = 3 cells / 11 runs
 - `good-baseline` (600s): active gaps closed (`final_missing=0`), deferred gap = 4 cells / 19 runs
 - `sota-xgb` (1200s): active gaps closed (`final_missing=0`), deferred gap = 4 cells / 16 runs
+
+5-run completion status by model (Strategy 2 / `profiled1`, combined from the listed source DBs):
+- `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`: 12/12 cells complete
+- `openai/gpt-oss-120b-TEE`: 12/12 cells complete
+- `zai-org/GLM-4.7-FP8`: 12/12 cells complete
+
+### 1.1) Dedicated 5-run median tables (fully complete models only)
+
+Method:
+- For each model × competition × profile cell, take the earliest 5 successful runs by `created_at` from the listed Strategy-2 source DBs and compute median `score_raw`.
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| profile | Qwen3-Coder-480B-A35B-Instruct-FP8 | GPT OSS 120B TEE | GLM-4.7-FP8 |
+|---|---:|---:|---:|
+| simple-baseline (240s) | 0.918860 | 0.886890 | 0.923560 |
+| good-baseline (600s) | 0.927958 | 0.926987 | 0.926432 |
+| sota-xgb (1200s) | 0.926755 | 0.928000 | 0.924275 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B-Instruct-FP8 | GPT OSS 120B TEE | GLM-4.7-FP8 |
+|---|---:|---:|---:|
+| simple-baseline (240s) | 0.070603 | 0.091293 | 0.067629 |
+| good-baseline (600s) | 0.066528 | 0.090884 | 0.066475 |
+| sota-xgb (1200s) | 0.066263 | 0.080920 | 0.066571 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B-Instruct-FP8 | GPT OSS 120B TEE | GLM-4.7-FP8 |
+|---|---:|---:|---:|
+| simple-baseline (240s) | 0.059786 | 0.056965 | 0.056363 |
+| good-baseline (600s) | 0.056924 | 0.056943 | 0.056258 |
+| sota-xgb (1200s) | 0.056212 | 0.056288 | 0.056212 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B-Instruct-FP8 | GPT OSS 120B TEE | GLM-4.7-FP8 |
+|---|---:|---:|---:|
+| simple-baseline (240s) | 9.145977 | 8.844860 | 8.788779 |
+| good-baseline (600s) | 8.805455 | 8.839272 | 8.757437 |
+| sota-xgb (1200s) | 8.728897 | 8.760239 | 8.730949 |
 
 Deferred cells to revisit in a later cooldown window:
 - `simple-baseline` (240s):
