@@ -21,7 +21,10 @@ Current run policy:
 - **Robustness strategy:** run **Strategy 1 = `legacy1`** only when explicitly requested as a robustness/sensitivity check.
 
 This file currently includes baseline-first updates plus historical snapshots:
-- **Latest baseline-first update (Strategy 2 / `profiled1`, 2026-02-06):**
+- **Latest baseline-first update (Strategy 2 / `profiled1`, 2026-02-07):**
+  - 3-model 5-run top-up run `v5_5_topup3models_r5_20260206_r6` completed with model circuit-breaker enabled
+  - active gaps closed (`final_missing=0`), remaining underfilled cells are explicitly marked deferred for later retry
+- **Prior baseline-first update (Strategy 2 / `profiled1`, 2026-02-06):**
   - new 3-model batch status (`GLM-4.7-FP8`, `MiniMax-M2.1-TEE`, `grok-4.1-fast`)
   - Qwen-coder top-up (3 additional reps/cell) and 5-run median tables under Strategy 2
 - **v5.5 combined14 view (Strategy 2 / `profiled1`):** 4 competition tables with 14 models (old5 + working6 + new3).
@@ -36,9 +39,46 @@ Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
 - Each snapshot explicitly defines its replication/selection policy (e.g., “best of 2 successful runs”).
 
-## Latest baseline-first update (Strategy 2 = `profiled1`, 2026-02-06)
+## Latest baseline-first update (Strategy 2 = `profiled1`, 2026-02-07)
 
-### 1) 3-model expansion batch status (GLM-4.7-FP8 + MiniMax-M2.1-TEE + grok-4.1-fast)
+### 1) 3-model top-up to 5 runs/cell (`v5_5_topup3models_r5`) completed with circuit-breaker accounting
+
+Sources (not committed):
+- DB: `results/results_v5_5_topup3models_r5.sqlite`
+- mode: `v5_5_topup3models_r5`
+- model set: `orchestrator/model_sets/v5_5_topup_kimi_gptoss_glm47fp8.json`
+- suite: `orchestrator/suites/v5_all.json`
+- completed run: `tmp/async_runs/v5_5_topup3models_r5_20260206_r6` (finished 2026-02-07 04:35:33 PST)
+
+Run policy used:
+- Strategy: `profiled1`
+- target: 5 successful runs per (competition, model, profile) cell
+- circuit-breaker: block model after 3 consecutive non-successes in a 24-hour window; blocked gaps are reported as `deferred`
+
+Completion summary:
+- `simple-baseline` (240s): active gaps closed (`final_missing=0`), deferred gap = 3 cells / 11 runs
+- `good-baseline` (600s): active gaps closed (`final_missing=0`), deferred gap = 4 cells / 19 runs
+- `sota-xgb` (1200s): active gaps closed (`final_missing=0`), deferred gap = 4 cells / 16 runs
+
+Deferred cells to revisit in a later cooldown window:
+- `simple-baseline` (240s):
+  - `foot-traffic-wuerzburg-retail-forecasting-2-0` / `openai/gpt-oss-120b-TEE`: `4/5` successes (`12` timeouts)
+  - `playground-series-s5e10` / `moonshotai/Kimi-K2-Instruct-0905`: `0/5` successes (`25` timeouts)
+  - `playground-series-s6e1` / `moonshotai/Kimi-K2-Instruct-0905`: `0/5` successes (`23` timeouts)
+- `good-baseline` (600s):
+  - `bank-customer-churn-ict-u-ai` / `moonshotai/Kimi-K2-Instruct-0905`: `0/5` successes (`5` timeouts)
+  - `foot-traffic-wuerzburg-retail-forecasting-2-0` / `moonshotai/Kimi-K2-Instruct-0905`: `0/5` successes (`5` timeouts)
+  - `playground-series-s5e10` / `moonshotai/Kimi-K2-Instruct-0905`: `0/5` successes (`5` timeouts)
+  - `playground-series-s6e1` / `moonshotai/Kimi-K2-Instruct-0905`: `1/5` successes (`4` timeouts)
+- `sota-xgb` (1200s):
+  - `bank-customer-churn-ict-u-ai` / `moonshotai/Kimi-K2-Instruct-0905`: `1/5` successes (`4` timeouts)
+  - `foot-traffic-wuerzburg-retail-forecasting-2-0` / `moonshotai/Kimi-K2-Instruct-0905`: `1/5` successes (`4` timeouts)
+  - `playground-series-s5e10` / `moonshotai/Kimi-K2-Instruct-0905`: `1/5` successes (`4` timeouts)
+  - `playground-series-s6e1` / `moonshotai/Kimi-K2-Instruct-0905`: `1/5` successes (`4` timeouts)
+
+### 2) Previous update retained below (2026-02-06 context)
+
+### 2.1) 3-model expansion batch status (GLM-4.7-FP8 + MiniMax-M2.1-TEE + grok-4.1-fast)
 
 Source DB (not committed):
 - `results/results_v5_5_user_selected3_r2_v2.sqlite`
@@ -58,7 +98,7 @@ Missing `good-baseline` cells (`successes < 2`):
 - `playground-series-s6e1` / `MiniMaxAI/MiniMax-M2.1-TEE` (`1/2`)
 - `playground-series-s6e1` / `x-ai/grok-4.1-fast` (`0/2`)
 
-### 2) Qwen-coder top-up run (3 additional reps/cell) completed
+### 2.2) Qwen-coder top-up run (3 additional reps/cell) completed
 
 Source DBs (not committed):
 - new top-up: `results/results_v5_5_qwen_topup3.sqlite` (mode `v5_5_qwen_topup3`, Strategy 2)
