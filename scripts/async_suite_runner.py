@@ -14,7 +14,7 @@ import sys
 import threading
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -236,6 +236,157 @@ def _missing_cells(
     return missing, missing_runs
 
 
+def _missing_runs_total(cells: list[dict[str, Any]]) -> int:
+    return int(sum(int(c.get("need", 0)) for c in cells))
+
+
+def _split_missing_by_blocked_models(
+    missing: list[dict[str, Any]], blocked_models: set[tuple[str, str]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    active: list[dict[str, Any]] = []
+    deferred: list[dict[str, Any]] = []
+    for cell in missing:
+        key = (str(cell.get("provider") or ""), str(cell.get("model_id") or ""))
+        if key in blocked_models:
+            deferred.append(cell)
+        else:
+            active.append(cell)
+    return active, deferred
+
+
+def _parse_created_at(raw: Any) -> datetime | None:
+    if not isinstance(raw, str):
+        return None
+    text = raw.strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
+    return dt
+
+
+def _blocked_models_by_recent_failures(
+    *,
+    db_path: Path,
+    prompt_profile: str,
+    prompt_strategy: str,
+    mode: str,
+    budget_seconds: int,
+    failure_threshold: int,
+    window_hours: float,
+) -> tuple[set[tuple[str, str]], dict[tuple[str, str], dict[str, Any]]]:
+    blocked: set[tuple[str, str]] = set()
+    details: dict[tuple[str, str], dict[str, Any]] = {}
+    if failure_threshold <= 0 or window_hours <= 0:
+        return blocked, details
+    if not db_path.exists():
+        return blocked, details
+
+    rows: list[tuple[str, str, str, str, str, str]] = []
+    con = sqlite3.connect(db_path)
+    try:
+        cur = con.cursor()
+        cur.execute(
+            """
+            SELECT provider, model_id, status, created_at, competition_id, run_id
+            FROM runs
+            WHERE prompt_profile=?
+              AND prompt_strategy=?
+              AND COALESCE(mode, '')=?
+              AND budget_time_seconds=?
+            """,
+            (prompt_profile, prompt_strategy, mode, int(budget_seconds)),
+        )
+        rows = [
+            (
+                str(r[0] or ""),
+                str(r[1] or ""),
+                str(r[2] or ""),
+                str(r[3] or ""),
+                str(r[4] or ""),
+                str(r[5] or ""),
+            )
+            for r in cur.fetchall()
+        ]
+    except sqlite3.OperationalError:
+        return blocked, details
+    finally:
+        con.close()
+
+    cutoff = datetime.now().astimezone() - timedelta(hours=float(window_hours))
+    by_model: dict[tuple[str, str], list[tuple[datetime, str, str, str]]] = {}
+    for provider, model_id, status, created_at, competition_id, run_id in rows:
+        if not provider or not model_id or not status:
+            continue
+        dt = _parse_created_at(created_at)
+        if dt is None or dt < cutoff:
+            continue
+        by_model.setdefault((provider, model_id), []).append((dt, status, competition_id, run_id))
+
+    for key, recs in by_model.items():
+        recs.sort(key=lambda x: x[0], reverse=True)
+        consecutive_failures = 0
+        for _, status, _, _ in recs:
+            if status == "success":
+                break
+            consecutive_failures += 1
+
+        if consecutive_failures >= int(failure_threshold):
+            blocked.add(key)
+            details[key] = {
+                "consecutive_failures": int(consecutive_failures),
+                "window_hours": float(window_hours),
+                "recent": [
+                    {
+                        "created_at": dt.isoformat(timespec="seconds"),
+                        "status": status,
+                        "competition_id": competition_id,
+                        "run_id": run_id,
+                    }
+                    for (dt, status, competition_id, run_id) in recs[:10]
+                ],
+            }
+    return blocked, details
+
+
+def _write_filtered_model_set(
+    *,
+    src_path: Path,
+    dst_path: Path,
+    blocked_models: set[tuple[str, str]],
+) -> tuple[int, int]:
+    raw = _load_json(src_path)
+    models = raw.get("models")
+    if not isinstance(models, list):
+        raise ValueError(f"Invalid model set file (missing models list): {src_path}")
+
+    kept_models: list[dict[str, Any]] = []
+    total = 0
+    for m in models:
+        if not isinstance(m, dict):
+            continue
+        provider = str(m.get("provider") or "").strip()
+        model_id = str(m.get("model_id") or "").strip()
+        if not provider or not model_id:
+            continue
+        total += 1
+        if (provider, model_id) in blocked_models:
+            continue
+        kept_models.append(m)
+
+    obj = dict(raw)
+    obj["models"] = kept_models
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    dst_path.write_text(json.dumps(obj, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    return len(kept_models), int(total)
+
+
 def _update_status(run_dir: Path, **patch: Any) -> None:
     status_path = run_dir / "status.json"
     status: dict[str, Any] = {}
@@ -308,6 +459,12 @@ def _write_postmortem(run_dir: Path, *, extra_notes: list[str] | None = None) ->
         lines.append(json.dumps(status["final_missing"], indent=2, sort_keys=True))
         lines.append("```")
         lines.append("")
+    if "final_deferred" in status:
+        lines.append("## final_deferred")
+        lines.append("```json")
+        lines.append(json.dumps(status["final_deferred"], indent=2, sort_keys=True))
+        lines.append("```")
+        lines.append("")
 
     attempts = status.get("attempts")
     if isinstance(attempts, dict):
@@ -344,6 +501,9 @@ def _run_worker(run_dir: Path) -> int:
     max_attempts = int(cfg["max_attempts"])
     retry_sleep_seconds = int(cfg["retry_sleep_seconds"])
     resume_any_status = bool(cfg.get("resume_any_status", False))
+    model_circuit_breaker_enabled = bool(cfg.get("model_circuit_breaker_enabled", False))
+    model_failure_threshold = int(cfg.get("model_failure_threshold", 3))
+    model_failure_window_hours = float(cfg.get("model_failure_window_hours", 24))
     profiles = [str(x) for x in cfg.get("profiles", DEFAULT_PROFILES)]
 
     competitions = _load_suite_competitions(suite_path)
@@ -377,6 +537,9 @@ def _run_worker(run_dir: Path) -> int:
         profiles=profiles,
         mode=mode,
         db_path=str(db_path),
+        model_circuit_breaker_enabled=model_circuit_breaker_enabled,
+        model_failure_threshold=model_failure_threshold,
+        model_failure_window_hours=model_failure_window_hours,
     )
 
     stop_event = threading.Event()
@@ -412,6 +575,59 @@ def _run_worker(run_dir: Path) -> int:
             _append_event(run_dir, "profile_start", profile=profile, budget_seconds=budget_seconds)
 
             for attempt in range(1, max_attempts + 1):
+                blocked_models: set[tuple[str, str]] = set()
+                blocked_details: dict[tuple[str, str], dict[str, Any]] = {}
+                if model_circuit_breaker_enabled:
+                    blocked_models, blocked_details = _blocked_models_by_recent_failures(
+                        db_path=db_path,
+                        prompt_profile=profile,
+                        prompt_strategy=prompt_strategy,
+                        mode=mode,
+                        budget_seconds=budget_seconds,
+                        failure_threshold=model_failure_threshold,
+                        window_hours=model_failure_window_hours,
+                    )
+
+                blocked_labels = [f"{p}::{m}" for (p, m) in sorted(blocked_models)]
+                attempt_models_path = models_path
+                kept_models = len(models)
+                total_models = len(models)
+                if blocked_models:
+                    attempt_models_path = run_dir / "tmp_models" / f"{profile}_attempt{attempt}.json"
+                    kept_models, total_models = _write_filtered_model_set(
+                        src_path=models_path,
+                        dst_path=attempt_models_path,
+                        blocked_models=blocked_models,
+                    )
+                    print(
+                        f"[{_now_iso()}] model circuit-breaker: blocked_models={len(blocked_models)} "
+                        f"kept_models={kept_models}/{total_models} "
+                        f"(threshold={model_failure_threshold} failures, window={model_failure_window_hours}h)"
+                    )
+                    for provider, model_id in sorted(blocked_models):
+                        label = f"{provider}::{model_id}"
+                        detail = blocked_details.get((provider, model_id), {})
+                        streak = int(detail.get("consecutive_failures", 0))
+                        print(f"  - blocked: {label} (consecutive_failures={streak})")
+                    sys.stdout.flush()
+                    _append_event(
+                        run_dir,
+                        "model_circuit_breaker",
+                        profile=profile,
+                        attempt=attempt,
+                        threshold=model_failure_threshold,
+                        window_hours=model_failure_window_hours,
+                        blocked_models=blocked_labels,
+                        blocked_details=[
+                            {
+                                "provider": p,
+                                "model_id": m,
+                                **blocked_details.get((p, m), {}),
+                            }
+                            for (p, m) in sorted(blocked_models)
+                        ],
+                    )
+
                 _update_status(
                     run_dir,
                     current_profile=profile,
@@ -425,7 +641,7 @@ def _run_worker(run_dir: Path) -> int:
                     "--suite-path",
                     str(suite_path),
                     "--models-path",
-                    str(models_path),
+                    str(attempt_models_path),
                     "--profile",
                     str(profile),
                     "--runs-per-model",
@@ -457,12 +673,27 @@ def _run_worker(run_dir: Path) -> int:
                 )
                 sys.stdout.flush()
 
-                proc = subprocess.run(cmd, cwd=repo_root)
-                rc = int(proc.returncode)
+                if kept_models <= 0:
+                    rc = 0
+                    _append_event(
+                        run_dir,
+                        "profile_attempt_skipped",
+                        profile=profile,
+                        attempt=attempt,
+                        reason="all_models_blocked_by_circuit_breaker",
+                    )
+                    print(
+                        f"[{_now_iso()}] profile={profile} attempt={attempt} skipped: "
+                        "all models blocked by circuit-breaker"
+                    )
+                    sys.stdout.flush()
+                else:
+                    proc = subprocess.run(cmd, cwd=repo_root)
+                    rc = int(proc.returncode)
                 rc_kind = "exit_code" if rc >= 0 else "signal"
                 rc_value = rc if rc >= 0 else (-rc)
 
-                missing, missing_runs = _missing_cells(
+                missing_all, missing_runs_all = _missing_cells(
                     db_path=db_path,
                     competitions=competitions,
                     models=models,
@@ -472,27 +703,45 @@ def _run_worker(run_dir: Path) -> int:
                     mode=mode,
                     budget_seconds=budget_seconds,
                 )
+                missing_active, deferred_missing = _split_missing_by_blocked_models(
+                    missing_all, blocked_models
+                )
+                missing_runs = _missing_runs_total(missing_active)
+                deferred_runs = _missing_runs_total(deferred_missing)
                 summary = {
                     "attempt": attempt,
                     "finished_at": _now_iso(),
                     "returncode": rc,
                     "return_kind": rc_kind,
                     "return_value": rc_value,
-                    "missing_cells": len(missing),
+                    "missing_cells": len(missing_active),
                     "missing_runs": missing_runs,
+                    "missing_cells_total": len(missing_all),
+                    "missing_runs_total": int(missing_runs_all),
+                    "deferred_cells": len(deferred_missing),
+                    "deferred_runs": deferred_runs,
+                    "blocked_models": blocked_labels,
                 }
                 attempts_log[profile].append(summary)
                 _update_status(run_dir, attempts=attempts_log, latest_attempt=summary)
                 _append_event(run_dir, "profile_attempt_end", profile=profile, **summary)
                 print(
                     f"[{summary['finished_at']}] profile={profile} attempt={attempt} rc={rc} "
-                    f"missing_cells={summary['missing_cells']} missing_runs={summary['missing_runs']}"
+                    f"missing_cells={summary['missing_cells']} missing_runs={summary['missing_runs']} "
+                    f"deferred_cells={summary['deferred_cells']} deferred_runs={summary['deferred_runs']}"
                 )
                 sys.stdout.flush()
 
                 if summary["missing_cells"] == 0:
                     profile_done = True
-                    _append_event(run_dir, "profile_complete", profile=profile, attempt=attempt)
+                    _append_event(
+                        run_dir,
+                        "profile_complete",
+                        profile=profile,
+                        attempt=attempt,
+                        deferred_cells=summary["deferred_cells"],
+                        deferred_runs=summary["deferred_runs"],
+                    )
                     break
                 if attempt < max_attempts and retry_sleep_seconds > 0:
                     _append_event(
@@ -509,8 +758,9 @@ def _run_worker(run_dir: Path) -> int:
                 _append_event(run_dir, "profile_incomplete", profile=profile)
 
         final_missing: dict[str, dict[str, int]] = {}
+        final_deferred: dict[str, dict[str, int]] = {}
         for profile in profiles:
-            missing, missing_runs = _missing_cells(
+            missing_all, missing_runs_all = _missing_cells(
                 db_path=db_path,
                 competitions=competitions,
                 models=models,
@@ -520,7 +770,30 @@ def _run_worker(run_dir: Path) -> int:
                 mode=mode,
                 budget_seconds=int(PROFILE_BUDGET_SECONDS[profile]),
             )
-            final_missing[profile] = {"missing_cells": len(missing), "missing_runs": int(missing_runs)}
+            blocked_models: set[tuple[str, str]] = set()
+            if model_circuit_breaker_enabled:
+                blocked_models, _ = _blocked_models_by_recent_failures(
+                    db_path=db_path,
+                    prompt_profile=profile,
+                    prompt_strategy=prompt_strategy,
+                    mode=mode,
+                    budget_seconds=int(PROFILE_BUDGET_SECONDS[profile]),
+                    failure_threshold=model_failure_threshold,
+                    window_hours=model_failure_window_hours,
+                )
+            missing_active, deferred_missing = _split_missing_by_blocked_models(
+                missing_all, blocked_models
+            )
+            final_missing[profile] = {
+                "missing_cells": len(missing_active),
+                "missing_runs": int(_missing_runs_total(missing_active)),
+            }
+            final_deferred[profile] = {
+                "deferred_cells": len(deferred_missing),
+                "deferred_runs": int(_missing_runs_total(deferred_missing)),
+                "missing_cells_total": len(missing_all),
+                "missing_runs_total": int(missing_runs_all),
+            }
 
         _update_status(
             run_dir,
@@ -529,9 +802,16 @@ def _run_worker(run_dir: Path) -> int:
             current_profile=None,
             current_attempt=None,
             final_missing=final_missing,
+            final_deferred=final_deferred,
             exit_code=final_exit,
         )
-        _append_event(run_dir, "worker_complete", exit_code=final_exit, final_missing=final_missing)
+        _append_event(
+            run_dir,
+            "worker_complete",
+            exit_code=final_exit,
+            final_missing=final_missing,
+            final_deferred=final_deferred,
+        )
         _write_postmortem(run_dir)
         return final_exit
     except SystemExit:
@@ -679,6 +959,9 @@ def _cmd_start(args: argparse.Namespace) -> int:
         "max_attempts": int(args.max_attempts),
         "retry_sleep_seconds": int(args.retry_sleep_seconds),
         "resume_any_status": bool(args.resume_any_status),
+        "model_circuit_breaker_enabled": not bool(args.disable_model_circuit_breaker),
+        "model_failure_threshold": int(args.model_failure_threshold),
+        "model_failure_window_hours": float(args.model_failure_window_hours),
         "created_at": _now_iso(),
         "launcher": {"method": launch_method},
     }
@@ -715,6 +998,9 @@ def _cmd_start(args: argparse.Namespace) -> int:
     print(f"status={run_dir / 'status.json'}")
     print(f"events={_events_path(run_dir)}")
     print(f"launcher={launch_meta.get('method')}")
+    print(f"model_circuit_breaker={cfg.get('model_circuit_breaker_enabled')}")
+    print(f"model_failure_threshold={cfg.get('model_failure_threshold')}")
+    print(f"model_failure_window_hours={cfg.get('model_failure_window_hours')}")
     if launch_meta.get("method") == "systemd":
         print(f"systemd_unit={launch_meta.get('unit')}")
     if launch_meta.get("pid"):
@@ -803,6 +1089,8 @@ def _cmd_status(args: argparse.Namespace) -> int:
         )
     if "final_missing" in status:
         print(f"final_missing={json.dumps(status['final_missing'], sort_keys=True)}")
+    if "final_deferred" in status:
+        print(f"final_deferred={json.dumps(status['final_deferred'], sort_keys=True)}")
     if sd:
         print(f"systemd_active={sd.get('ActiveState')}")
         print(f"systemd_sub={sd.get('SubState')}")
@@ -916,6 +1204,23 @@ def _build_parser() -> argparse.ArgumentParser:
     ap_start.add_argument("--concurrency", type=int, default=3)
     ap_start.add_argument("--max-attempts", type=int, default=3)
     ap_start.add_argument("--retry-sleep-seconds", type=int, default=20)
+    ap_start.add_argument(
+        "--model-failure-threshold",
+        type=int,
+        default=3,
+        help="Circuit-breaker threshold: block a model after this many consecutive failures in the window.",
+    )
+    ap_start.add_argument(
+        "--model-failure-window-hours",
+        type=float,
+        default=24.0,
+        help="Circuit-breaker lookback window in hours for model failure streak checks.",
+    )
+    ap_start.add_argument(
+        "--disable-model-circuit-breaker",
+        action="store_true",
+        help="Disable model-level failure circuit breaker for this run.",
+    )
     ap_start.add_argument("--resume-any-status", action="store_true")
     ap_start.add_argument("--launch-method", default="auto", help="auto|systemd|popen (default: auto)")
     ap_start.set_defaults(fn=_cmd_start)
