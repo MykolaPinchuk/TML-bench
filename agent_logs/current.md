@@ -7,12 +7,11 @@
 - start: 2026-02-06
 
 ## Intent
-- Continue monitoring/finishing the active top-up batch (`v5_5_topup3models_r5_20260206_r5`) and refresh results once stable.
+- Continue monitoring `v5_5_topup3models_r5_20260206_r5` and finalize top-up coverage for the 3-model set.
 
 ## Notes
 - Do not commit secrets, Kaggle data, run artifacts, or sqlite DBs.
-- Use postmortem-first workflow for any async failure before relaunch.
+- Keep postmortem-first policy for any async failure.
 
 ## Log
-- 2026-02-06 15:34:12 PST: Log rotated at handoff. Active run at handoff: `v5_5_topup3models_r5_20260206_r5`.
-- 2026-02-06 15:39:28 PST: Added `misc_paper_ideas.md` with broad v1 paper brainstorming (claims, hypotheses, figures) and a telemetry audit (`already recorded` vs `gaps` + `start recording now` checklist). Linked from `REPO_MAP.md`.
+- 2026-02-06 16:36:55 PST: Log rotated during handoff. Active run at rotation: `v5_5_topup3models_r5_20260206_r5`.
