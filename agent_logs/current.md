@@ -15,3 +15,4 @@
 
 ## Log
 - 2026-02-06 15:34:12 PST: Log rotated at handoff. Active run at handoff: `v5_5_topup3models_r5_20260206_r5`.
+- 2026-02-06 15:39:28 PST: Added `misc_paper_ideas.md` with broad v1 paper brainstorming (claims, hypotheses, figures) and a telemetry audit (`already recorded` vs `gaps` + `start recording now` checklist). Linked from `REPO_MAP.md`.

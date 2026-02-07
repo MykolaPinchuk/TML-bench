@@ -11,6 +11,7 @@ Keep this file short. Update it only when something important changes.
 - `a2a_notes.md` — mandatory async-run reliability contract and lessons learned from prior failures.
 - `README.md` — repo overview and agent start points.
 - `agent_logs/current.md` — live execution log for this cycle.
+- `misc_paper_ideas.md` — brainstormed v1 paper angles/hypotheses plus telemetry gaps and "record-now" checklist.
 - `prd.md` — product requirements / architecture / phased plan.
 - `docs/adr/0001-agentic-workflow-protocol.md` — durable workflow decision.
 - `docs/adr/0002-canonical-competition-prep.md` — policy: `prepare_competition.py` is the canonical generator for `public/` + `private/`.
