@@ -1,0 +1,31 @@
+{
+  "name": "v5_5_topup_remaining5_r5",
+  "description": "Top-up set for remaining combined14 models to approach 5 successful runs per cell under profiled1.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "tngtech/DeepSeek-TNG-R1T2-Chimera",
+      "label": "DeepSeek TNG R1T2 Chimera"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Instruct-0905",
+      "label": "Kimi K2 Instruct 0905"
+    },
+    {
+      "provider": "openrouter",
+      "model_id": "x-ai/grok-4.1-fast",
+      "label": "Grok 4.1 Fast"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+      "label": "Meta Llama 3.1 8B Instruct"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "microsoft/Phi-3.5-mini-instruct",
+      "label": "Phi 3.5 Mini Instruct"
+    }
+  ]
+}
