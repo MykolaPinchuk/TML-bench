@@ -20,7 +20,8 @@ Keep this file short. Update it only when something important changes.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
-- `orchestrator/model_sets/v5_5_topup_kimi_gptoss_glm47fp8.json` — current 3-model top-up set used to reach 5 runs/cell.
+- `orchestrator/model_sets/v5_5_topup_remaining5_r5.json` — current 5-model remaining-gap top-up set for combined14 5-run completion work.
+- `scripts/update_profiled1_fiverun_tables.py` — regenerates the auto-updated 5-run-only `profiled1` tables block in `results.md`.
 - `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
 - `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).
 - `orchestrator/spec_sanity.py` — monotonicity sanity report across s-b/g-b/sota (supports fixed-prompt via `--prompt-profile`).
