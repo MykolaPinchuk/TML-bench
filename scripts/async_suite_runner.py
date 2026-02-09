@@ -31,8 +31,13 @@ SYSTEMD_FIELDS = [
     "Result",
     "ExecMainCode",
     "ExecMainStatus",
+    "Restart",
+    "RestartUSec",
+    "NRestarts",
     "MainPID",
     "OOMPolicy",
+    "MemoryHigh",
+    "MemoryMax",
     "MemoryCurrent",
     "MemoryPeak",
     "MemorySwapCurrent",
@@ -112,6 +117,69 @@ def _systemd_available() -> bool:
 
 def shutil_which(cmd: str) -> str | None:
     return subprocess.run(["bash", "-lc", f"command -v {shlex.quote(cmd)}"], capture_output=True, text=True).stdout.strip() or None
+
+
+def _which_in_path(cmd: str, path_value: str) -> str | None:
+    env = dict(os.environ)
+    env["PATH"] = path_value
+    proc = subprocess.run(
+        ["bash", "-lc", f"command -v {shlex.quote(cmd)}"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    out = (proc.stdout or "").strip()
+    return out or None
+
+
+def _augment_path_for_kilo(
+    *,
+    path_value: str,
+    home: str | None,
+    nvm_dir: str | None,
+    nvm_bin: str | None,
+) -> tuple[str, list[str], str | None]:
+    parts = [p for p in path_value.split(":") if p]
+    seen = set(parts)
+    added: list[str] = []
+    candidates: list[str] = []
+
+    if nvm_bin:
+        candidates.append(nvm_bin)
+    if nvm_dir:
+        base = Path(nvm_dir) / "versions" / "node"
+        if base.exists():
+            for p in sorted(base.glob("*/bin"), reverse=True):
+                candidates.append(str(p))
+    if home:
+        base = Path(home) / ".nvm" / "versions" / "node"
+        if base.exists():
+            for p in sorted(base.glob("*/bin"), reverse=True):
+                candidates.append(str(p))
+
+    for cand in candidates:
+        if not cand or cand in seen:
+            continue
+        kilo_path = Path(cand) / "kilo"
+        if kilo_path.exists():
+            parts.insert(0, cand)
+            seen.add(cand)
+            added.append(cand)
+
+    new_path = ":".join(parts)
+    kilo_resolved = _which_in_path("kilo", new_path)
+    return new_path, added, kilo_resolved
+
+
+def _normalize_systemd_limit_value(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    value = str(raw).strip()
+    if not value:
+        return None
+    if value.lower() in {"0", "off", "none"}:
+        return None
+    return value
 
 
 def _systemd_show(unit: str) -> dict[str, str]:
@@ -846,7 +914,17 @@ def _resolve_run_dir(*, repo_root: Path, run_name: str | None, run_dir: str | No
     return (_runs_root(repo_root) / run_name).resolve()
 
 
-def _launch_with_systemd(*, repo_root: Path, run_dir: Path, run_name: str, log_path: Path) -> dict[str, Any]:
+def _launch_with_systemd(
+    *,
+    repo_root: Path,
+    run_dir: Path,
+    run_name: str,
+    log_path: Path,
+    memory_high: str | None,
+    memory_max: str | None,
+    auto_resume_on_abort: bool,
+    restart_sec: float,
+) -> dict[str, Any]:
     unit = f"tmlbench_async_{run_name.replace('-', '_').replace('.', '_')}"
     env_overrides: dict[str, str] = {}
     for key in ("PATH", "HOME", "PYENV_ROOT", "NVM_DIR", "NVM_BIN", "XDG_RUNTIME_DIR", "PYTHONUNBUFFERED"):
@@ -855,19 +933,49 @@ def _launch_with_systemd(*, repo_root: Path, run_dir: Path, run_name: str, log_p
             env_overrides[key] = val
     if "PYTHONUNBUFFERED" not in env_overrides:
         env_overrides["PYTHONUNBUFFERED"] = "1"
+    base_path = env_overrides.get("PATH") or os.environ.get("PATH") or os.defpath
+    augmented_path, kilo_path_added, kilo_resolved = _augment_path_for_kilo(
+        path_value=base_path,
+        home=env_overrides.get("HOME") or os.environ.get("HOME"),
+        nvm_dir=env_overrides.get("NVM_DIR") or os.environ.get("NVM_DIR"),
+        nvm_bin=env_overrides.get("NVM_BIN") or os.environ.get("NVM_BIN"),
+    )
+    env_overrides["PATH"] = augmented_path
+    if kilo_resolved is None:
+        raise RuntimeError(
+            "Cannot resolve `kilo` from launch PATH. "
+            "Set PATH/NVM_DIR/NVM_BIN (or install kilo) before starting async run."
+        )
     runner_cmd = (
         f"cd {shlex.quote(str(repo_root))} && "
         f"exec {shlex.quote(sys.executable)} {shlex.quote(str(Path(__file__).resolve()))} run "
         f"--run-dir {shlex.quote(str(run_dir))} >> {shlex.quote(str(log_path))} 2>&1"
     )
+    restart_delay = max(0.0, float(restart_sec))
+    service_props = ["OOMPolicy=continue"]
+    if memory_high:
+        service_props.append(f"MemoryHigh={memory_high}")
+    if memory_max:
+        service_props.append(f"MemoryMax={memory_max}")
+    if auto_resume_on_abort:
+        service_props.extend(
+            [
+                "Restart=on-failure",
+                f"RestartSec={restart_delay:g}s",
+                "RestartPreventExitStatus=1 2",
+            ]
+        )
+    else:
+        service_props.append("Restart=no")
+
     cmd = [
         "systemd-run",
         "--user",
         "--unit",
         unit,
-        "--property",
-        "OOMPolicy=continue",
     ]
+    for prop in service_props:
+        cmd.extend(["--property", prop])
     for key, value in env_overrides.items():
         cmd.extend(["--setenv", f"{key}={value}"])
     cmd.extend(
@@ -887,12 +995,24 @@ def _launch_with_systemd(*, repo_root: Path, run_dir: Path, run_name: str, log_p
         unit=unit,
         cmd=cmd,
         env_keys=sorted(env_overrides.keys()),
+        kilo_path=kilo_resolved,
+        kilo_path_added=kilo_path_added,
+        memory_high=memory_high,
+        memory_max=memory_max,
+        auto_resume_on_abort=auto_resume_on_abort,
+        restart_sec=restart_delay,
         stdout=proc.stdout.strip(),
     )
     return {
         "method": "systemd",
         "unit": unit,
         "env_keys": sorted(env_overrides.keys()),
+        "kilo_path": kilo_resolved,
+        "kilo_path_added": kilo_path_added,
+        "memory_high": memory_high,
+        "memory_max": memory_max,
+        "auto_resume_on_abort": auto_resume_on_abort,
+        "restart_sec": restart_delay,
         "launch_stdout": proc.stdout.strip(),
         "launch_stderr": proc.stderr.strip(),
     }
@@ -944,6 +1064,13 @@ def _cmd_start(args: argparse.Namespace) -> int:
         launch_method = "systemd" if _systemd_available() else "popen"
     if launch_method == "systemd" and not _systemd_available():
         raise SystemExit("systemd --user is not available; use --launch-method popen")
+    restart_sec = float(args.restart_sec)
+    if restart_sec < 0:
+        raise SystemExit("--restart-sec must be >= 0")
+
+    systemd_memory_high = _normalize_systemd_limit_value(args.systemd_memory_high)
+    systemd_memory_max = _normalize_systemd_limit_value(args.systemd_memory_max)
+    auto_resume_on_abort = not bool(args.disable_auto_resume_on_abort)
 
     cfg: dict[str, Any] = {
         "repo_root": str(repo_root),
@@ -962,6 +1089,10 @@ def _cmd_start(args: argparse.Namespace) -> int:
         "model_circuit_breaker_enabled": not bool(args.disable_model_circuit_breaker),
         "model_failure_threshold": int(args.model_failure_threshold),
         "model_failure_window_hours": float(args.model_failure_window_hours),
+        "systemd_memory_high": systemd_memory_high,
+        "systemd_memory_max": systemd_memory_max,
+        "auto_resume_on_abort": auto_resume_on_abort,
+        "restart_sec": restart_sec,
         "created_at": _now_iso(),
         "launcher": {"method": launch_method},
     }
@@ -980,7 +1111,16 @@ def _cmd_start(args: argparse.Namespace) -> int:
     log_path = _run_log_path(run_dir)
     launch_meta: dict[str, Any]
     if launch_method == "systemd":
-        launch_meta = _launch_with_systemd(repo_root=repo_root, run_dir=run_dir, run_name=run_name, log_path=log_path)
+        launch_meta = _launch_with_systemd(
+            repo_root=repo_root,
+            run_dir=run_dir,
+            run_name=run_name,
+            log_path=log_path,
+            memory_high=systemd_memory_high,
+            memory_max=systemd_memory_max,
+            auto_resume_on_abort=auto_resume_on_abort,
+            restart_sec=restart_sec,
+        )
     else:
         launch_meta = _launch_with_popen(repo_root=repo_root, run_dir=run_dir, log_path=log_path)
 
@@ -1003,6 +1143,10 @@ def _cmd_start(args: argparse.Namespace) -> int:
     print(f"model_failure_window_hours={cfg.get('model_failure_window_hours')}")
     if launch_meta.get("method") == "systemd":
         print(f"systemd_unit={launch_meta.get('unit')}")
+        print(f"systemd_memory_high={launch_meta.get('memory_high')}")
+        print(f"systemd_memory_max={launch_meta.get('memory_max')}")
+        print(f"auto_resume_on_abort={launch_meta.get('auto_resume_on_abort')}")
+        print(f"restart_sec={launch_meta.get('restart_sec')}")
     if launch_meta.get("pid"):
         print(f"pid={launch_meta.get('pid')}")
     print("")
@@ -1223,6 +1367,27 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     ap_start.add_argument("--resume-any-status", action="store_true")
     ap_start.add_argument("--launch-method", default="auto", help="auto|systemd|popen (default: auto)")
+    ap_start.add_argument(
+        "--systemd-memory-high",
+        default="16G",
+        help="systemd MemoryHigh for run unit; use 0/off/none to disable.",
+    )
+    ap_start.add_argument(
+        "--systemd-memory-max",
+        default="22G",
+        help="systemd MemoryMax for run unit; use 0/off/none to disable.",
+    )
+    ap_start.add_argument(
+        "--disable-auto-resume-on-abort",
+        action="store_true",
+        help="Disable systemd auto-restart for unexpected run aborts/failures.",
+    )
+    ap_start.add_argument(
+        "--restart-sec",
+        type=float,
+        default=30.0,
+        help="Delay (seconds) before systemd restart when auto-resume is enabled.",
+    )
     ap_start.set_defaults(fn=_cmd_start)
 
     ap_run = sub.add_parser("run", help="Run worker in foreground (used by start).")

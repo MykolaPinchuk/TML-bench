@@ -21,11 +21,15 @@ Current run policy:
 - **Robustness strategy:** run **Strategy 1 = `legacy1`** only when explicitly requested as a robustness/sensitivity check.
 
 This file currently includes baseline-first updates plus historical snapshots:
-- **Latest baseline-first update (Strategy 2 / `profiled1`, 2026-02-07):**
+- **Latest baseline-first update (Strategy 2 / `profiled1`, 2026-02-08):**
+  - Wave A 6-model top-up run `v5_5_topup6_waveA_r5_20260207_r1` completed successfully
+  - all active gaps closed in that run (`final_missing=0` for all 3 profiles)
+  - only remaining deferred gap in Wave A scope: DeepSeek-TNG simple-baseline (`3` runs across `2` cells)
+- **Prior baseline-first update (Strategy 2 / `profiled1`, 2026-02-07):**
   - 3-model 5-run top-up run `v5_5_topup3models_r5_20260206_r6` completed with model circuit-breaker enabled
   - new dedicated 5-run median tables for fully complete models (`Qwen3-Coder-480B-A35B-Instruct-FP8`, `GPT OSS 120B TEE`, `GLM-4.7-FP8`)
   - active gaps closed (`final_missing=0`), remaining underfilled cells are explicitly marked deferred for later retry
-- **Prior baseline-first update (Strategy 2 / `profiled1`, 2026-02-06):**
+- **Earlier baseline-first update (Strategy 2 / `profiled1`, 2026-02-06):**
   - new 3-model batch status (`GLM-4.7-FP8`, `MiniMax-M2.1-TEE`, `grok-4.1-fast`)
   - Qwen-coder top-up (3 additional reps/cell) and 5-run median tables under Strategy 2
 - **v5.5 combined14 view (Strategy 2 / `profiled1`):** 4 competition tables with 14 models (old5 + working6 + new3).
@@ -40,7 +44,97 @@ Notes:
 - Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission` / etc.
 - Each snapshot explicitly defines its replication/selection policy (e.g., “best of 2 successful runs”).
 
-## Latest baseline-first update (Strategy 2 = `profiled1`, 2026-02-07)
+## Latest baseline-first update (Strategy 2 = `profiled1`, 2026-02-08)
+
+### 0) Wave A 6-model top-up to 5 runs/cell completed (`v5_5_topup6_waveA_r5`)
+
+Sources (not committed):
+- DB: `results/results_v5_5_topup6_waveA_r5_seeded.sqlite`
+- mode: `v5_5_topup6_waveA_r5`
+- model set: `orchestrator/model_sets/v5_5_topup6_waveA_r5.json`
+- suite: `orchestrator/suites/v5_all.json`
+- completed run: `tmp/async_runs/v5_5_topup6_waveA_r5_20260207_r1` (finished 2026-02-08 03:21:01 PST)
+
+Completion summary:
+- `simple-baseline` (240s): active gaps closed (`final_missing=0`), deferred gap = 2 cells / 3 runs
+- `good-baseline` (600s): active gaps closed (`final_missing=0`), deferred gap = 0
+- `sota-xgb` (1200s): active gaps closed (`final_missing=0`), deferred gap = 0
+
+5-run completion status within Wave A model scope:
+- `zai-org/GLM-4.7-Flash`: 12/12 cells complete
+- `MiniMaxAI/MiniMax-M2.1-TEE`: 12/12 cells complete
+- `zai-org/GLM-4.6-FP8`: 12/12 cells complete
+- `deepseek-ai/DeepSeek-V3.1-Terminus`: 12/12 cells complete
+- `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`: 12/12 cells complete
+- `tngtech/DeepSeek-TNG-R1T2-Chimera`: 10/12 cells complete (3 deferred simple-baseline runs)
+
+Remaining deferred Wave A cells (simple-baseline, 240s):
+- `foot-traffic-wuerzburg-retail-forecasting-2-0` / `tngtech/DeepSeek-TNG-R1T2-Chimera`: `3/5` successes (`need 2`)
+- `playground-series-s5e10` / `tngtech/DeepSeek-TNG-R1T2-Chimera`: `4/5` successes (`need 1`)
+
+<!-- AUTO:PROFILED1_FIVERUN_START -->
+
+### 0.1) Dedicated 5-run median tables (auto-updated; complete models only)
+
+Method:
+- For each `(competition, model, profile)` cell, take the earliest 5 successful `profiled1` runs by `created_at` and compute median `score_raw`.
+- Include only models with full `12/12` cells at 5 runs.
+
+Coverage snapshot: **8 models** currently satisfy the 5-run criterion.
+
+Source DBs used:
+- `results/results_v5_5_v3fast_profiled1_r2.sqlite`
+- `results/results_v5_5_working6_suite.sqlite`
+- `results/results_v5_5_working6_profiled1_rep2.sqlite`
+- `results/results_v5_5_user_selected3_r2_v2.sqlite`
+- `results/results_v5_5_qwen_topup3.sqlite`
+- `results/results_v5_5_topup3models_r5.sqlite`
+- `results/results_v5_5_topup6_waveA_r5_seeded.sqlite`
+- `results/results_v5_5_topup3_waveB_r5_seeded.sqlite`
+
+Complete models in scope:
+- `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`
+- `openai/gpt-oss-120b-TEE`
+- `zai-org/GLM-4.7-FP8`
+- `zai-org/GLM-4.7-Flash`
+- `MiniMaxAI/MiniMax-M2.1-TEE`
+- `zai-org/GLM-4.6-FP8`
+- `deepseek-ai/DeepSeek-V3.1-Terminus`
+- `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`
+
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 0.918860 | 0.886890 | 0.923560 | 0.924952 | 0.926671 | 0.925905 | 0.923724 | 0.921932 |
+| good-baseline (600s) | 0.927958 | 0.926987 | 0.926432 | 0.926830 | 0.925957 | 0.921539 | 0.924738 | 0.887052 |
+| sota-xgb (1200s) | 0.926755 | 0.928000 | 0.924275 | 0.922475 | 0.926496 | 0.920729 | 0.924792 | 0.813105 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 0.070603 | 0.091293 | 0.067629 | 0.070913 | 0.066846 | 0.067414 | 0.068217 | 0.090144 |
+| good-baseline (600s) | 0.066528 | 0.090884 | 0.066475 | 0.066729 | 0.065770 | 0.066564 | 0.068627 | 0.082290 |
+| sota-xgb (1200s) | 0.066263 | 0.080920 | 0.066571 | 0.107502 | 0.065489 | 0.067095 | 0.065664 | 0.080768 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 0.059786 | 0.056965 | 0.056363 | 0.056293 | 0.056200 | 0.056334 | 0.056328 | 0.059448 |
+| good-baseline (600s) | 0.056924 | 0.056943 | 0.056258 | 0.056383 | 0.056202 | 0.057684 | 0.056299 | 0.056928 |
+| sota-xgb (1200s) | 0.056212 | 0.056288 | 0.056212 | 0.056457 | 0.056195 | 0.056190 | 0.056199 | 0.056367 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 9.145977 | 8.844860 | 8.788779 | 8.897150 | 8.754980 | 9.097556 | 9.157792 | 9.054929 |
+| good-baseline (600s) | 8.805455 | 8.839272 | 8.757437 | 8.777121 | 8.757597 | 8.843763 | 9.103686 | 9.037052 |
+| sota-xgb (1200s) | 8.728897 | 8.760239 | 8.730949 | 8.756742 | 8.699779 | 8.705116 | 8.711680 | 8.740705 |
+
+<!-- AUTO:PROFILED1_FIVERUN_END -->
 
 ### 1) 3-model top-up to 5 runs/cell (`v5_5_topup3models_r5`) completed with circuit-breaker accounting
 

@@ -1,0 +1,21 @@
+{
+  "name": "v5_5_topup3_waveB_r5",
+  "description": "Wave B top-up set to move selected profiled1 models toward 5 successful runs per cell.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "mistralai/Devstral-2-123B-Instruct-2512-TEE",
+      "label": "Devstral 2 123B Instruct 2512 TEE"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Instruct-0905",
+      "label": "Kimi K2 Instruct 0905"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+      "label": "Meta Llama 3.1 8B Instruct"
+    }
+  ]
+}
