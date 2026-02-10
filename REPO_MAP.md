@@ -17,6 +17,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/adr/0002-canonical-competition-prep.md` — policy: `prepare_competition.py` is the canonical generator for `public/` + `private/`.
 - `docs/plan/v1.md` — low-level design for Phases 1–3.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
+- `docs/plan/v5_5_closeout.md` — v5.5 closeout goals, acceptance criteria, and execution order for canonical 10-model reporting.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
@@ -36,6 +37,7 @@ Keep this file short. Update it only when something important changes.
 - `agent_logs/` — per-cycle logs and index.
 - `runs/` — run artifacts (always ignored; do not commit).
 - `results.md` — **committed** snapshot of baseline results (time × model tables per competition).
+- `docs/archive/results_legacy_snapshots_2026-02-10.md` — archived historical/transitional result sections removed from `results.md` for readability.
 - `archive/leaderboards/` — legacy leaderboard snapshots (committed for reference only).
 - `results/` — local outputs/DBs (mostly ignored; see `.gitignore`).
 
