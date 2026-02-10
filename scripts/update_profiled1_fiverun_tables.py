@@ -24,6 +24,7 @@ SOURCE_DBS = [
     "results/results_v5_5_topup3models_r5.sqlite",
     "results/results_v5_5_topup6_waveA_r5_seeded.sqlite",
     "results/results_v5_5_topup3_waveB_r5_seeded.sqlite",
+    "results/results_v5_5_topup_remaining5_r5_seeded.sqlite",
 ]
 
 COMPETITIONS: list[tuple[str, str, str]] = [
