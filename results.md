@@ -11,6 +11,12 @@ Decision: baseline prompt family is the project default. See `docs/adr/0003-defa
 - Budgets/profiles: `simple-baseline` (240s), `good-baseline` (600s), `sota-xgb` (1200s)
 - Inclusion rule for tables below: models with full `12/12` cells at 5 successful runs/cell
 
+## Reporting Policy
+
+- Primary published leaderboard in this file is **complete-model only** (currently `10` models).
+- The 14-model target is tracked as a separate expansion status and is not merged into canonical tables while cells are underfilled.
+- Promote canonical scope from 10 to 14 only when each remaining model reaches full 5-run coverage across all `12` cells.
+
 <!-- AUTO:PROFILED1_FIVERUN_START -->
 
 ### 0.1) Dedicated 5-run median tables (auto-updated; complete models only)
