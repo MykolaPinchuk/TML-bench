@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current slice
-v5.5 closeout for baseline reporting under Strategy 2 (`profiled1`).
+v5.5 closeout complete for baseline reporting under Strategy 2 (`profiled1`).
 
 Canonical scope is now the fully complete 10-model set (5 successful runs/cell across `4 competitions x 3 profiles`), while the remaining 4-model expansion is deferred.
 
@@ -11,6 +11,7 @@ Canonical scope is now the fully complete 10-model set (5 successful runs/cell a
 - `final_missing`: 0 active missing cells for all profiles.
 - `final_deferred`: `simple=52`, `good=45`, `sota=46` runs.
 - No active async run is currently live.
+- v5.5 canonical reporting artifacts are now reproducible via scripts and ready for v6 drafting.
 
 Combined14 completion snapshot:
 - complete models: `10/14`
@@ -36,9 +37,9 @@ Combined14 completion snapshot:
      - `scripts/render_profiled1_canonical_stability.py`
      - `docs/reports/v5_5_canonical10_stability.md`
 - High-priority next items:
-  1. Keep `HANDOFF.md` and `results.md` synchronized after each deferred-expansion retry.
-  2. Decide go/no-go criteria for resuming 14-model backfill today after breaker windows clear.
-  3. If backfill resumes, keep canonical 10-model tables unchanged until 14-model completion criteria are fully met.
+  1. Start v6 draft writing using canonical 10-model artifacts only.
+  2. Keep 14-model backfill explicitly out of draft claims unless full completion criteria are later met.
+  3. If/when backfill resumes, keep canonical 10-model tables unchanged until 14-model completion criteria are fully met.
 
 ## Deferred expansion gate (non-canonical track)
 Retry 14-model backfill only when:
@@ -46,6 +47,11 @@ Retry 14-model backfill only when:
 2. provider/model health shows acceptable success behavior in fresh attempts.
 
 Until both are true, treat 14-model backfill as deferred work and keep 10-model tables canonical.
+
+## Recommended v6 starting point
+1. Use `results.md` canonical 10-model tables as the primary result source.
+2. Use `docs/reports/v5_5_canonical10_stability.md` for variability narrative (median + IQR).
+3. Use `scripts/refresh_profiled1_results.py` and `scripts/check_profiled1_canonical_coverage.py` as reproducibility commands to cite in the draft appendix.
 
 ## Key evidence paths
 - Canonical report: `results.md`
@@ -57,6 +63,10 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
 - Latest run status: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/status.json`
 - Latest run events: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/events.jsonl`
 - Latest run postmortem: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/postmortem.md`
+- Recent closeout commits:
+  - `a2a25cb` — canonical refresh/check/stability tooling
+  - `b95e907` — v5.5 closeout plan + handoff refresh
+  - `6f53a21` — explicit 10-model reporting policy
 
 ## Invariants
 - Never commit datasets, run artifacts, sqlite DBs, or secrets.
