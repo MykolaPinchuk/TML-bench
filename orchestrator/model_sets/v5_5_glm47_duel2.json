@@ -1,0 +1,16 @@
+{
+  "name": "v5_5_glm47_duel2",
+  "description": "Head-to-head duel between GLM 4.7 TEE and GLM 4.7 FP8 for v5.5 model selection.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-TEE",
+      "label": "GLM 4.7 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-FP8",
+      "label": "GLM 4.7 FP8 (Chutes)"
+    }
+  ]
+}

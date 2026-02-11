@@ -25,6 +25,7 @@ Start here (in order):
 - `onboarding.md` (how onboarding works here)
 - `HANDOFF.md` (current state / next steps)
 - `REPO_MAP.md` (index of important files)
+- `a2a_notes.md` (critical async-run reliability rules and failure lessons)
 - `agent_logs/current.md` (live execution log; history indexed in `agent_logs/INDEX.md`)
 - `prd.md` (product requirements; phases, architecture)
 
@@ -70,6 +71,23 @@ Resume a sweep without rerunning completed configs (DB-backed):
 Run the core 4-competition suite end-to-end:
 - `python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume`
 
+Safety note:
+- `orchestrator.suite` now applies a per-competition safety cap for `foot-traffic-wuerzburg-retail-forecasting-2-0` and forces `--concurrency 1` there (to reduce OOM risk from high-cardinality feature explosions), while leaving concurrency unchanged for other competitions.
+
+Reliable async launcher for long unattended runs:
+- Start (detached):  
+  `python scripts/async_suite_runner.py start --run-name my_batch --models-path orchestrator/model_sets/v5_5_user_selected3.json --db-path results/results_my_batch.sqlite --mode my_batch --runs-per-model 2 --concurrency 3`
+- Check status:  
+  `python scripts/async_suite_runner.py status --run-name my_batch`
+- List runs:  
+  `python scripts/async_suite_runner.py list`
+- Stop run:  
+  `python scripts/async_suite_runner.py stop --run-name my_batch`
+- Generate postmortem:  
+  `python scripts/async_suite_runner.py diagnose --run-name my_batch`
+- Reconcile stale run states after crashes:  
+  `python scripts/async_suite_runner.py reconcile`
+
 ## Refreshing after prompt changes
 If you change `prompts/` (base prompt or prompt profiles) and want an apples-to-apples leaderboard, use a fresh DB path for the new run batch:
 - `DB=results/results_prompt_refresh.sqlite`
@@ -85,7 +103,7 @@ Each run lives under `runs/<run_id>/`:
 - `runs/<run_id>/run_state.json` — run metadata (provider/model/time budget)
 - `runs/<run_id>/result.json` — final outcome: status, private-holdout score, and `submission_sha256` (when available)
 - `runs/<run_id>/artifacts/` — raw agent logs (Phase 3 headless runs):
-  - `kilo_stdout.jsonl` / `kilo_stdout.clean.jsonl` — Kilo’s JSON event stream (API request events, tool calls, command outputs)
+  - `kilo_stdout.jsonl` / `kilo_stdout.clean.jsonl` — Kilo’s JSON event stream (API request events, tool calls, command outputs). **Capped by default** via `TML_KILO_STDOUT_MAX_BYTES` (default `200000`, `0` disables, `-1` unlimited).
   - `kilo_stderr.log` — Kilo stderr
   - `kilo_run.json` — the exact `kilo ... --provider ... --model ...` argv used (newer runs)
 
@@ -93,6 +111,10 @@ Across runs:
 - `results/results.sqlite` — local DB of recorded runs (source-of-truth for leaderboards)
 - Legacy leaderboards are archived under `archive/leaderboards/` (snapshots); current repo-root summary is `results.md`.
 - Rebuild/refresh generated leaderboards from on-disk `runs/*/result.json` (optional): `python -m orchestrator.leaderboard --import-results --write-root`
+- Refresh canonical `profiled1` 5-run tables and verify frozen 10-model coverage:
+  - `python scripts/refresh_profiled1_results.py`
+- Render canonical 10-model stability companion report (median + IQR):
+  - `python scripts/render_profiled1_canonical_stability.py`
 
 ## Data policy
 - Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).

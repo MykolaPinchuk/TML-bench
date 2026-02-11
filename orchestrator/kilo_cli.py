@@ -13,6 +13,7 @@ from typing import Any, Iterable
 
 
 _ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_DEFAULT_MAX_STDOUT_BYTES = 200_000
 
 
 def strip_ansi(s: str) -> str:
@@ -77,6 +78,7 @@ def run_kilo(
     stop_when_submission_path: Path | None = None,
     stop_on_api_402: bool = True,
     poll_interval_seconds: float = 0.25,
+    max_stdout_bytes: int | None = None,
 ) -> KiloRun:
     argv = [
         "kilo",
@@ -98,6 +100,25 @@ def run_kilo(
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Kilo's JSON event stream can be extremely large for long runs. To keep disk usage bounded
+    # while preserving full run metadata in result.json/DB, cap the captured stdout log by default.
+    # - Set TML_KILO_STDOUT_MAX_BYTES=-1 for unlimited.
+    # - Set TML_KILO_STDOUT_MAX_BYTES=0 to disable writing stdout logs entirely.
+    if max_stdout_bytes is None:
+        raw = os.getenv("TML_KILO_STDOUT_MAX_BYTES")
+        if raw is None or not str(raw).strip():
+            max_stdout_bytes = _DEFAULT_MAX_STDOUT_BYTES
+        else:
+            try:
+                max_stdout_bytes = int(str(raw).strip())
+            except Exception:  # noqa: BLE001
+                max_stdout_bytes = _DEFAULT_MAX_STDOUT_BYTES
+    try:
+        max_stdout_bytes = int(max_stdout_bytes)
+    except Exception:  # noqa: BLE001
+        max_stdout_bytes = _DEFAULT_MAX_STDOUT_BYTES
+    max_stdout_bytes_eff: int | None = None if int(max_stdout_bytes) < 0 else int(max_stdout_bytes)
+
     started = time.monotonic()
     with stdout_path.open("wb") as out_f, stderr_path.open("wb") as err_f:
         proc = subprocess.Popen(
@@ -115,9 +136,11 @@ def run_kilo(
         deadline = started + float(timeout_seconds)
         saw_submission_at: float | None = None
         scan_buf = b""
+        written_stdout = 0
 
         def _drain_stdout(*, max_bytes: int | None = None) -> None:
             nonlocal scan_buf
+            nonlocal written_stdout
             if proc.stdout is None:
                 return
             remaining = max_bytes
@@ -130,7 +153,14 @@ def run_kilo(
                 chunk = os.read(proc.stdout.fileno(), 4096 if remaining is None else min(4096, remaining))
                 if not chunk:
                     return
-                out_f.write(chunk)
+                if max_stdout_bytes_eff is None:
+                    out_f.write(chunk)
+                    written_stdout += len(chunk)
+                elif max_stdout_bytes_eff > 0 and written_stdout < max_stdout_bytes_eff:
+                    allow = max_stdout_bytes_eff - written_stdout
+                    if allow > 0:
+                        out_f.write(chunk[:allow])
+                        written_stdout += min(len(chunk), allow)
                 scan_buf = (scan_buf + chunk)[-65536:]
                 if remaining is not None:
                     remaining -= len(chunk)
@@ -176,16 +206,17 @@ def run_kilo(
 
 
 def iter_json_events_from_jsonl(path: Path) -> Iterable[dict[str, Any]]:
-    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        line = strip_ansi(raw_line).strip()
-        if not line.startswith("{"):
-            continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(obj, dict):
-            yield obj
+    with path.open("r", encoding="utf-8", errors="ignore") as f:
+        for raw_line in f:
+            line = strip_ansi(raw_line).strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict):
+                yield obj
 
 
 def write_clean_jsonl(*, src_jsonl: Path, dst_jsonl: Path) -> int:

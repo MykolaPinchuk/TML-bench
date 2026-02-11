@@ -1,0 +1,51 @@
+{
+  "name": "v5_5_chutes_try9",
+  "description": "v5.5: quick probe set (Chutes-only) for simple-baseline + good-baseline on a single competition.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "tngtech/DeepSeek-TNG-R1T2-Chimera",
+      "label": "DeepSeek TNG R1T2 Chimera (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.2-TEE",
+      "label": "DeepSeek V3.2 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "moonshotai/Kimi-K2-Instruct-0905",
+      "label": "Kimi K2 Instruct 0905 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "mistralai/Devstral-2-123B-Instruct-2512-TEE",
+      "label": "Devstral 2 123B Instruct 2512 TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+      "label": "NVIDIA Nemotron 3 Nano 30B A3B BF16 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-Flash",
+      "label": "GLM 4.7 Flash (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "unsloth/gemma-3-27b-it",
+      "label": "Gemma 3 27B IT (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "openai/gpt-oss-120b-TEE",
+      "label": "GPT OSS 120B TEE (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "XiaomiMiMo/MiMo-V2-Flash",
+      "label": "MiMo V2 Flash (Chutes)"
+    }
+  ]
+}

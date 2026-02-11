@@ -42,6 +42,8 @@ class RunState:
     mode: str | None = None
     temperature: float | None = None
     max_tokens: int | None = None
+    prompt_profile: str | None = None
+    prompt_strategy: str | None = None
 
     def elapsed_seconds(self, *, now: datetime | None = None) -> float:
         if self.started_at is None:
@@ -68,6 +70,8 @@ def read_run_state(path: Path) -> RunState:
         mode=raw.get("mode"),
         temperature=raw.get("temperature"),
         max_tokens=raw.get("max_tokens"),
+        prompt_profile=raw.get("prompt_profile"),
+        prompt_strategy=raw.get("prompt_strategy"),
     )
 
 
@@ -87,6 +91,8 @@ def set_run_metadata(
     mode: str | None,
     temperature: float | None,
     max_tokens: int | None,
+    prompt_profile: str | None,
+    prompt_strategy: str | None,
 ) -> RunState:
     return replace(
         state,
@@ -95,6 +101,8 @@ def set_run_metadata(
         mode=mode if mode is not None else state.mode,
         temperature=temperature if temperature is not None else state.temperature,
         max_tokens=max_tokens if max_tokens is not None else state.max_tokens,
+        prompt_profile=prompt_profile if prompt_profile is not None else state.prompt_profile,
+        prompt_strategy=prompt_strategy if prompt_strategy is not None else state.prompt_strategy,
     )
 
 

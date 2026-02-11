@@ -9,3 +9,8 @@
 - 2026-01-30_agent05.md — v5: provider config hardening + NanoGPT Qwen reruns + prompt reliability (handoff)
 - 2026-02-01_agent06.md — chutes-only monotonicity replication + NanoGPT 402 debug + prompt gate
 - 2026-02-01_agent07.md — prompt-family experiment + baseline default; results.md snapshot; leaderboards archived (commit d69166f, 1b31a3f)
+- 2026-02-05_agent00.md — v5.5 strategy policy finalized (profiled1 default; legacy1 robustness), old5+working6 apples-to-apples ready; next: add models and 5-run medians
+- 2026-02-06_agent00.md — v5.5 async RCA hardening (PATH/systemd + OOM), foot-traffic concurrency cap, resumed top-up run r5
+- 2026-02-06_agent01.md — continued r5 monitoring, token telemetry coverage audit, handoff refresh with current missing-count snapshot
+- 2026-02-09_agent00.md — agent10: waveB completion + remaining5 top-up launch, async hardening active (handoff)
+- 2026-02-10_agent00.md — agent10: v5.5 closeout completed (canonical 10-model reporting + reproducibility tooling), ready for v6 drafting

@@ -1,0 +1,11 @@
+{
+  "name": "v5_5_qwen_single",
+  "description": "Single-model set for Qwen Coder top-up replication runs.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+      "label": "Qwen3 Coder 480B A35B Instruct FP8 (Chutes)"
+    }
+  ]
+}

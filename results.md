@@ -1,49 +1,111 @@
 # Results (baseline)
 
-This file is the **repo-root summary** of current benchmark results.
+This file is the canonical, low-noise summary for current baseline reporting.
 
 Decision: baseline prompt family is the project default. See `docs/adr/0003-default-prompt-family-baseline.md`.
 
-Scope of the snapshot below:
-- Suite: v5_core (4 competitions)
-- Provider: Chutes-only
-- Models: 5-model set from `orchestrator/model_sets/v3_fast.json`
-- Budgets: 240 / 600 / 1200 seconds
-- Prompt family: **baseline** (240=`simple-baseline`, 600=`good-baseline`, 1200=`sota-xgb`)
+## Canonical Scope
 
-Notes:
-- Values are **private holdout** metrics (`score_raw`) when the run succeeded; otherwise the cell shows `timeout` / `invalid_submission`.
-- For the full prompt-family comparison (baseline vs budget-aware vs time-gated), see `docs/experiments/prompt_family_comparison_v5_core.md`.
+- Prompt strategy: `profiled1`
+- Suite: `v5_all` (4 competitions)
+- Budgets/profiles: `simple-baseline` (240s), `good-baseline` (600s), `sota-xgb` (1200s)
+- Inclusion rule for tables below: models with full `12/12` cells at 5 successful runs/cell
 
-## bank-customer-churn-ict-u-ai (AUC; higher is better)
+## Reporting Policy
 
-| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
-|---:|---:|---:|---:|---:|---:|
-| 240 | invalid_submission | 0.923990 | 0.922911 | 0.924543 | 0.924707 |
-| 600 | 0.912099 | 0.922015 | 0.925680 | 0.921787 | 0.921714 |
-| 1200 | 0.927889 | 0.927797 | 0.926654 | 0.927300 | 0.810482 |
+- Primary published leaderboard in this file is **complete-model only** (currently `10` models).
+- The 14-model target is tracked as a separate expansion status and is not merged into canonical tables while cells are underfilled.
+- Promote canonical scope from 10 to 14 only when each remaining model reaches full 5-run coverage across all `12` cells.
 
-## foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+<!-- AUTO:PROFILED1_FIVERUN_START -->
 
-| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
-|---:|---:|---:|---:|---:|---:|
-| 240 | 0.082159 | 0.091228 | 0.082249 | 0.091225 | 0.091214 |
-| 600 | 0.080706 | 0.080576 | 0.067860 | 0.068194 | 0.067980 |
-| 1200 | 0.067152 | 0.066943 | 0.066531 | 0.066203 | 0.066622 |
+### 0.1) Dedicated 5-run median tables (auto-updated; complete models only)
 
-## playground-series-s5e10 (RMSE; lower is better)
+Method:
+- For each `(competition, model, profile)` cell, take the earliest 5 successful `profiled1` runs by `created_at` and compute median `score_raw`.
+- Include only models with full `12/12` cells at 5 runs.
 
-| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
-|---:|---:|---:|---:|---:|---:|
-| 240 | 0.056310 | 0.056302 | timeout | 0.056302 | 0.056313 |
-| 600 | 0.056312 | 0.056291 | 0.056345 | 0.056416 | 0.056442 |
-| 1200 | 0.056225 | 0.056231 | 0.057032 | 0.056195 | 0.056245 |
+Coverage snapshot: **10 models** currently satisfy the 5-run criterion.
 
-## playground-series-s6e1 (RMSE; lower is better)
+Source DBs used:
+- `results/results_v5_5_v3fast_profiled1_r2.sqlite`
+- `results/results_v5_5_working6_suite.sqlite`
+- `results/results_v5_5_working6_profiled1_rep2.sqlite`
+- `results/results_v5_5_user_selected3_r2_v2.sqlite`
+- `results/results_v5_5_qwen_topup3.sqlite`
+- `results/results_v5_5_topup3models_r5.sqlite`
+- `results/results_v5_5_topup6_waveA_r5_seeded.sqlite`
+- `results/results_v5_5_topup3_waveB_r5_seeded.sqlite`
+- `results/results_v5_5_topup_remaining5_r5_seeded.sqlite`
 
-| budget | DeepSeek-V3.1-Terminus | Qwen3-Coder-480B-A35B | GLM-4.6 | Llama-3.1-8B | Phi-3.5-mini |
-|---:|---:|---:|---:|---:|---:|
-| 240 | 8.808302 | 8.806239 | 8.807874 | 8.808455 | 8.807136 |
-| 600 | timeout | 8.780673 | 8.798304 | timeout | timeout |
-| 1200 | 8.748496 | 8.746522 | 8.745623 | 8.760336 | timeout |
+Complete models in scope:
+- `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`
+- `openai/gpt-oss-120b-TEE`
+- `zai-org/GLM-4.7-FP8`
+- `zai-org/GLM-4.7-Flash`
+- `MiniMaxAI/MiniMax-M2.1-TEE`
+- `zai-org/GLM-4.6-FP8`
+- `deepseek-ai/DeepSeek-V3.1-Terminus`
+- `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`
+- `mistralai/Devstral-2-123B-Instruct-2512-TEE`
+- `tngtech/DeepSeek-TNG-R1T2-Chimera`
 
+### bank-customer-churn-ict-u-ai (AUC; higher is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano | mistralai/Devstral-2-123B-Instruct-2512-TEE | tngtech/DeepSeek-TNG-R1T2-Chimera |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 0.918860 | 0.886890 | 0.923560 | 0.924952 | 0.926671 | 0.925905 | 0.923724 | 0.921932 | 0.924826 | 0.868734 |
+| good-baseline (600s) | 0.927958 | 0.926987 | 0.926432 | 0.926830 | 0.925957 | 0.921539 | 0.924738 | 0.887052 | 0.926987 | 0.884988 |
+| sota-xgb (1200s) | 0.926755 | 0.928000 | 0.924275 | 0.922475 | 0.926496 | 0.920729 | 0.924792 | 0.813105 | 0.924461 | 0.921846 |
+
+### foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano | mistralai/Devstral-2-123B-Instruct-2512-TEE | tngtech/DeepSeek-TNG-R1T2-Chimera |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 0.070603 | 0.091293 | 0.067629 | 0.070913 | 0.066846 | 0.067414 | 0.068217 | 0.090144 | 0.070351 | 0.102553 |
+| good-baseline (600s) | 0.066528 | 0.090884 | 0.066475 | 0.066729 | 0.065770 | 0.066564 | 0.068627 | 0.082290 | 0.067983 | 0.091104 |
+| sota-xgb (1200s) | 0.066263 | 0.080920 | 0.066571 | 0.107502 | 0.065489 | 0.067095 | 0.065664 | 0.080768 | 0.067383 | 0.082189 |
+
+### playground-series-s5e10 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano | mistralai/Devstral-2-123B-Instruct-2512-TEE | tngtech/DeepSeek-TNG-R1T2-Chimera |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 0.059786 | 0.056965 | 0.056363 | 0.056293 | 0.056200 | 0.056334 | 0.056328 | 0.059448 | 0.056606 | 0.073754 |
+| good-baseline (600s) | 0.056924 | 0.056943 | 0.056258 | 0.056383 | 0.056202 | 0.057684 | 0.056299 | 0.056928 | 0.056274 | 0.056918 |
+| sota-xgb (1200s) | 0.056212 | 0.056288 | 0.056212 | 0.056457 | 0.056195 | 0.056190 | 0.056199 | 0.056367 | 0.056232 | 0.056315 |
+
+### playground-series-s6e1 (RMSE; lower is better)
+
+| profile | Qwen3-Coder-480B-A35B | GPT OSS 120B TEE | GLM-4.7-FP8 | GLM 4.7 Flash | MiniMax-M2.1-TEE | GLM-4.6-FP8 | DeepSeek-V3.1-Terminus | NVIDIA-Nemotron-3-Nano | mistralai/Devstral-2-123B-Instruct-2512-TEE | tngtech/DeepSeek-TNG-R1T2-Chimera |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple-baseline (240s) | 9.145977 | 8.844860 | 8.788779 | 8.897150 | 8.754980 | 9.097556 | 9.157792 | 9.054929 | 9.107469 | 8.879082 |
+| good-baseline (600s) | 8.805455 | 8.839272 | 8.757437 | 8.777121 | 8.757597 | 8.843763 | 9.103686 | 9.037052 | 9.111322 | 10.199380 |
+| sota-xgb (1200s) | 8.728897 | 8.760239 | 8.730949 | 8.756742 | 8.699779 | 8.705116 | 8.711680 | 8.740705 | 8.715448 | 8.736438 |
+
+<!-- AUTO:PROFILED1_FIVERUN_END -->
+
+## Latest Run Status
+
+Latest top-up run:
+- run: `v5_5_topup_remaining5_r5_20260209_r2`
+- finished: `2026-02-09 22:36:24 PST`
+- state: `completed`
+- `final_missing`: 0 active missing cells in all profiles
+- `final_deferred`: `simple=52`, `good=45`, `sota=46` deferred runs (circuit-breaker-limited)
+
+Current combined14 completion snapshot (as of 2026-02-10):
+- complete models: `10/14`
+- remaining missing runs to full 5-run coverage: `143`
+- incomplete models:
+  - `chutes::microsoft/Phi-3.5-mini-instruct` (`56`)
+  - `chutes::meta-llama/Meta-Llama-3.1-8B-Instruct` (`50`)
+  - `openrouter::x-ai/grok-4.1-fast` (`29`)
+  - `chutes::moonshotai/Kimi-K2-Instruct-0905` (`8`)
+
+Canonical stability supplement:
+- `docs/reports/v5_5_canonical10_stability.md` (median + IQR from earliest 5 successful runs/cell)
+
+## Historical Snapshots
+
+Historical and transitional sections were moved out of this file for readability:
+- `docs/archive/results_legacy_snapshots_2026-02-10.md`

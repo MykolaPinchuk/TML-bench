@@ -15,6 +15,11 @@ from orchestrator.leaderboard import (
 )
 from orchestrator.preflight import preflight_one
 
+SAFE_COMPETITION_CONCURRENCY_CAPS = {
+    # Foot-traffic has very high-cardinality `id`; some generated pipelines one-hot it and can OOM.
+    "foot-traffic-wuerzburg-retail-forecasting-2-0": 1,
+}
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -122,6 +127,11 @@ def main() -> int:
         "--prompt-profile",
         default=None,
         help="Optional prompt profile id passed to orchestrator.sweep (file in `prompts/prompt_profiles/<id>.md`).",
+    )
+    ap.add_argument(
+        "--prompt-strategy",
+        default="active",
+        help="Prompt strategy id passed to orchestrator.sweep (`active` uses `prompts/`; otherwise `prompts/strategies/<id>/`).",
     )
     ap.add_argument("--runs-per-model", type=int, default=1)
     ap.add_argument("--db-path", default=str(_repo_root() / "results" / "results.sqlite"))
@@ -232,8 +242,20 @@ def main() -> int:
             cmd += ["--budget-seconds", str(int(args.budget_seconds))]
         if args.prompt_profile is not None:
             cmd += ["--prompt-profile", str(args.prompt_profile)]
-        if args.concurrency is not None:
-            cmd += ["--concurrency", str(int(args.concurrency))]
+        if args.prompt_strategy is not None:
+            cmd += ["--prompt-strategy", str(args.prompt_strategy)]
+        requested_concurrency = int(args.concurrency) if args.concurrency is not None else None
+        effective_concurrency = requested_concurrency
+        safe_cap = SAFE_COMPETITION_CONCURRENCY_CAPS.get(cid)
+        if safe_cap is not None and (effective_concurrency is None or effective_concurrency > int(safe_cap)):
+            requested_label = "default" if effective_concurrency is None else str(effective_concurrency)
+            effective_concurrency = int(safe_cap)
+            print(
+                f"note: applying safe concurrency cap for {cid}: "
+                f"requested={requested_label} effective={effective_concurrency}"
+            )
+        if effective_concurrency is not None:
+            cmd += ["--concurrency", str(int(effective_concurrency))]
         if args.max_models is not None:
             cmd += ["--max-models", str(int(args.max_models))]
         if args.max_runs is not None:

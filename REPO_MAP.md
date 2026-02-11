@@ -8,22 +8,31 @@ Keep this file short. Update it only when something important changes.
 - `onboarding.md` — onboarding procedure when triggered.
 - `HANDOFF.md` — current objective, next steps, and state.
 - `REPO_MAP.md` — index of important files and hot paths.
+- `a2a_notes.md` — mandatory async-run reliability contract and lessons learned from prior failures.
 - `README.md` — repo overview and agent start points.
 - `agent_logs/current.md` — live execution log for this cycle.
+- `misc_paper_ideas.md` — brainstormed v1 paper angles/hypotheses plus telemetry gaps and "record-now" checklist.
 - `prd.md` — product requirements / architecture / phased plan.
 - `docs/adr/0001-agentic-workflow-protocol.md` — durable workflow decision.
 - `docs/adr/0002-canonical-competition-prep.md` — policy: `prepare_competition.py` is the canonical generator for `public/` + `private/`.
 - `docs/plan/v1.md` — low-level design for Phases 1–3.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
+- `docs/plan/v5_5_closeout.md` — v5.5 closeout goals, acceptance criteria, and execution order for canonical 10-model reporting.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
-- `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite).
+- `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
+- `orchestrator/model_sets/v5_5_topup_remaining5_r5.json` — current 5-model remaining-gap top-up set for combined14 5-run completion work.
+- `scripts/update_profiled1_fiverun_tables.py` — regenerates the auto-updated 5-run-only `profiled1` tables block in `results.md`.
+- `scripts/check_profiled1_canonical_coverage.py` — validates frozen v5.5 canonical 10-model `profiled1` coverage and `results.md` auto-block consistency.
+- `scripts/refresh_profiled1_results.py` — one-command regenerate+verify flow for canonical `profiled1` results.
+- `scripts/render_profiled1_canonical_stability.py` — generates canonical 10-model stability companion report (median + IQR) at `docs/reports/v5_5_canonical10_stability.md`.
 - `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
 - `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).
 - `orchestrator/spec_sanity.py` — monotonicity sanity report across s-b/g-b/sota (supports fixed-prompt via `--prompt-profile`).
 - `orchestrator/report.py` — run health report from sqlite (success/timeout rates by model/config).
 - `orchestrator/baselines.py` — compute + record host baselines (`hgb`, `constant`) into sqlite for absolute normalization.
 - `scripts/setup_kilo_providers.py` — configure Kilo providers from `secrets/provider_apis.txt` (untracked).
+- `scripts/async_suite_runner.py` — detached long-run launcher with PID/log/status tracking, retries, structured `events.jsonl`, and `postmortem.md` diagnostics.
 - `orchestrator/suites/mono_chutes_churn_s6e1.json` — 2-competition suite used for monotonicity checks.
 - `orchestrator/model_sets/chutes_mono_toolcapable_3.json` — Chutes-only monotonicity model set.
 
@@ -31,6 +40,8 @@ Keep this file short. Update it only when something important changes.
 - `agent_logs/` — per-cycle logs and index.
 - `runs/` — run artifacts (always ignored; do not commit).
 - `results.md` — **committed** snapshot of baseline results (time × model tables per competition).
+- `docs/archive/results_legacy_snapshots_2026-02-10.md` — archived historical/transitional result sections removed from `results.md` for readability.
+- `docs/reports/v5_5_canonical10_stability.md` — companion variability report for canonical 10-model tables.
 - `archive/leaderboards/` — legacy leaderboard snapshots (committed for reference only).
 - `results/` — local outputs/DBs (mostly ignored; see `.gitignore`).
 

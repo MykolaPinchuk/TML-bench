@@ -54,6 +54,17 @@ Both are ignored by git; do not commit them.
 
 ## Run modes
 
+## Prompt rendering strategies (important)
+
+This repo has two distinct prompt-rendering strategies. For reproducible runs, select them explicitly via `--prompt-strategy`:
+
+- **Strategy 1 = `legacy1`:** `prompts/strategies/legacy1/base_prompt.md` + `prompts/strategies/legacy1/competition_overrides/<competition_id>.md`
+- **Strategy 2 = `profiled1`:** `prompts/strategies/profiled1/base_prompt.md` + `prompts/strategies/profiled1/prompt_profiles/<profile>.md` + `prompts/strategies/profiled1/competition_overrides/<competition_id>.md`
+- **`active`:** the live prompt files under `prompts/` (may evolve; avoid for stable comparisons)
+
+Current CLI workflows (`orchestrator.run_one auto`, `orchestrator.sweep`, `orchestrator.suite`) default to `--prompt-strategy active`.
+For stable comparisons, prefer a frozen strategy id (e.g. `--prompt-strategy profiled1` or `--prompt-strategy legacy1`).
+
 ### Host baseline (sanity)
 
 ```bash
@@ -69,13 +80,13 @@ python scripts/run_baseline.py --competition-dir competitions/playground-series-
 ### Headless agent run (Kilo CLI)
 
 ```bash
-python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --provider chutes --model-id deepseek-ai/DeepSeek-V3.1-Terminus
+python -m orchestrator.run_one auto --competition-id playground-series-s6e1 --provider chutes --model-id deepseek-ai/DeepSeek-V3.1-Terminus --prompt-strategy profiled1
 ```
 
 ### Sweep (batch)
 
 ```bash
-python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --concurrency 1
+python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-path orchestrator/model_sets/v3_fast.json --runs-per-model 1 --concurrency 1 --prompt-strategy profiled1
 ```
 
 Resume a sweep without re-running completed configs (DB-backed):
@@ -89,7 +100,7 @@ python -m orchestrator.sweep --competition-id playground-series-s6e1 --models-pa
 Run a fixed suite of 4 competitions end-to-end:
 
 ```bash
-python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume
+python -m orchestrator.suite --models-path orchestrator/model_sets/v3_fast.json --profile simple-baseline --runs-per-model 1 --resume --prompt-strategy profiled1
 ```
 
 ### SOTA tier (20 min, XGBoost allowed)

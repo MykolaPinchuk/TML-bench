@@ -26,11 +26,11 @@ Locked design:
 
 Prompt families compared:
 
-- **Baseline (historical, “same-day” bundle, 2026-01-26 PT)**:
-  - 240: `simple-baseline` @ `git_sha=9276a569f43c19e22be92dcabcae0222b8485c15`
-  - 600: `good-baseline` @ `git_sha=f41af8d21a5e3fda3827b0d2b890f121d9a98028`
-  - 1200: `sota-xgb` @ `git_sha=3baf1d094169b1a9497d473fa3e34d3bd371a0bf`
-  - Missing coverage was patched via `results/exp_promptfam_baseline_patch.sqlite`.
+- **Baseline (frozen prompt strategy `profiled1`, created 2026-02-02)**:
+  - 240: `prompt_profile=simple-baseline`
+  - 600: `prompt_profile=good-baseline`
+  - 1200: `prompt_profile=sota-xgb`
+  - For deterministic reproduction of “baseline” prompt text, use `--prompt-strategy profiled1`.
 - **Time-gated (current)**:
   - 600: `good-baseline` + reasoning gate (experimental)
   - 1200: `sota-xgb` + reasoning gate (experimental)
@@ -43,6 +43,16 @@ All artifacts:
 - Canonical merged per-run table: `results/exp_promptfam_comparison_runs.csv`
 
 ## Results (key takeaways)
+
+### Important note on terminology (“baseline” vs prompt text)
+
+“Baseline” here refers to the **policy choice** of which profile IDs we target at 240/600/1200.
+However, the **exact prompt text** can differ across time because the prompt rendering strategy evolved:
+
+- Legacy runs used **Strategy 1 (`legacy1`)**: `base_prompt.md` + `competition_overrides/<id>.md` (no `prompt_profiles/*` layer).
+- Current runs use **Strategy 2 (`profiled1`)**: `base_prompt.md` + `prompt_profiles/<profile>.md` + `competition_overrides/<id>.md`.
+
+This is why “baseline” comparisons across different run batches must be treated carefully unless the runs are rerun under the same prompt strategy id and prompt family mapping.
 
 ### 1) Reliability (success rate) strongly favors baseline
 
@@ -92,12 +102,18 @@ However, baseline at 240/600/1200 is not a “pure” budget-scaling test becaus
 
 Time-gated and budget-aware are retained as **experimental** prompt profiles (not default) to be used only when explicitly requested for experiments.
 
+Strategy-level operating policy:
+- Use **Strategy 2 (`profiled1`)** as the default baseline strategy for routine runs and primary reporting.
+- Use **Strategy 1 (`legacy1`)** only for explicit robustness/sensitivity checks against the default.
+
 ## Consequences
 
 - Default runs should use the baseline profiles:
   - 240: `simple-baseline`
   - 600: `good-baseline`
   - 1200: `sota-xgb`
+- Default runs should use `--prompt-strategy profiled1`.
+- `legacy1` runs are robustness checks and should be labeled as such in `mode` and docs.
 - Time-gated variants are stored separately and are **not** used unless explicitly overridden:
   - `good-baseline-timegated`
   - `sota-xgb-timegated`

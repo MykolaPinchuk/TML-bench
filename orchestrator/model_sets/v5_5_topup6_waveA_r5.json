@@ -1,0 +1,36 @@
+{
+  "name": "v5_5_topup6_waveA_r5",
+  "description": "Wave A top-up set to move selected profiled1 models toward 5 successful runs per cell.",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "tngtech/DeepSeek-TNG-R1T2-Chimera",
+      "label": "DeepSeek TNG R1T2 Chimera"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-Flash",
+      "label": "GLM 4.7 Flash"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "MiniMaxAI/MiniMax-M2.1-TEE",
+      "label": "MiniMax M2.1 TEE"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.6-FP8",
+      "label": "GLM 4.6 FP8"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "deepseek-ai/DeepSeek-V3.1-Terminus",
+      "label": "DeepSeek V3.1 Terminus"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+      "label": "NVIDIA Nemotron 3 Nano 30B A3B BF16"
+    }
+  ]
+}

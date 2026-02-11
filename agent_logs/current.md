@@ -1,19 +1,17 @@
 # agent_logs/current.md
 
 ## Agent
-- id: agent08
+- id: agent10
 
 ## Timestamp (Pacific)
-- start: 2026-02-01
+- start: 2026-02-10
 
 ## Intent
-- Next slice: consolidate reporting workflow around `results.md` + baseline default; only run experimental prompt families when explicitly requested.
+- Await next assignment (expected: v6 draft-writing slice using canonical 10-model artifacts).
 
 ## Notes
-- Do not commit secrets, Kaggle data, run artifacts, or sqlite DBs (see `.gitignore`).
+- Keep v5.5 canonical scope fixed at 10 complete models unless explicitly changed.
+- Do not mix deferred 14-model backfill into canonical draft claims.
 
 ## Log
-
-### 2026-02-01 18:42:05 PST
-- Onboarded on branch `v5` (clean working tree) and reviewed current v5 reporting + prompt-policy decisions.
-- Next: keep baseline prompt family as default; treat time-gated/budget-aware as opt-in experiments; prefer `results.md` as the repo-root snapshot and keep root leaderboards opt-in via `--write-leaderboards`.
+- 2026-02-10 16:33:12 PST: Log rotated during wrap-up/handoff. Previous cycle archived at `agent_logs/2026-02-10_agent00.md`.

@@ -1,0 +1,21 @@
+{
+  "name": "v5_5_user_selected3",
+  "description": "User-selected v5.5 trio: Grok 4.1 Fast, MiniMax M2.1 TEE, and GLM 4.7 FP8 (selected over GLM 4.7 TEE after head-to-head duel).",
+  "models": [
+    {
+      "provider": "chutes",
+      "model_id": "zai-org/GLM-4.7-FP8",
+      "label": "GLM 4.7 FP8 (Chutes)"
+    },
+    {
+      "provider": "chutes",
+      "model_id": "MiniMaxAI/MiniMax-M2.1-TEE",
+      "label": "MiniMax M2.1 TEE (Chutes)"
+    },
+    {
+      "provider": "openrouter",
+      "model_id": "x-ai/grok-4.1-fast",
+      "label": "Grok 4.1 Fast (OpenRouter)"
+    }
+  ]
+}

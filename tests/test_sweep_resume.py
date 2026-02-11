@@ -16,6 +16,7 @@ def _insert_dummy_run(
     model_id: str,
     budget_seconds: int,
     prompt_profile: str,
+    prompt_strategy: str = "active",
     mode: str | None = None,
     status: str,
 ) -> None:
@@ -38,7 +39,7 @@ def _insert_dummy_run(
         run,
         artifacts=replace(
             run.artifacts,
-            notes={"prompt_profile": prompt_profile},
+            notes={"prompt_profile": prompt_profile, "prompt_strategy": prompt_strategy},
         ),
     )
     insert_run(db_path, run)
@@ -107,6 +108,7 @@ def test_resume_counts_success_only(tmp_path: Path) -> None:
         competition_id=competition_id,
         budget_seconds=1200,
         prompt_profile="sota-xgb",
+        prompt_strategy="active",
         mode=None,
         any_status=False,
     )
@@ -144,6 +146,7 @@ def test_resume_counts_any_status(tmp_path: Path) -> None:
         competition_id=competition_id,
         budget_seconds=240,
         prompt_profile="simple-baseline",
+        prompt_strategy="active",
         mode=None,
         any_status=True,
     )
