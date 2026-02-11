@@ -14,23 +14,35 @@ Scope: quantitative claims in `docs/paper/draft_v1.md`.
 | C8 | Sec 2 | Canonical evidence comes from nine sqlite sources | direct | `results.md` | Source DB list has 9 files. |
 | C9 | Sec 2 | Regeneration commands are refresh + coverage scripts | direct | `docs/plan/v6.md`; `HANDOFF.md` | Both list command pair as reproducibility flow. |
 | C10 | Sec 2 | Freeze check reports `9/9`, `10`, `0` | direct | local command output (`python scripts/check_profiled1_canonical_coverage.py`) | Output: `sources_found=9/9`, `canonical_models=10`, `missing_cells=0`, `status=OK`. |
-| C11 | Sec 3.1 | Churn sota best = `0.928000` (GPT OSS) | direct | `results.md` | churn table, sota row. |
-| C12 | Sec 3.1 | Churn simple best = `0.926671` (MiniMax) | direct | `results.md` | churn table, simple row. |
-| C13 | Sec 3.1 | NVIDIA churn sota = `0.813105` | direct | `results.md` | churn table, sota row. |
-| C14 | Sec 3.2 | MiniMax best in all three foot-traffic profiles | direct | `results.md` | foot-traffic table across 3 rows. |
-| C15 | Sec 3.2 | GLM 4.7 Flash foot-traffic sota = `0.107502`, IQR `0.070186..0.221725` | direct | `results.md`; `docs/reports/v5_5_canonical10_stability.md` | Median from canonical table; IQR from stability report. |
-| C16 | Sec 3.3 | s5e10 sota best = `0.056190` (GLM-4.6-FP8) | direct | `results.md` | s5e10 table, sota row. |
-| C17 | Sec 3.3 | s5e10 top models are tightly clustered | inference | `results.md` | Difference between best and many peers is near `1e-4`. |
-| C18 | Sec 3.4 | s6e1 sota best = `8.699779` (MiniMax) | direct | `results.md` | s6e1 table, sota row. |
-| C19 | Sec 3.4 | TNG good-baseline s6e1 = `10.199380`, IQR `9.088197..13.444163` | direct | `results.md`; `docs/reports/v5_5_canonical10_stability.md` | Median + IQR match. |
-| C20 | Sec 4 | Stability report contains narrow and wide IQR cells | direct | `docs/reports/v5_5_canonical10_stability.md` | Observed in multiple tables. |
-| C21 | Sec 4 | Nemotron s6e1 simple = `9.054929 (9.043837..10.604385)` | direct | `docs/reports/v5_5_canonical10_stability.md` | s6e1 section. |
-| C22 | Sec 4 | DeepSeek foot-traffic good = `0.068627 (0.066899..0.166052)` | direct | `docs/reports/v5_5_canonical10_stability.md` | foot-traffic section. |
-| C23 | Sec 5 | Combined14 status = `10/14`, remaining runs `143` | direct | `results.md` | Latest run status section. |
-| C24 | Sec 5 | Deferred models and counts `56/50/29/8` | direct | `results.md` | Latest run status section. |
-| C25 | Sec 5 | Security-hardening out of scope in v6 | direct | `docs/plan/v6.md` | Scope decision + non-goals. |
-| C26 | Sec 6 | Repro commands documented in appendix file | direct | `docs/paper/repro_appendix_v1.md` | File exists with command block. |
-| C27 | Sec 6 | Full claim traceability documented in matrix | direct | `docs/paper/claims_matrix_v1.md` | This file. |
+| C11 | Sec 4.1 | Churn sota best = `0.928000` (GPT OSS) | direct | `results.md` | churn table, sota row. |
+| C12 | Sec 4.1 | Churn simple best = `0.926671` (MiniMax) | direct | `results.md` | churn table, simple row. |
+| C13 | Sec 4.1 | NVIDIA churn sota = `0.813105` | direct | `results.md` | churn table, sota row. |
+| C14 | Sec 4.2 | MiniMax best in all three foot-traffic profiles | direct | `results.md` | foot-traffic table across 3 rows. |
+| C15 | Sec 4.2 | GLM 4.7 Flash foot-traffic sota = `0.107502`, IQR `0.070186..0.221725` | direct | `results.md`; `docs/reports/v5_5_canonical10_stability.md` | Median from canonical table; IQR from stability report. |
+| C16 | Sec 4.3 | s5e10 sota best = `0.056190` (GLM-4.6-FP8) | direct | `results.md` | s5e10 table, sota row. |
+| C17 | Sec 4.3 | s5e10 top models are tightly clustered | inference | `results.md` | Difference between best and many peers is near `1e-4`. |
+| C18 | Sec 4.4 | s6e1 sota best = `8.699779` (MiniMax) | direct | `results.md` | s6e1 table, sota row. |
+| C19 | Sec 4.4 | TNG good-baseline s6e1 = `10.199380`, IQR `9.088197..13.444163` | direct | `results.md`; `docs/reports/v5_5_canonical10_stability.md` | Median + IQR match. |
+| C20 | Sec 5 | Stability report contains narrow and wide IQR cells | direct | `docs/reports/v5_5_canonical10_stability.md` | Observed in multiple tables. |
+| C21 | Sec 5 | Nemotron s6e1 simple = `9.054929 (9.043837..10.604385)` | direct | `docs/reports/v5_5_canonical10_stability.md` | s6e1 section. |
+| C22 | Sec 5 | DeepSeek foot-traffic good = `0.068627 (0.066899..0.166052)` | direct | `docs/reports/v5_5_canonical10_stability.md` | foot-traffic section. |
+| C23 | Sec 6 | Combined14 status = `10/14`, remaining runs `143` | direct | `results.md` | Latest run status section. |
+| C24 | Sec 6 | Deferred models and counts `56/50/29/8` | direct | `results.md` | Latest run status section. |
+| C25 | Sec 6 | Security-hardening out of scope in v6 | direct | `docs/plan/v6.md` | Scope decision + non-goals. |
+| C26 | Sec 7 | Repro commands documented in appendix file | direct | `docs/paper/repro_appendix_v1.md` | File exists with command block. |
+| C27 | Sec 7 | Full claim traceability documented in matrix | direct | `docs/paper/claims_matrix_v1.md` | This file. |
 | C28 | Sec 3 (Result 1) | Leaderboard normalization uses within-cell rank-points (`0..1`) from canonical medians | direct | `scripts/render_v6_leaderboard_plots.py` | Implementation: rank within each `(competition, budget)` cell after converting direction; compute linear points. |
 | C29 | Sec 3 (Result 1) | Headline aggregation is best budget per competition, then average competitions equally | direct | `scripts/render_v6_leaderboard_plots.py`; `docs/paper/figures/v6/leaderboard_best_budget_per_comp.png` | Implementation: max over budgets per `(model, competition)`, then mean over competitions. |
 | C30 | Sec 3 (Result 1) | Two robustness variants exist: overall-all-cells and sota-only | direct | `scripts/render_v6_leaderboard_plots.py`; `docs/paper/figures/v6/leaderboard_overall_all_cells.png`; `docs/paper/figures/v6/leaderboard_sota_only.png` | Generated by the same script; see appendix for command. |
+| C31 | Sec 3 (Result 0.5) | Per-competition ranks heatmap computed from headline normalization | direct | `scripts/render_v6_key_results_plots.py`; `docs/paper/figures/v6/result0_5_consistency_ranks_heatmap.png` | Ranks derived from per-competition best-budget points. |
+| C32 | Sec 3 (Result 0.5) | Rank stddev summarizes cross-competition consistency | direct | `scripts/render_v6_key_results_plots.py`; `docs/paper/figures/v6/result0_5_consistency_rank_stddev.png` | Stddev of per-competition ranks per model. |
+| C33 | Sec 3 (Result 2) | Pareto plot shows performance vs stability (color=success rate) | direct | `scripts/render_v6_key_results_plots.py`; `docs/paper/figures/v6/result2_pareto_performance_vs_stability.png` | Performance from headline normalization; stability from rel-IQR; success rate from all attempts. |
+| C34 | Sec 3 (Result 2) | Success rate and stability breakdown plots exist | direct | `scripts/render_v6_key_results_plots.py`; `docs/paper/figures/v6/result2_reliability_success_rate.png`; `docs/paper/figures/v6/result2_stability_rel_iqr.png` | Both derived from canonical suite runs. |
+| C35 | Sec 3 (Result 3) | Scaling plot shows avg normalized points vs budget | direct | `scripts/render_v6_key_results_plots.py`; `docs/paper/figures/v6/result3_scaling_points_lines.png` | Per-budget points averaged across competitions. |
+| C36 | Sec 3 (Result 3) | Marginal gains and monotonicity rate are computed and plotted | direct | `scripts/render_v6_key_results_plots.py`; `docs/paper/figures/v6/result3_scaling_marginal_gains.png`; `docs/paper/figures/v6/result3_monotonicity_rate.png` | Gains in points; monotonicity in direction-correct raw medians. |
+| C37 | Sec 3 (Result 4) | Token consumption is not recorded in canonical sqlite sources (only `max_tokens`) | direct | `docs/paper/figures/v6/token_columns_union.txt`; `docs/paper/figures/v6/token_columns_by_db.csv` | Union of token/cost-like schema columns across nine sources includes only `max_tokens`. |
+| C38 | Sec 3 (Result 6) | Long suites require durable PID/status/log control plane | direct | `a2a_notes.md`; `scripts/async_suite_runner.py` | Repo run contract and async runner implement this. |
+| C39 | Sec 3 (Result 6) | Circuit-breaker limits wasted retries during failure streaks | direct | `a2a_notes.md`; `scripts/async_suite_runner.py` | Described as mandatory behavior and implemented in runner. |
+| C40 | Sec 3 (Result 6) | Continuous persistence avoids losing completed work | direct | `a2a_notes.md` | Documented as a hard lesson and contract. |
+| C41 | Sec 3 (Result 6) | `foot-traffic` is capped to `concurrency=1` for safety | direct | `orchestrator/suite.py`; `a2a_notes.md` | Implemented as suite-level safety rule. |
+| C42 | Sec 3 (Result 6) | Postmortems are mandatory after each async run | direct | `a2a_notes.md`; `scripts/async_suite_runner.py` | Documented as workflow contract; runner produces `postmortem.md`. |

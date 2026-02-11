@@ -55,6 +55,15 @@ def _table_columns(con: sqlite3.Connection, table: str) -> set[str]:
     return {str(r[1]) for r in cur.fetchall()}
 
 
+def _tokenish_columns(cols: set[str]) -> list[str]:
+    out: list[str] = []
+    for c in sorted(cols):
+        low = c.lower()
+        if any(k in low for k in ["token", "cost", "usd", "price", "prompt_tokens", "completion_tokens", "input_tokens", "output_tokens"]):
+            out.append(c)
+    return out
+
+
 def _iter_runs(db_path: Path) -> list[RunRow]:
     con = sqlite3.connect(db_path)
     try:
@@ -311,6 +320,26 @@ def main() -> int:
     args = ap.parse_args()
     out_dir = Path(args.out_dir)
 
+    # Token accounting is a key planned result; record what's actually present in the sqlite schema.
+    token_rows: list[dict[str, object]] = []
+    token_union: set[str] = set()
+    for rel in SOURCE_DBS:
+        src = REPO_ROOT / rel
+        if not src.exists():
+            continue
+        con = sqlite3.connect(src)
+        try:
+            cols = _table_columns(con, "runs")
+        finally:
+            con.close()
+        tok = _tokenish_columns(cols)
+        token_rows.append({"db": str(src.relative_to(REPO_ROOT)), "tokenish_columns": ",".join(tok)})
+        token_union.update(tok)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(token_rows).to_csv(out_dir / "token_columns_by_db.csv", index=False)
+    (out_dir / "token_columns_union.txt").write_text("\n".join(sorted(token_union)) + ("\n" if token_union else ""), encoding="utf-8")
+
     df_runs = _load_filtered_runs()
     med = _canonical_medians_from_runs(df_runs)
     pts = _rank_points(med)
@@ -488,4 +517,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

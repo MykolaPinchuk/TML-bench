@@ -33,6 +33,19 @@ Expected files:
 - `docs/paper/figures/v6/leaderboard_sota_only.png` (robustness: sota-only)
 - `docs/paper/figures/v6/leaderboard_scores.csv` (raw aggregate scores for all variants)
 
+## Plot generation (Result 0.5/2/3)
+
+Generate the additional v6 key-result figures (consistency, reliability, scaling):
+
+```bash
+python scripts/render_v6_key_results_plots.py --out-dir docs/paper/figures/v6
+```
+
+Expected files (selection):
+- `docs/paper/figures/v6/result0_5_consistency_ranks_heatmap.png`
+- `docs/paper/figures/v6/result2_pareto_performance_vs_stability.png`
+- `docs/paper/figures/v6/result3_scaling_points_lines.png`
+
 ## Expected verification contract
 
 Coverage checker output must include:
@@ -56,3 +69,9 @@ If any condition fails, treat the canonical tables as not frozen and do not publ
 ## Notes on deferred scope
 
 The 4-model backfill track remains non-canonical in this draft slice. Do not fold partial 14-model coverage into primary leaderboard claims.
+
+## Notes on token accounting
+
+Current canonical sqlite sources do not include token usage or cost fields. A schema summary is emitted by the key-results plot generator:
+- `docs/paper/figures/v6/token_columns_union.txt`
+- `docs/paper/figures/v6/token_columns_by_db.csv`

@@ -36,47 +36,71 @@ Headline figure (Option C; best budget per competition):
 Robustness variants (not headline) include an “overall-all-cells” aggregation and a “sota-only” aggregation; both are documented in the appendix [C30].
 See `docs/paper/appendix_robustness_v1.md`.
 
-### Result 0.5: Cross-competition consistency (planned)
+### Result 0.5: Cross-competition consistency
 
-TODO: quantify per-model ranking stability across competitions (e.g., rank variance / consistency plots) using the same normalized rank-points space.
+We compute per-competition ranks in the same normalized space as the headline leaderboard (best budget per competition). The heatmap below shows each model’s rank (1=best) per competition [C31].
 
-### Result 2: Reliability and variance (planned)
+![Result 0.5: Per-competition ranks (1=best)](figures/v6/result0_5_consistency_ranks_heatmap.png)
 
-TODO: add a reliability leaderboard with (a) success-rate and (b) stability (IQR-based) from canonical five-run cells.
+We also summarize rank variability across competitions via rank standard deviation (lower is more consistent) [C32].
+See `docs/paper/appendix_result0_5_v1.md`.
 
-### Result 3: Scaling with time budget (planned)
+### Result 2: Reliability and variance
 
-TODO: characterize marginal gains (`simple→good`, `good→sota`) and monotonicity across budgets globally and per-model.
+Reliability has two components:
+1. Run success rate (how often a run yields a valid score).
+2. Within-cell stability (how variable a model is across the five canonical runs).
 
-### Result 4: Token consumption and token efficiency (planned)
+We summarize the tradeoff via a Pareto-style plot (performance vs stability; color indicates success rate) [C33].
 
-TODO: summarize token usage per run (median/IQR) and efficiency (performance vs tokens) per model and budget.
+![Result 2: Performance vs stability (color=success rate)](figures/v6/result2_pareto_performance_vs_stability.png)
 
-### Result 6: What we learned building this (planned)
+Supporting breakdown plots for success rate and stability are included in the appendix output set [C34].
+See `docs/paper/appendix_result2_v1.md`.
 
-TODO: document failure modes, harness integration lessons (Kilo), and practical engineering guidance for running evals.
+### Result 3: Scaling with time budget
+
+We analyze how normalized performance changes as time budget increases from 240s to 600s to 1200s, averaging across the four competitions [C35].
+
+![Result 3: Scaling with time budget](figures/v6/result3_scaling_points_lines.png)
+
+We also report marginal gains (240→600 and 600→1200) and a monotonicity rate (share of competitions where median performance is monotone across budgets) [C36].
+See `docs/paper/appendix_result3_v1.md`.
+
+### Result 4: Token consumption and token efficiency
+
+Token consumption is not recorded in the current canonical sqlite sources (only `max_tokens` config is present). As a result, token efficiency is not reported in this v6 slice [C37].
+
+### Result 6: What we learned building this
+
+Operational lessons from running the suite reliably:
+- Long-running suites need a control plane: durable PID/status/log paths and structured events, not ad-hoc shells [C38].
+- Circuit-breakers reduce wasted spend and wall-clock when a model/provider enters a failure streak (timeouts dominate several sources) [C39].
+- Continuous persistence matters: importing/completing results incrementally avoids losing work when a parent process dies [C40].
+- Resource caps are necessary for safety: `foot-traffic` is forced to `concurrency=1` due to observed instability and memory pressure in prior failures [C41].
+- Postmortems are part of the workflow contract: every run ends with a diagnosis artifact before starting the next [C42].
 
 ## 4. Canonical 10-model results
 
-### 3.1 bank-customer-churn-ict-u-ai (AUC; higher better)
+### 4.1 bank-customer-churn-ict-u-ai (AUC; higher better)
 
 The strongest median AUC in `sota-xgb` is `0.928000` (GPT OSS 120B TEE) [C11]. In `simple-baseline`, the top median is `0.926671` (MiniMax-M2.1-TEE) [C12].
 
 This task shows strong top-tier clustering in the `0.92x` range with notable underperformance from some models in specific profiles (for example, NVIDIA-Nemotron-3-Nano at `0.813105` in `sota-xgb`) [C13].
 
-### 3.2 foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower better)
+### 4.2 foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower better)
 
 MiniMax-M2.1-TEE is best in all three profiles (`0.066846`, `0.065770`, `0.065489`) [C14].
 
 A key instability signal appears for GLM 4.7 Flash in `sota-xgb`: median `0.107502` with IQR `0.070186..0.221725`, substantially wider than neighboring models [C15].
 
-### 3.3 playground-series-s5e10 (RMSE; lower better)
+### 4.3 playground-series-s5e10 (RMSE; lower better)
 
 `Sota-xgb` medians are tightly clustered near `0.0562`, with the best cell at `0.056190` (GLM-4.6-FP8) and many models within a few `1e-4` [C16].
 
 This indicates low separability among top models for this competition under the current protocol; ranking changes are likely sensitive to small perturbations [C17].
 
-### 3.4 playground-series-s6e1 (RMSE; lower better)
+### 4.4 playground-series-s6e1 (RMSE; lower better)
 
 MiniMax-M2.1-TEE leads `sota-xgb` with RMSE `8.699779` [C18].
 
