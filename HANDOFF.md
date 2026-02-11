@@ -1,9 +1,9 @@
 # HANDOFF
 
 ## Current slice
-v5.5 closeout complete for baseline reporting under Strategy 2 (`profiled1`).
+v6 planning kickoff (draft-first milestone).
 
-Canonical scope is now the fully complete 10-model set (5 successful runs/cell across `4 competitions x 3 profiles`), while the remaining 4-model expansion is deferred.
+v5.5 closeout is complete; v6 focuses on writing the first draft from canonical 10-model evidence only.
 
 ## Current state (2026-02-10)
 - Latest top-up run: `v5_5_topup_remaining5_r5_20260209_r2`.
@@ -11,7 +11,8 @@ Canonical scope is now the fully complete 10-model set (5 successful runs/cell a
 - `final_missing`: 0 active missing cells for all profiles.
 - `final_deferred`: `simple=52`, `good=45`, `sota=46` runs.
 - No active async run is currently live.
-- v5.5 canonical reporting artifacts are now reproducible via scripts and ready for v6 drafting.
+- v5.5 canonical reporting artifacts are reproducible and frozen for draft usage.
+- v6 branch has been created and fast-forwarded to include all v5.5 closeout commits.
 
 Combined14 completion snapshot:
 - complete models: `10/14`
@@ -27,19 +28,13 @@ Combined14 completion snapshot:
 - Do not merge partial 14-model results into canonical tables.
 - Promote canonical scope to 14 only when each remaining model reaches full 5-run coverage across all 12 cells.
 
-## v5.5 closeout plan
-- Detailed plan: `docs/plan/v5_5_closeout.md`.
-- Completed this cycle:
-  1. Reproducibility lock/checker implemented:
-     - `scripts/check_profiled1_canonical_coverage.py`
-     - `scripts/refresh_profiled1_results.py`
-  2. Stability companion report implemented:
-     - `scripts/render_profiled1_canonical_stability.py`
-     - `docs/reports/v5_5_canonical10_stability.md`
-- High-priority next items:
-  1. Start v6 draft writing using canonical 10-model artifacts only.
-  2. Keep 14-model backfill explicitly out of draft claims unless full completion criteria are later met.
-  3. If/when backfill resumes, keep canonical 10-model tables unchanged until 14-model completion criteria are fully met.
+## v6 plan
+- v5.5 closeout plan (completed): `docs/plan/v5_5_closeout.md`.
+- v6 draft-first plan (active): `docs/plan/v6.md`.
+- Immediate next items:
+  1. Start `docs/paper/draft_v1.md` using canonical 10-model artifacts.
+  2. Add `docs/paper/claims_matrix_v1.md` to enforce claim-evidence linkage.
+  3. Add `docs/paper/repro_appendix_v1.md` with exact regeneration/verification commands.
 
 ## Deferred expansion gate (non-canonical track)
 Retry 14-model backfill only when:
@@ -52,6 +47,7 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
 1. Use `results.md` canonical 10-model tables as the primary result source.
 2. Use `docs/reports/v5_5_canonical10_stability.md` for variability narrative (median + IQR).
 3. Use `scripts/refresh_profiled1_results.py` and `scripts/check_profiled1_canonical_coverage.py` as reproducibility commands to cite in the draft appendix.
+4. Follow `docs/plan/v6.md` execution order for draft deliverables and exit criteria.
 
 ## Key evidence paths
 - Canonical report: `results.md`
@@ -59,6 +55,7 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
 - Canonical refresh+verify flow: `scripts/refresh_profiled1_results.py`
 - Canonical coverage checker: `scripts/check_profiled1_canonical_coverage.py`
 - Stability supplement: `docs/reports/v5_5_canonical10_stability.md`
+- v6 plan: `docs/plan/v6.md`
 - Closeout plan: `docs/plan/v5_5_closeout.md`
 - Latest run status: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/status.json`
 - Latest run events: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/events.jsonl`

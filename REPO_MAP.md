@@ -18,6 +18,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/plan/v1.md` — low-level design for Phases 1–3.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
 - `docs/plan/v5_5_closeout.md` — v5.5 closeout goals, acceptance criteria, and execution order for canonical 10-model reporting.
+- `docs/plan/v6.md` — active v6 draft-first plan (deliverables, claim discipline, repro appendix, and exit criteria).
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
@@ -47,7 +48,7 @@ Keep this file short. Update it only when something important changes.
 
 ## Hot paths (last 1–2 cycles)
 - `prd.md` — PRD updates and phase definitions.
-- `docs/plan/v1.md` — Phase 1–3 low-level design.
+- `docs/plan/v6.md` — active planning for v6 draft-writing scope.
 - `orchestrator/` — Phase 1 core (prepare/validate/score).
 - `competitions/` — per-task specs and preparation scripts.
 
