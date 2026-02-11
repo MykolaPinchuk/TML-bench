@@ -42,6 +42,8 @@ Combined14 completion snapshot:
   3. D3 reproducibility appendix (`docs/paper/repro_appendix_v1.md`).
 - Immediate next item:
   1. D4 narrative quality pass: tighten interpretation text, ensure tone/claim precision, and keep all quantitative statements tied to `claims_matrix_v1.md`.
+  2. Finish Results 0.5/2/3 writeups (figures are committed under `docs/paper/figures/v6/`).
+  3. Result 4 (tokens): currently blocked by missing token/cost fields in sqlite; needs new instrumentation.
 
 ## Deferred expansion gate (non-canonical track)
 Retry 14-model backfill only when:
@@ -66,6 +68,9 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
 - Draft v1: `docs/paper/draft_v1.md`
 - Claims matrix: `docs/paper/claims_matrix_v1.md`
 - Repro appendix: `docs/paper/repro_appendix_v1.md`
+- Committed figures: `docs/paper/figures/v6/`
+- Leaderboard plot generator: `scripts/render_v6_leaderboard_plots.py`
+- Key-result plot generator (Result 0.5/2/3): `scripts/render_v6_key_results_plots.py`
 - Closeout plan: `docs/plan/v5_5_closeout.md`
 - Latest run status: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/status.json`
 - Latest run events: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/events.jsonl`

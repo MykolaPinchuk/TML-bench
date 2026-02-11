@@ -22,6 +22,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/paper/draft_v1.md` — active v6 manuscript draft using canonical 10-model evidence.
 - `docs/paper/claims_matrix_v1.md` — claim-to-evidence mapping for all quantitative draft statements.
 - `docs/paper/repro_appendix_v1.md` — exact regeneration and verification commands for draft reproducibility.
+- `docs/paper/figures/v6/` — committed v6 draft figures (leaderboard + consistency/reliability/scaling).
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
@@ -29,6 +30,8 @@ Keep this file short. Update it only when something important changes.
 - `scripts/update_profiled1_fiverun_tables.py` — regenerates the auto-updated 5-run-only `profiled1` tables block in `results.md`.
 - `scripts/check_profiled1_canonical_coverage.py` — validates frozen v5.5 canonical 10-model `profiled1` coverage and `results.md` auto-block consistency.
 - `scripts/refresh_profiled1_results.py` — one-command regenerate+verify flow for canonical `profiled1` results.
+- `scripts/render_v6_leaderboard_plots.py` — renders the three headline leaderboard aggregation variants (writes into `docs/paper/figures/v6/`).
+- `scripts/render_v6_key_results_plots.py` — renders Result 0.5/2/3 figures (consistency, reliability, scaling) into `docs/paper/figures/v6/`.
 - `scripts/render_profiled1_canonical_stability.py` — generates canonical 10-model stability companion report (median + IQR) at `docs/reports/v5_5_canonical10_stability.md`.
 - `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
 - `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).

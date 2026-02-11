@@ -200,19 +200,9 @@ def _rank_points(df: pd.DataFrame) -> pd.DataFrame:
     out["direction"] = out["competition_id"].map(direction).astype(int)
     # Convert to "higher is better" for ranking only.
     out["value_for_rank"] = out["median_score_raw"] * out["direction"]
-
-    def _cell_points(g: pd.DataFrame) -> pd.DataFrame:
-        n = len(g)
-        if n < 2:
-            raise RuntimeError("Need at least 2 models to compute rank points.")
-        # rank 1 is best (highest value_for_rank)
-        g = g.sort_values(["value_for_rank", "model_id"], ascending=[False, True]).reset_index(drop=True)
-        g["rank"] = (g.index + 1).astype(int)
-        g["points"] = (n - g["rank"]) / (n - 1)
-        return g
-
-    # Keep this compatible across pandas versions; avoid relying on groupby.apply including grouping columns.
-    out = out.groupby("cell_id", group_keys=False).apply(_cell_points)
+    out["n_models"] = out.groupby("cell_id")["model_id"].transform("count").astype(int)
+    out["rank"] = out.groupby("cell_id")["value_for_rank"].rank(method="first", ascending=False)
+    out["points"] = (out["n_models"] - out["rank"]) / (out["n_models"] - 1)
     return out
 
 
