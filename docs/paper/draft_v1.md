@@ -16,7 +16,46 @@ The canonical evidence here comes from nine sqlite sources listed in `results.md
 
 At freeze time, coverage checks report `sources_found=9/9`, `canonical_models=10`, and `missing_cells=0` [C10].
 
-## 3. Canonical 10-model results
+## 3. Key results (headline)
+
+This v6 slice is organized around the following key results (Result 0.5–6). The headline performance leaderboard uses a normalization that compares models fairly across competitions and budgets.
+
+### Result 1: Aggregate performance leaderboard (headline plot)
+
+We report an aggregate leaderboard derived from canonical 5-run medians, normalized via rank-points so that scores from different competitions (AUC vs RMSE) are comparable [C28].
+
+Method:
+- Unit of aggregation: per `(competition, budget)` cell, use the model’s 5-run median `score_raw` [C7].
+- Normalize within each cell by rank: best model gets `1.0`, worst gets `0.0`, with linear spacing in between [C28].
+- Headline aggregation (chosen): for each `(model, competition)` take the **best** normalized cell across the three budgets, then average across the 4 competitions with equal weights [C29].
+
+Headline figure (Option C; best budget per competition):
+
+![Headline leaderboard: best budget per competition](../../tmp/v6_plots/leaderboard_best_budget_per_comp.png)
+
+Robustness variants (not headline) include an “overall-all-cells” aggregation and a “sota-only” aggregation; both are documented in the appendix [C30].
+
+### Result 0.5: Cross-competition consistency (planned)
+
+TODO: quantify per-model ranking stability across competitions (e.g., rank variance / consistency plots) using the same normalized rank-points space.
+
+### Result 2: Reliability and variance (planned)
+
+TODO: add a reliability leaderboard with (a) success-rate and (b) stability (IQR-based) from canonical five-run cells.
+
+### Result 3: Scaling with time budget (planned)
+
+TODO: characterize marginal gains (`simple→good`, `good→sota`) and monotonicity across budgets globally and per-model.
+
+### Result 4: Token consumption and token efficiency (planned)
+
+TODO: summarize token usage per run (median/IQR) and efficiency (performance vs tokens) per model and budget.
+
+### Result 6: What we learned building this (planned)
+
+TODO: document failure modes, harness integration lessons (Kilo), and practical engineering guidance for running evals.
+
+## 4. Canonical 10-model results
 
 ### 3.1 bank-customer-churn-ict-u-ai (AUC; higher better)
 
@@ -42,7 +81,7 @@ MiniMax-M2.1-TEE leads `sota-xgb` with RMSE `8.699779` [C18].
 
 The `good-baseline` profile includes a large failure-mode outlier for TNG-R1T2-Chimera (median `10.199380`, IQR `9.088197..13.444163`), motivating caution when interpreting single-profile standings [C19].
 
-## 4. Stability and variance notes
+## 5. Stability and variance notes
 
 The stability companion (`docs/reports/v5_5_canonical10_stability.md`) should be read jointly with canonical medians; several cells show narrow IQRs while others exhibit broad or asymmetric spread [C20].
 
@@ -50,7 +89,7 @@ Examples of high-variance cells include:
 - NVIDIA-Nemotron-3-Nano on s6e1 `simple-baseline`: `9.054929 (9.043837..10.604385)` [C21]
 - DeepSeek-V3.1-Terminus on foot-traffic `good-baseline`: `0.068627 (0.066899..0.166052)` [C22]
 
-## 5. Limitations and deferred scope
+## 6. Limitations and deferred scope
 
 This draft intentionally excludes partial 14-model aggregate tables from primary claims. Combined14 status remains `10/14` complete models with `143` remaining runs for full 5-run completion [C23].
 
@@ -62,7 +101,7 @@ The deferred models are:
 
 Security-hardening implementation work from the earlier PRD phase naming is out of scope for this v6 draft-first slice [C25].
 
-## 6. Reproducibility appendix pointers
+## 7. Reproducibility appendix pointers
 
 Reproduction commands and expected verification outputs are documented in `docs/paper/repro_appendix_v1.md` [C26].
 
