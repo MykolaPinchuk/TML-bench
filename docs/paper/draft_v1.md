@@ -20,6 +20,12 @@ At freeze time, coverage checks report `sources_found=9/9`, `canonical_models=10
 
 This v6 slice is organized around the following key results (Result 0.5–6). The headline performance leaderboard uses a normalization that compares models fairly across competitions and budgets.
 
+### Key findings (draft1)
+
+- Under the headline normalization (best budget per competition, averaged across competitions), `MiniMax-M2.1-TEE` is the top performer and is rank-1 in every competition [C43].
+- Reliability varies meaningfully even among strong performers; the success-rate and stability plots show clear separation between more and less reliable models [C34].
+- Some models gain substantially from extra time budget, while others are relatively flat; marginal-gain and monotonicity views capture these patterns [C36].
+
 ### Result 1: Aggregate performance leaderboard (headline plot)
 
 We report an aggregate leaderboard derived from canonical 5-run medians, normalized via rank-points so that scores from different competitions (AUC vs RMSE) are comparable [C28].
