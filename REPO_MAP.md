@@ -19,6 +19,9 @@ Keep this file short. Update it only when something important changes.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
 - `docs/plan/v5_5_closeout.md` — v5.5 closeout goals, acceptance criteria, and execution order for canonical 10-model reporting.
 - `docs/plan/v6.md` — active v6 draft-first plan (deliverables, claim discipline, repro appendix, and exit criteria).
+- `docs/paper/draft_v1.md` — active v6 manuscript draft using canonical 10-model evidence.
+- `docs/paper/claims_matrix_v1.md` — claim-to-evidence mapping for all quantitative draft statements.
+- `docs/paper/repro_appendix_v1.md` — exact regeneration and verification commands for draft reproducibility.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
@@ -49,6 +52,7 @@ Keep this file short. Update it only when something important changes.
 ## Hot paths (last 1–2 cycles)
 - `prd.md` — PRD updates and phase definitions.
 - `docs/plan/v6.md` — active planning for v6 draft-writing scope.
+- `docs/paper/` — v6 draft/manuscript assets and evidence traceability.
 - `orchestrator/` — Phase 1 core (prepare/validate/score).
 - `competitions/` — per-task specs and preparation scripts.
 

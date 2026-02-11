@@ -1,11 +1,11 @@
 # HANDOFF
 
 ## Current slice
-v6 planning kickoff (draft-first milestone).
+v6 draft-first execution (canonical 10-model milestone).
 
-v5.5 closeout is complete; v6 focuses on writing the first draft from canonical 10-model evidence only.
+v5.5 closeout is complete; v6 is now in drafting mode using canonical 10-model evidence only.
 
-## Current state (2026-02-10)
+## Current state (2026-02-11)
 - Latest top-up run: `v5_5_topup_remaining5_r5_20260209_r2`.
 - Terminal status: `completed` at `2026-02-09 22:36:24 PST`.
 - `final_missing`: 0 active missing cells for all profiles.
@@ -13,6 +13,11 @@ v5.5 closeout is complete; v6 focuses on writing the first draft from canonical 
 - No active async run is currently live.
 - v5.5 canonical reporting artifacts are reproducible and frozen for draft usage.
 - v6 branch has been created and fast-forwarded to include all v5.5 closeout commits.
+- v6 reproducibility check re-run on 2026-02-11 passed with `status=OK` (`sources_found=9/9`, `canonical_models=10`, `missing_cells=0`).
+- v6 draft assets created:
+  - `docs/paper/draft_v1.md`
+  - `docs/paper/claims_matrix_v1.md`
+  - `docs/paper/repro_appendix_v1.md`
 
 Combined14 completion snapshot:
 - complete models: `10/14`
@@ -31,10 +36,12 @@ Combined14 completion snapshot:
 ## v6 plan
 - v5.5 closeout plan (completed): `docs/plan/v5_5_closeout.md`.
 - v6 draft-first plan (active): `docs/plan/v6.md`.
-- Immediate next items:
-  1. Start `docs/paper/draft_v1.md` using canonical 10-model artifacts.
-  2. Add `docs/paper/claims_matrix_v1.md` to enforce claim-evidence linkage.
-  3. Add `docs/paper/repro_appendix_v1.md` with exact regeneration/verification commands.
+- Completed deliverables:
+  1. D1 draft skeleton and first-pass prose (`docs/paper/draft_v1.md`).
+  2. D2 claim-evidence matrix (`docs/paper/claims_matrix_v1.md`).
+  3. D3 reproducibility appendix (`docs/paper/repro_appendix_v1.md`).
+- Immediate next item:
+  1. D4 narrative quality pass: tighten interpretation text, ensure tone/claim precision, and keep all quantitative statements tied to `claims_matrix_v1.md`.
 
 ## Deferred expansion gate (non-canonical track)
 Retry 14-model backfill only when:
@@ -56,6 +63,9 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
 - Canonical coverage checker: `scripts/check_profiled1_canonical_coverage.py`
 - Stability supplement: `docs/reports/v5_5_canonical10_stability.md`
 - v6 plan: `docs/plan/v6.md`
+- Draft v1: `docs/paper/draft_v1.md`
+- Claims matrix: `docs/paper/claims_matrix_v1.md`
+- Repro appendix: `docs/paper/repro_appendix_v1.md`
 - Closeout plan: `docs/plan/v5_5_closeout.md`
 - Latest run status: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/status.json`
 - Latest run events: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/events.jsonl`
