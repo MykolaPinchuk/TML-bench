@@ -22,16 +22,16 @@ The v6 draft uses normalized rank-point aggregations computed from canonical 5-r
 Generate all three leaderboard variants (headline + robustness checks):
 
 ```bash
-python scripts/render_v6_leaderboard_plots.py
+python scripts/render_v6_leaderboard_plots.py --out-dir docs/paper/figures/v6
 ```
 
-Default output directory: `tmp/v6_plots/`
+Draft figures are committed under: `docs/paper/figures/v6/`
 
 Expected files:
-- `tmp/v6_plots/leaderboard_best_budget_per_comp.png` (headline: best budget per competition)
-- `tmp/v6_plots/leaderboard_overall_all_cells.png` (robustness: overall across all competitions and budgets)
-- `tmp/v6_plots/leaderboard_sota_only.png` (robustness: sota-only)
-- `tmp/v6_plots/leaderboard_scores.csv` (raw aggregate scores for all variants)
+- `docs/paper/figures/v6/leaderboard_best_budget_per_comp.png` (headline: best budget per competition)
+- `docs/paper/figures/v6/leaderboard_overall_all_cells.png` (robustness: overall across all competitions and budgets)
+- `docs/paper/figures/v6/leaderboard_sota_only.png` (robustness: sota-only)
+- `docs/paper/figures/v6/leaderboard_scores.csv` (raw aggregate scores for all variants)
 
 ## Expected verification contract
 

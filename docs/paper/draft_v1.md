@@ -31,9 +31,10 @@ Method:
 
 Headline figure (Option C; best budget per competition):
 
-![Headline leaderboard: best budget per competition](../../tmp/v6_plots/leaderboard_best_budget_per_comp.png)
+![Headline leaderboard: best budget per competition](figures/v6/leaderboard_best_budget_per_comp.png)
 
 Robustness variants (not headline) include an “overall-all-cells” aggregation and a “sota-only” aggregation; both are documented in the appendix [C30].
+See `docs/paper/appendix_robustness_v1.md`.
 
 ### Result 0.5: Cross-competition consistency (planned)
 
