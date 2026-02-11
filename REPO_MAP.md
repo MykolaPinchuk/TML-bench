@@ -23,6 +23,9 @@ Keep this file short. Update it only when something important changes.
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
 - `orchestrator/model_sets/v5_5_topup_remaining5_r5.json` — current 5-model remaining-gap top-up set for combined14 5-run completion work.
 - `scripts/update_profiled1_fiverun_tables.py` — regenerates the auto-updated 5-run-only `profiled1` tables block in `results.md`.
+- `scripts/check_profiled1_canonical_coverage.py` — validates frozen v5.5 canonical 10-model `profiled1` coverage and `results.md` auto-block consistency.
+- `scripts/refresh_profiled1_results.py` — one-command regenerate+verify flow for canonical `profiled1` results.
+- `scripts/render_profiled1_canonical_stability.py` — generates canonical 10-model stability companion report (median + IQR) at `docs/reports/v5_5_canonical10_stability.md`.
 - `orchestrator/kilo_cli.py` — headless Kilo CLI runner + JSONL cleaning.
 - `orchestrator/leaderboard.py` — rebuild leaderboards (supports `--import-results`).
 - `orchestrator/spec_sanity.py` — monotonicity sanity report across s-b/g-b/sota (supports fixed-prompt via `--prompt-profile`).
@@ -38,6 +41,7 @@ Keep this file short. Update it only when something important changes.
 - `runs/` — run artifacts (always ignored; do not commit).
 - `results.md` — **committed** snapshot of baseline results (time × model tables per competition).
 - `docs/archive/results_legacy_snapshots_2026-02-10.md` — archived historical/transitional result sections removed from `results.md` for readability.
+- `docs/reports/v5_5_canonical10_stability.md` — companion variability report for canonical 10-model tables.
 - `archive/leaderboards/` — legacy leaderboard snapshots (committed for reference only).
 - `results/` — local outputs/DBs (mostly ignored; see `.gitignore`).
 

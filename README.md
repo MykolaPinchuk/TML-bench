@@ -111,6 +111,10 @@ Across runs:
 - `results/results.sqlite` — local DB of recorded runs (source-of-truth for leaderboards)
 - Legacy leaderboards are archived under `archive/leaderboards/` (snapshots); current repo-root summary is `results.md`.
 - Rebuild/refresh generated leaderboards from on-disk `runs/*/result.json` (optional): `python -m orchestrator.leaderboard --import-results --write-root`
+- Refresh canonical `profiled1` 5-run tables and verify frozen 10-model coverage:
+  - `python scripts/refresh_profiled1_results.py`
+- Render canonical 10-model stability companion report (median + IQR):
+  - `python scripts/render_profiled1_canonical_stability.py`
 
 ## Data policy
 - Kaggle downloads, generated competition data (`competitions/**/public`, `competitions/**/private`), runs (`runs/`), and DBs are **not committed** (see `.gitignore`).

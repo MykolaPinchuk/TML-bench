@@ -28,10 +28,17 @@ Combined14 completion snapshot:
 
 ## v5.5 closeout plan
 - Detailed plan: `docs/plan/v5_5_closeout.md`.
+- Completed this cycle:
+  1. Reproducibility lock/checker implemented:
+     - `scripts/check_profiled1_canonical_coverage.py`
+     - `scripts/refresh_profiled1_results.py`
+  2. Stability companion report implemented:
+     - `scripts/render_profiled1_canonical_stability.py`
+     - `docs/reports/v5_5_canonical10_stability.md`
 - High-priority next items:
-  1. Add reproducibility lock/checker for canonical 10-model coverage.
-  2. Add compact stability/context supplement without expanding canonical scope.
-  3. Keep state docs synchronized with terminal run state and deferred expansion gate.
+  1. Keep `HANDOFF.md` and `results.md` synchronized after each deferred-expansion retry.
+  2. Decide go/no-go criteria for resuming 14-model backfill today after breaker windows clear.
+  3. If backfill resumes, keep canonical 10-model tables unchanged until 14-model completion criteria are fully met.
 
 ## Deferred expansion gate (non-canonical track)
 Retry 14-model backfill only when:
@@ -43,6 +50,9 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
 ## Key evidence paths
 - Canonical report: `results.md`
 - Legacy snapshots archive: `docs/archive/results_legacy_snapshots_2026-02-10.md`
+- Canonical refresh+verify flow: `scripts/refresh_profiled1_results.py`
+- Canonical coverage checker: `scripts/check_profiled1_canonical_coverage.py`
+- Stability supplement: `docs/reports/v5_5_canonical10_stability.md`
 - Closeout plan: `docs/plan/v5_5_closeout.md`
 - Latest run status: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/status.json`
 - Latest run events: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/events.jsonl`

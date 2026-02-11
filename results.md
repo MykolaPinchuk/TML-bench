@@ -102,6 +102,9 @@ Current combined14 completion snapshot (as of 2026-02-10):
   - `openrouter::x-ai/grok-4.1-fast` (`29`)
   - `chutes::moonshotai/Kimi-K2-Instruct-0905` (`8`)
 
+Canonical stability supplement:
+- `docs/reports/v5_5_canonical10_stability.md` (median + IQR from earliest 5 successful runs/cell)
+
 ## Historical Snapshots
 
 Historical and transitional sections were moved out of this file for readability:
