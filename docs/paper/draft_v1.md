@@ -69,7 +69,7 @@ See `docs/paper/appendix_result3_v1.md`.
 
 ### Result 4: Token consumption and token efficiency
 
-Token consumption is not recorded in the current canonical sqlite sources (only `max_tokens` config is present). As a result, token efficiency is not reported in this v6 slice [C37].
+Token consumption is not recorded in the current canonical sqlite sources (only `max_tokens` config is present). As a result, token efficiency is not reported in this draft (draft1) and is deferred to draft2 after adding token/cost instrumentation [C37].
 
 ### Result 6: What we learned building this
 

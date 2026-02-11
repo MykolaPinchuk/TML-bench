@@ -43,7 +43,7 @@ Combined14 completion snapshot:
 - Immediate next item:
   1. D4 narrative quality pass: tighten interpretation text, ensure tone/claim precision, and keep all quantitative statements tied to `claims_matrix_v1.md`.
   2. Finish Results 0.5/2/3 writeups (figures are committed under `docs/paper/figures/v6/`).
-  3. Result 4 (tokens): currently blocked by missing token/cost fields in sqlite; needs new instrumentation.
+  3. Result 4 (tokens): not mandatory for draft1; mandatory for draft2. Currently blocked by missing token/cost fields in sqlite and needs new instrumentation.
 
 ## Deferred expansion gate (non-canonical track)
 Retry 14-model backfill only when:
