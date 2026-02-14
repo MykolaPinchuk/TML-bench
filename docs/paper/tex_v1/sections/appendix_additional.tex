@@ -56,6 +56,27 @@ Rank variability across competitions is summarized via rank standard deviation (
   \caption{Monotonicity rate across budgets.}
 \end{figure}
 
+\section{Harness details (Kilo Code)}
+\label{sec:appendix-harness}
+
+This appendix explains what Kilo Code is and why it is used as the single agent harness in this paper.
+
+\subsection{What Kilo Code is}
+Kilo Code is an AI coding agent for VS Code. In TML-bench, it is used as the uniform interface between a model and the benchmark task workspace: the agent reads task files, writes code, trains models, and produces a submission file.
+
+Kilo Code is also widely used in practice. For example, OpenRouter's public ``Top Apps'' leaderboard (weekly tokens, based on opt-in app attribution) lists Kilo Code as \#2 as of 2026-02-14 (and as the highest-usage VS Code coding agent app in that list), see \url{https://openrouter.ai/rankings} and \url{https://openrouter.ai/docs/app-attribution}. This is a point-in-time snapshot; rankings vary over time.
+
+\subsection{Why standardize on a single harness}
+Many open-source agent harnesses exist, and different harnesses can introduce confounds: differences in tool availability, file access conventions, patch/apply mechanics, retry behavior, and failure handling. This paper standardizes on a single harness to reduce ``harness effects'' and to make comparisons across models more interpretable.
+
+Kilo Code was chosen for three practical reasons: reliability (mature enough to run repeatedly under timeouts and produce stable artifacts), model breadth (extensively used with a wide range of open and API-served models), and fast sanity checks (available as a VS Code extension, making basic end-to-end behavior easy to verify).
+
+\subsection{What the harness enforces (high level)}
+At a high level, the harness ensures that: (i) the agent works in a clean per-run workspace with only the agent-visible task inputs, (ii) the agent stage is time-bounded (240s/600s/1200s), (iii) submissions are validated and normalized before scoring, and (iv) the final score is computed on hidden holdout labels outside the agent workspace.
+
+\subsection{Limitations of this choice}
+Standardizing on Kilo Code improves comparability, but it also narrows the scope of conclusions: results are about models as used through this harness under this protocol. Other harnesses may yield different absolute performance or failure rates.
+
 \section{Scoring, aggregation, and normalization details}
 \label{sec:appendix-method}
 

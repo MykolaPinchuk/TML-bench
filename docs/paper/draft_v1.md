@@ -49,12 +49,9 @@ The evidence in this paper is derived from logged run outcomes (status, score, r
 
 ### 2.4 Agent harness (Kilo Code)
 
-Each run is executed in a clean, per-run workspace managed by the Kilo Code harness. The harness provides the agent with the task files and instructions, enforces a wall-clock time budget, and validates the submission format.
+Each run is executed in a clean, per-run workspace managed by the Kilo Code harness. The harness enforces the time budget, validates the submission format, and scores submissions on hidden holdout labels (not accessible to the agent).
 
-After the agent finishes (or times out), the submission is scored on hidden holdout labels (not accessible to the agent) to produce the private-holdout metric. A run is counted as **successful** if:
-1. A submission file is produced.
-2. The submission passes validation/normalization.
-3. Private-holdout scoring completes and returns a numeric metric.
+Appendix G describes what Kilo Code is and why this paper standardizes on it.
 
 ### 2.5 Metrics and normalization
 
@@ -193,9 +190,15 @@ Two constraints matter when interpreting scaling with time budget. First, budget
 
 This paper is accompanied by a repository that contains run logs, scripts to regenerate figures and tables from those logs, and validation steps to confirm coverage.
 
-## References (draft placeholder)
+## References
 
-This draft uses placeholder citations. Candidate references include Kilo Code documentation and related agent benchmark work. This section will be filled in after the narrative stabilizes.
+[R1] Kilo Code (website). https://www.kilocode.app/ (accessed 2026-02-14).  
+[R2] Kilo Code documentation. https://kilo.ai/docs (accessed 2026-02-14).  
+[R3] Kilo Code GitHub organization. https://github.com/Kilo-Org (accessed 2026-02-14).  
+[R4] OpenRouter rankings (“Top Apps”, weekly tokens, opt-in tracking). https://openrouter.ai/rankings (accessed 2026-02-14).  
+[R5] OpenRouter documentation: App attribution and rankings. https://openrouter.ai/docs/app-attribution (accessed 2026-02-14).  
+[R6] Chen, T., and Guestrin, C. XGBoost: A Scalable Tree Boosting System. KDD 2016. https://doi.org/10.1145/2939672.2939785  
+[R7] Jimenez, C., Yang, J., Wettig, A., et al. SWE-bench: Can Language Models Resolve Real-World GitHub Issues? (2023). https://arxiv.org/abs/2310.06770
 
 ## Appendix A. Models evaluated in this paper
 
@@ -288,3 +291,34 @@ For each `(competition, budget)` setting:
 The headline aggregation is “best budget per competition”:
 - For each `(model, competition)`, take the maximum rank-points across the three budgets.
 - Average across the four competitions with equal weights.
+
+## Appendix G. Harness details (Kilo Code)
+
+This appendix explains what Kilo Code is and why it is used as the single agent harness in this paper.
+
+### G.1 What Kilo Code is
+
+Kilo Code is an AI coding agent for VS Code. In TML-bench, it is used as the uniform interface between a model and the benchmark task workspace: the agent reads task files, writes code, trains models, and produces a submission file.
+
+Kilo Code is also widely used in practice. For example, OpenRouter’s public “Top Apps” leaderboard (weekly tokens, based on opt-in app attribution) lists Kilo Code as #2 as of 2026-02-14, and as the highest-usage VS Code coding agent app in that list (ahead of other coding-agent apps such as Cline and Roo Code) [R4, R5]. This is a point-in-time snapshot; rankings vary over time.
+
+### G.2 Why standardize on a single harness
+
+Many open-source agent harnesses exist, and different harnesses can introduce confounds: differences in tool availability, file access conventions, patch/apply mechanics, retry behavior, and failure handling. This paper standardizes on a single harness to reduce “harness effects” and to make comparisons across models more interpretable.
+
+Kilo Code was chosen for three practical reasons:
+1. Reliability: it is mature enough to run repeatedly under timeouts and produce stable artifacts.
+2. Model breadth: it is extensively used with a wide range of open and API-served models, reducing the risk of harness-model incompatibilities.
+3. Fast sanity checks: because it is available as a VS Code extension, basic end-to-end behavior can be verified quickly outside the benchmark runs.
+
+### G.3 What the harness enforces (high level)
+
+At a high level, the harness ensures that:
+- The agent works in a clean per-run workspace with only the agent-visible task inputs.
+- The agent stage is time-bounded (240s/600s/1200s).
+- Submissions are validated and normalized before scoring.
+- The final score is computed on hidden holdout labels outside the agent workspace.
+
+### G.4 Limitations of this choice
+
+Standardizing on Kilo Code improves comparability, but it also narrows the scope of conclusions: results are about models *as used through this harness* under this protocol. Other harnesses may yield different absolute performance or failure rates.

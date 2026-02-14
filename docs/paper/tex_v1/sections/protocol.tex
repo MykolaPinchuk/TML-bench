@@ -14,14 +14,9 @@ For each \texttt{(competition, model, budget)} setting, the reported value is th
 The evidence in this paper is derived from logged run outcomes (status, score, runtime, and run configuration). To avoid cherry-picking, this paper reports only models with complete coverage: five successful runs for every task$\times$budget setting included in the benchmark.
 
 \subsection{Agent harness (Kilo Code)}
-Each run is executed in a clean, per-run workspace managed by the Kilo Code harness. The harness:
-\begin{itemize}
-  \item provides the agent with the task files and instructions,
-  \item enforces a wall-clock time budget,
-  \item validates the submission format.
-\end{itemize}
+Each run is executed in a clean, per-run workspace managed by the Kilo Code harness. The harness enforces the time budget, validates the submission format, and scores submissions on hidden holdout labels (not accessible to the agent).
 
-After the agent finishes (or times out), the submission is scored on hidden holdout labels (not accessible to the agent) to produce the private-holdout metric. A run is counted as \textbf{successful} if: (i) a submission file is produced, (ii) the submission passes validation/normalization, and (iii) private-holdout scoring completes and returns a numeric metric.
+Appendix~\ref{sec:appendix-harness} describes what Kilo Code is and why this paper standardizes on it.
 
 \subsection{Metrics and normalization}
 Each competition has a task-defined metric. This paper reports \texttt{score\_raw} in the task's native direction (for example, AUC where higher is better, and RMSE where lower is better).
