@@ -1,8 +1,19 @@
-Running the suite reliably surfaced several operational lessons:
-\begin{itemize}
-  \item Long-running suites need a control plane: durable PID/status/log paths and structured events, rather than ad-hoc shells. % C38
-  \item Circuit-breakers reduce wasted spend and wall-clock when a model or provider enters a failure streak. % C39
-  \item Continuous persistence matters: importing and completing results incrementally avoids losing work if a parent process dies. % C40
-  \item Resource caps are necessary for safety: foot-traffic is forced to \texttt{concurrency=1} due to observed instability and memory pressure in prior failures. % C41
-  \item Postmortems are part of the workflow contract: every run ends with a diagnosis artifact before starting the next. % C42
-\end{itemize}
+\section{Operational lessons}
+\label{sec:appendix-operational}
+
+Running TML-bench reliably surfaced several operational lessons that may be useful to teams building similar agent evaluation systems.
+
+\subsection{A control plane beats ad-hoc scripts}
+Long-running suites benefit from a simple ``control plane'': durable run IDs, structured logs, and machine-readable events. This makes suites resumable, debuggable, and auditable. In contrast, ad-hoc shell scripts tend to fail silently, make partial failures hard to diagnose, and are difficult to parallelize safely.
+
+\subsection{Circuit breakers save time and money}
+When a provider or model enters a failure streak (timeouts, repeated invalid submissions, intermittent API errors), a circuit breaker can pause or skip that lane. This prevents burning compute and wall-clock on runs that are likely to fail again and allows the suite to make progress elsewhere.
+
+\subsection{Incremental persistence prevents ``lost suites''}
+Suites that take hours or days should write results continuously. Persisting every run outcome (including failures) as soon as it completes makes the overall process robust to interruptions: machine restarts, parent process crashes, or transient provider outages. It also supports incremental analysis rather than ``all-or-nothing'' end-of-suite reporting.
+
+\subsection{Per-task resource caps improve stability}
+Some tasks are more resource-sensitive than others (for example, heavy preprocessing, large feature matrices, or memory pressure under parallelism). Per-task caps (concurrency limits, memory limits, or stricter runtime limits) can prevent cascading failures and make the benchmark safer to run repeatedly.
+
+\subsection{Post-run diagnostics are part of reliability}
+A benchmark should treat ``why did this run fail?'' as a first-class output. Capturing a compact post-run diagnostic artifact (status, timeout vs.\ validation vs.\ runtime error, and a short trace or log pointer) turns failures into actionable debugging items and improves reproducibility of observed failure modes.

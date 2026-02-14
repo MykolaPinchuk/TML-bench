@@ -327,3 +327,27 @@ At a high level, the harness ensures that:
 ### G.4 Limitations of this choice
 
 Standardizing on Kilo Code improves comparability, but it also narrows the scope of conclusions: results are about models *as used through this harness* under this protocol. Other harnesses may yield different absolute performance or failure rates.
+
+## Appendix H. Operational lessons for building agent benchmarks
+
+Running TML-bench reliably surfaced several operational lessons that may be useful to teams building similar evaluation systems.
+
+### H.1 A control plane beats ad-hoc scripts
+
+Long-running suites benefit from a simple “control plane”: durable run IDs, structured logs, and machine-readable events. This makes suites resumable, debuggable, and auditable. In contrast, ad-hoc shell scripts tend to fail silently, make partial failures hard to diagnose, and are difficult to parallelize safely.
+
+### H.2 Circuit breakers save time and money
+
+When a provider or model enters a failure streak (timeouts, repeated invalid submissions, intermittent API errors), a circuit breaker can pause or skip that lane. This prevents burning compute and wall-clock on a run that is likely to fail again and allows the suite to make progress elsewhere.
+
+### H.3 Incremental persistence prevents “lost suites”
+
+Suites that take hours or days should write results continuously. Persisting every run outcome (including failures) as soon as it completes makes the overall process robust to interruptions: machine restarts, parent process crashes, or transient provider outages. It also supports incremental analysis rather than “all-or-nothing” end-of-suite reporting.
+
+### H.4 Per-task resource caps improve stability
+
+Some tasks are more resource-sensitive than others (for example, heavy preprocessing, large feature matrices, or memory pressure under parallelism). Per-task caps (concurrency limits, memory limits, or stricter runtime limits) can prevent cascading failures and make the benchmark safer to run repeatedly.
+
+### H.5 Post-run diagnostics are part of reliability
+
+A benchmark should treat “why did this run fail?” as a first-class output. Capturing a compact post-run diagnostic artifact (status, timeout vs validation vs runtime error, and a short trace or log pointer) turns failures into actionable debugging items and improves reproducibility of observed failure modes.
