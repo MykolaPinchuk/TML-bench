@@ -3,7 +3,7 @@ name: onboard
 description: Deterministic onboarding for this repo (read minimal index files first, then bounded discovery).
 ---
 
-When invoked (or when the user says `Onboard`), do this exactly:
+When invoked (or when the user says `Onboard`, any case), do this exactly:
 
 0) Agent identity sync (must do first):
    - If kickoff message contains `AgentNN` (example: `[TML-bench Agent11 ...] onboard`), set active id to `agentNN`.
