@@ -15,6 +15,7 @@ This repo’s end goal is an auditable leaderboard with per-run artifacts and pr
 - `results.md` — current committed results snapshot (baseline).
 - `docs/overview.md` — high-level description of what we’re building and why.
 - `REPRODUCIBILITY.md` — pinned versions + rerun instructions (Phase 4).
+- `HUMAN_CHEATSHEET.md` — minimal “what do I type” notes for running agents in this repo.
 - `prd.md` — full PRD (phases, architecture, requirements).
 - `HANDOFF.md` — current slice + next steps.
 
@@ -30,7 +31,7 @@ Start here (in order):
 - `prd.md` (product requirements; phases, architecture)
 
 ## Agent triggers
-- `Onboard` — deterministic onboarding
+- `Onboard` (any case) — deterministic onboarding
 - `checkpoint` — safe checkpoint commit
 - `handoff` / `wrap up` — update handoff docs, rotate logs, and create a safe handoff commit
 

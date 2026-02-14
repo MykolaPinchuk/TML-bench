@@ -1,0 +1,84 @@
+This section reports aggregate performance, cross-competition consistency, reliability and stability, scaling with time budget, and per-competition highlights. The headline performance leaderboard uses a normalization that enables comparisons across competitions and time budgets.
+
+\subsection{Key findings}
+\begin{itemize}
+  \item \texttt{MiniMax-M2.1-TEE} ranks first on all four competitions under the paper's aggregate ranking.
+  \item Reliability varies meaningfully even among strong performers. Success-rate and stability plots show clear separation between more and less reliable models.
+  \item Some models improve substantially with larger time budgets, while other models remain relatively flat. Marginal-gain and monotonicity views capture these patterns.
+\end{itemize}
+
+\subsection{Aggregate performance leaderboard (headline)}
+The aggregate leaderboard is derived from five-run medians and normalized via rank-points so that scores from different competitions (AUC vs RMSE) are comparable.
+
+The method is as follows:
+\begin{itemize}
+  \item The unit of aggregation is the model's five-run median \texttt{score\_raw} for each \texttt{(competition, budget)} setting.
+  \item Models are normalized within each setting by rank so that the best model gets 1.0 and the worst model gets 0.0, with linear spacing in between.
+  \item For the headline aggregation, this paper takes the best normalized setting across the three budgets for each \texttt{(model, competition)} pair and then averages across the four competitions with equal weights.
+\end{itemize}
+
+This rank-based normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better).
+
+These rank-points are relative within each \texttt{(competition, budget)} setting. They preserve ordering within a setting rather than absolute metric gaps.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{leaderboard_headline_best_budget.png}
+  \caption{Headline leaderboard: best budget per competition.}
+\end{figure}
+
+Robustness variants (secondary) include: (i) an overall aggregation that averages all \texttt{(competition, budget)} settings equally, and (ii) a 1200s-only aggregation. See Appendix~\ref{sec:appendix-robustness}.
+
+\subsection{Cross-competition consistency}
+Per-competition ranks are computed in the same normalized space as the headline leaderboard (best budget per competition). The heatmap below shows each model's rank (1=best) per competition.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{consistency_ranks_heatmap.png}
+  \caption{Per-competition ranks (1=best).}
+\end{figure}
+
+Rank variability across competitions is summarized via rank standard deviation (lower is more consistent). See Appendix~\ref{sec:appendix-consistency}.
+
+\subsection{Reliability and stability}
+Reliability has two components: run success rate (how often a run yields a valid score) and within-setting stability (how variable a model is across the five runs used for each reported setting). The trade-off is summarized via a Pareto-style plot (performance vs stability; color indicates success rate).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{reliability_pareto_performance_vs_stability.png}
+  \caption{Performance vs stability (color indicates success rate).}
+\end{figure}
+
+Supporting breakdown plots for success rate and stability are included in Appendix~\ref{sec:appendix-reliability}.
+
+\subsection{Scaling with time budget}
+Normalized performance is analyzed as time budget increases from 240s to 600s to 1200s, averaged across the four competitions.
+
+On aggregate, scaling is broadly consistent with the expected monotonic pattern. This paper defines a model's per-competition scaling curve as monotone if its direction-corrected five-run medians do not worsen as budget increases (240s $\rightarrow$ 600s $\rightarrow$ 1200s). Under this definition, 23/40 (57.5\%) of model$\times$competition curves are monotone, and the median model is monotone in 62.5\% of competitions. Appendix~\ref{sec:appendix-scaling} reports monotonicity rates and marginal gains.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{scaling_points_lines.png}
+  \caption{Scaling with time budget.}
+\end{figure}
+
+At the individual model level, scaling can be noisy. Each task$\times$budget setting is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix~\ref{sec:appendix-scaling} reports marginal gains and monotonicity rates.
+
+\subsection{Per-competition highlights}
+This subsection highlights a small number of representative task/budget settings. Full five-run tables are available in the companion repository materials.
+
+\paragraph{bank-customer-churn-ict-u-ai (AUC; higher is better).}
+The strongest median AUC at 1200s is 0.928000 (GPT OSS 120B TEE).
+At 240s, the top median is 0.926671 (MiniMax-M2.1-TEE).
+This task shows top-tier clustering in the 0.92x range, with notable underperformance from some models in specific settings (for example, NVIDIA-Nemotron-3-Nano at 0.813105 at 1200s).
+
+\paragraph{foot-traffic-wuerzburg-retail-forecasting-2-0 (RMSE; lower is better).}
+MiniMax-M2.1-TEE is best at all three budgets (0.066846, 0.065770, 0.065489).
+A key instability signal appears for GLM 4.7 Flash at 1200s: median 0.107502 with IQR 0.070186..0.221725. This IQR is substantially wider than neighboring models.
+
+\paragraph{playground-series-s5e10 (RMSE; lower is better).}
+At 1200s, medians are tightly clustered near 0.0562, with the best setting at 0.056190 (GLM-4.6-FP8) and many models within a few $1\mathrm{e}{-4}$.
+
+\paragraph{playground-series-s6e1 (RMSE; lower is better).}
+MiniMax-M2.1-TEE leads at 1200s with RMSE 8.699779.
+At 600s, TNG-R1T2-Chimera has a large failure-mode outlier (median 10.199380, IQR 9.088197..13.444163). This motivates caution when interpreting single-budget standings.

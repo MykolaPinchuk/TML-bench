@@ -1,0 +1,11 @@
+index,model_id,rank_mean,rank_stddev,model_label
+5,openai/gpt-oss-120b-TEE,6.5,3.0,gpt-oss-120b-TEE
+8,zai-org/GLM-4.7-FP8,4.25,2.6299556396765835,GLM-4.7-FP8
+1,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,5.25,2.362907813126304,Qwen3-Coder-480B-A35B-Instruct-FP8
+2,deepseek-ai/DeepSeek-V3.1-Terminus,4.5,2.0816659994661326,DeepSeek-V3.1-Terminus
+3,mistralai/Devstral-2-123B-Instruct-2512-TEE,6.0,1.632993161855452,Devstral-2-123B-Instruct-2512-TEE
+9,zai-org/GLM-4.7-Flash,5.75,1.2583057392117918,GLM-4.7-Flash
+7,zai-org/GLM-4.6-FP8,3.25,1.2583057392117916,GLM-4.6-FP8
+6,tngtech/DeepSeek-TNG-R1T2-Chimera,9.25,0.9574271077563383,DeepSeek-TNG-R1T2-Chimera
+4,nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,9.25,0.9574271077563381,NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
+0,MiniMaxAI/MiniMax-M2.1-TEE,1.0,0.0,MiniMax-M2.1-TEE

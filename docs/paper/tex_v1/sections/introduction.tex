@@ -1,0 +1,14 @@
+Tabular machine learning remains a common practical workload. The workflow includes data loading, feature preparation, model training, evaluation, iteration, and producing a correctly formatted submission artifact. Benchmarks that only test isolated coding tasks miss important failure modes and trade-offs.
+
+This paper evaluates data science agents on a strict tabular benchmark with private-holdout scoring. The target is an auditable leaderboard built from repeatable runs. The benchmark reports distributions across runs rather than a single best attempt.
+
+For practitioners, this framing matters for two reasons. First, a good agent must be reliable. Capability on a single lucky run is insufficient. Second, comparisons should remain meaningful when tasks use different metrics and when runs are time-bounded.
+
+\subsection*{Contributions}
+This paper makes the following contributions:
+\begin{itemize}
+  \item This paper introduces a strict benchmark protocol for Kaggle-style tabular tasks with deterministic preparation, strict submission validation, and private-holdout scoring.
+  \item This paper uses a repeatable reporting policy with fixed agent instructions, a fixed suite, and median-of-five aggregation with explicit coverage requirements.
+  \item This paper provides a reproducible evaluation protocol and supporting materials to regenerate figures and tables.
+  \item This paper reports results and analysis that highlight performance, cross-competition consistency, reliability, and scaling with time budget.
+\end{itemize}
