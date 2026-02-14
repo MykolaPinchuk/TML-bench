@@ -192,18 +192,13 @@ This paper is accompanied by a repository that contains run logs, scripts to reg
 
 ## References
 
-### Software and tooling
-
-[R1] Kilo Code (website). https://www.kilocode.app/ (accessed 2026-02-14).  
-[R2] Kilo Code documentation. https://kilo.ai/docs (accessed 2026-02-14).  
-[R3] Kilo Code GitHub organization. https://github.com/Kilo-Org (accessed 2026-02-14).  
-[R4] OpenRouter rankings (“Top Apps”, weekly tokens, opt-in tracking). https://openrouter.ai/rankings (accessed 2026-02-14).  
-[R5] OpenRouter documentation: App attribution and rankings. https://openrouter.ai/docs/app-attribution (accessed 2026-02-14).  
-
-### Methods and related benchmarks
-
-[R6] Chen, T., and Guestrin, C. XGBoost: A Scalable Tree Boosting System. KDD 2016. https://doi.org/10.1145/2939672.2939785  
-[R7] Jimenez, C., Yang, J., Wettig, A., et al. SWE-bench: Can Language Models Resolve Real-World GitHub Issues? (2023). https://arxiv.org/abs/2310.06770
+1. Kilo Code (website). https://www.kilocode.app/ (accessed 2026-02-14).  
+2. Kilo Code documentation. https://kilo.ai/docs (accessed 2026-02-14).  
+3. Kilo Code GitHub organization. https://github.com/Kilo-Org (accessed 2026-02-14).  
+4. OpenRouter rankings (“Top Apps”, weekly tokens, opt-in tracking). https://openrouter.ai/rankings (accessed 2026-02-14).  
+5. OpenRouter documentation: App attribution and rankings. https://openrouter.ai/docs/app-attribution (accessed 2026-02-14).  
+6. Chen, T., and Guestrin, C. XGBoost: A Scalable Tree Boosting System. KDD 2016. https://doi.org/10.1145/2939672.2939785  
+7. Jimenez, C., Yang, J., Wettig, A., et al. SWE-bench: Can Language Models Resolve Real-World GitHub Issues? (2023). https://arxiv.org/abs/2310.06770
 
 ## Appendix A. Models evaluated in this paper
 
@@ -305,7 +300,7 @@ This appendix explains what Kilo Code is and why it is used as the single agent 
 
 Kilo Code is an AI coding agent for VS Code. In TML-bench, it is used as the uniform interface between a model and the benchmark task workspace: the agent reads task files, writes code, trains models, and produces a submission file.
 
-Kilo Code is also widely used in practice. For example, OpenRouter’s public “Top Apps” leaderboard (weekly tokens, based on opt-in app attribution) lists Kilo Code as #2 as of 2026-02-14, and as the highest-usage VS Code coding agent app in that list (ahead of other coding-agent apps such as Cline and Roo Code) [R4, R5]. This is a point-in-time snapshot; rankings vary over time.
+Kilo Code is also widely used in practice. For example, OpenRouter’s public “Top Apps” leaderboard (weekly tokens, based on opt-in app attribution) lists Kilo Code as #2 as of 2026-02-14, and as the highest-usage VS Code coding agent app in that list (ahead of other coding-agent apps such as Cline and Roo Code) [4, 5]. This is a point-in-time snapshot; rankings vary over time.
 
 ### G.2 Why standardize on a single harness
 
