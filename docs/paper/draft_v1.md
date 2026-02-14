@@ -9,7 +9,7 @@ Date: 2026-02-14
 
 ## Abstract
 
-Autonomous coding agents can produce strong tabular baselines quickly on Kaggle-style tasks, but practical value depends on end-to-end correctness, reliability, and performance under time limits. This paper introduces TML-bench, a tabular-only benchmark that evaluates the full workflow: producing a valid submission that is scored on hidden holdout labels (not accessible to the agent). We evaluate 10 models across four competitions and three time budgets (240s/600s/1200s), running each model five times per task and budget and reporting median performance plus reliability and stability. Under the paper’s aggregate ranking, MiniMax-M2.1-TEE is rank-1 on all four competitions. We also find meaningful separation in success rates and run-to-run variability among otherwise strong models, and an overall trend of improved normalized performance with larger time budgets, with noisy scaling for individual models at the current run count.
+Autonomous coding agents can produce strong tabular baselines quickly on Kaggle-style tasks, but practical value depends on end-to-end correctness, reliability, and performance under time limits. This paper introduces TML-bench, a tabular-only benchmark that evaluates the full workflow: producing a valid submission that is scored on hidden holdout labels (not accessible to the agent). We evaluate 10 models across four competitions and three time budgets (240s/600s/1200s), running each model five times per task and budget and reporting median performance plus reliability and stability. Under the paper’s aggregate ranking, MiniMax-M2.1-TEE is rank-1 on all four competitions. We also find meaningful separation in success rates and run-to-run variability among otherwise strong models, and an overall trend of improved normalized performance with larger time budgets, with noisy scaling for individual models at the current run count. Code and materials: https://github.com/MykolaPinchuk/TML-bench/tree/master.
 
 ## 1. Introduction
 
@@ -192,11 +192,16 @@ This paper is accompanied by a repository that contains run logs, scripts to reg
 
 ## References
 
+### Software and tooling
+
 [R1] Kilo Code (website). https://www.kilocode.app/ (accessed 2026-02-14).  
 [R2] Kilo Code documentation. https://kilo.ai/docs (accessed 2026-02-14).  
 [R3] Kilo Code GitHub organization. https://github.com/Kilo-Org (accessed 2026-02-14).  
 [R4] OpenRouter rankings (“Top Apps”, weekly tokens, opt-in tracking). https://openrouter.ai/rankings (accessed 2026-02-14).  
 [R5] OpenRouter documentation: App attribution and rankings. https://openrouter.ai/docs/app-attribution (accessed 2026-02-14).  
+
+### Methods and related benchmarks
+
 [R6] Chen, T., and Guestrin, C. XGBoost: A Scalable Tree Boosting System. KDD 2016. https://doi.org/10.1145/2939672.2939785  
 [R7] Jimenez, C., Yang, J., Wettig, A., et al. SWE-bench: Can Language Models Resolve Real-World GitHub Issues? (2023). https://arxiv.org/abs/2310.06770
 
