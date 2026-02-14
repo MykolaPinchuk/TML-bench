@@ -23,6 +23,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/paper/PAPER_WORKFLOW.md` — lightweight research↔writer paper drafting workflow (session-boundary prompts + requests-as-files).
 - `docs/paper/PAPER_STATE.md` — paper workflow state pointer (active assets/draft/claims; read first when writing).
 - `docs/paper/HUMAN_CHEATSHEET.md` — minimal “what I do” operator notes + copy/paste prompts.
+- `docs/paper/WRITER_PLAYBOOK.md` — lightweight “how to write the paper” guidance for writer agents (style + evidence discipline).
 - `docs/paper/draft_v1.md` — active v6 manuscript draft using canonical 10-model evidence.
 - `docs/paper/claims_matrix_v1.md` — claim-to-evidence mapping for all quantitative draft statements.
 - `docs/paper/repro_appendix_v1.md` — exact regeneration and verification commands for draft reproducibility.

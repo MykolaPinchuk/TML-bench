@@ -28,7 +28,7 @@ Writer bootstrap (paste once immediately after switching to the writer agent; do
 ```text
 Bootstrap only (no work yet):
 - Do not edit any files and do not run commands.
-- Read docs/paper/PAPER_WORKFLOW.md and docs/paper/PAPER_STATE.md.
+- Read docs/paper/PAPER_WORKFLOW.md, docs/paper/PAPER_STATE.md, and docs/paper/WRITER_PLAYBOOK.md.
 - Reply with:
   1) active_assets_dir / next_assets_dir / active_draft / active_claims as you understand them
   2) 3–7 bullet summary of the workflow constraints

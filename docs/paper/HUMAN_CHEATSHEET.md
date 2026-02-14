@@ -17,7 +17,7 @@ Writer bootstrap (no work yet):
 ```text
 Bootstrap only (no work yet):
 - Do not edit any files and do not run commands.
-- Read docs/paper/PAPER_WORKFLOW.md and docs/paper/PAPER_STATE.md.
+- Read docs/paper/PAPER_WORKFLOW.md, docs/paper/PAPER_STATE.md, and docs/paper/WRITER_PLAYBOOK.md.
 - Reply with:
   1) active_assets_dir / next_assets_dir / active_draft / active_claims as you understand them
   2) 3–7 bullet summary of the workflow constraints
@@ -56,4 +56,3 @@ Stop/handoff:
 - If you created next_assets_dir, update PAPER_STATE so it becomes active_assets_dir and advance next_assets_dir by 1 version, then stop.
 - If you did not create a new bundle, stop now.
 ```
-
