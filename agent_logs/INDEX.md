@@ -15,3 +15,4 @@
 - 2026-02-09_agent00.md — agent10: waveB completion + remaining5 top-up launch, async hardening active (handoff)
 - 2026-02-10_agent00.md — agent10: v5.5 closeout completed (canonical 10-model reporting + reproducibility tooling), ready for v6 drafting
 - 2026-02-14_agent00.md — agent10: v6 paper assets bundled and handoff prepared
+- 2026-02-14_agent01.md — agent11: workflow identity-sync fix + handoff refresh

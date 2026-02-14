@@ -18,6 +18,7 @@ v5.5 closeout is complete; v6 now has a ready handoff bundle so the next agent c
   - committed figures/tables for Result 0.5/1/2/3: `docs/paper/figures/v6/`
   - flat staging bundle for next-agent writing pass: `docs/paper/paper_assets_v1/`
 - Result 4 (token efficiency) is explicitly deferred for draft2 (not required for draft1) pending token/cost instrumentation.
+- Workflow hardening landed: onboarding/checkpoint/handoff now require kickoff `AgentNN` sync into `agent_logs/current.md` before commit flows (commit `c9845e9`).
 
 Combined14 completion snapshot:
 - complete models: `10/14`
@@ -76,6 +77,7 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
 - Staging bundle for paper assembly: `docs/paper/paper_assets_v1/`
 - Leaderboard plot generator: `scripts/render_v6_leaderboard_plots.py`
 - Key-result plot generator (Result 0.5/2/3): `scripts/render_v6_key_results_plots.py`
+- Workflow trigger + identity sync policy: `repo_workflow.md`, `onboarding.md`, `.codex/skills/{onboard,checkpoint,handoff}/SKILL.md`
 - Closeout plan: `docs/plan/v5_5_closeout.md`
 - Latest run status: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/status.json`
 - Latest run events: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/events.jsonl`
@@ -88,6 +90,7 @@ Until both are true, treat 14-model backfill as deferred work and keep 10-model 
   - `bc8f8dd` — key findings + narrative tightening
   - `9a57073` — defer Result 4 tokens to draft2
   - `0bd616c` — add consolidated `paper_assets_v1` bundle
+  - `c9845e9` — enforce kickoff AgentNN id sync for checkpoint/handoff safety
 
 ## Invariants
 - Never commit datasets, run artifacts, sqlite DBs, or secrets.

@@ -61,4 +61,5 @@ Keep this file short. Update it only when something important changes.
 - `competitions/` — per-task specs and preparation scripts.
 
 ## Notes
+- Kickoff identity policy: each new chat must sync `AgentNN` from kickoff tag (e.g., `[... Agent11 ...] onboard`) into `agent_logs/current.md` before checkpoint/handoff commits.
 - If you create a new "important" dir or entrypoint, add it above so future agents find it quickly.
