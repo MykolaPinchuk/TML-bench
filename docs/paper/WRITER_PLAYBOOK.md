@@ -4,6 +4,12 @@ Purpose: help a writer agent produce a credible first full draft from existing e
 
 This is intentionally short. The coordination mechanics are in `docs/paper/PAPER_WORKFLOW.md`.
 
+## Paper audience and scope
+
+- Audience: Industry partitioners, engineers, and researchers are primary audience. Academic researchers and the broader AI/ML community are secondary audience.
+- Format: A paper in AI/ML to be put on Arxiv. The paper should not exceed 25 pages including references and appendices.
+- The paper should be very clear on why practitioners should care about main results. Academic contributions are secondary. The paper should be accessible to practitioners with a reasonable AI/ML background, not just to academics.
+
 ## Output Targets
 
 - Primary output: `docs/paper/draft_vN.md` (from `active_draft` in `docs/paper/PAPER_STATE.md`).
@@ -19,8 +25,11 @@ Do not mention internal workflow terms in the paper (for example “bundle”, �
 - Avoid semicolons. Use full stops.
 - Avoid dashes. Hyphens are fine.
 - Prefer active voice.
-- Be formal and specific. Avoid throat-clearing phrases.
 - Do not use bold text. Minimize italics.
+- Be succinct, specific, and reasonably formal. Avoid throat-clearing expressions. But make sure that reader has enough context. And do not let conciseness disrupt idea flow. Make sure that all logical steps are explained. 
+- Use connecting words as needed. They will likely help maintaining idea flow with short sentences. Hence, thus, therefore etc. 
+- Do not use "X is Y, not Z" types of sentences. 
+- Avoid internal details like versioning.
 
 ## Evidence Discipline (Non-Negotiable)
 

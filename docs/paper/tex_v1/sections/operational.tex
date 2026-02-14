@@ -1,0 +1,8 @@
+Running the suite reliably surfaced several operational lessons:
+\begin{itemize}
+  \item Long-running suites need a control plane: durable PID/status/log paths and structured events, rather than ad-hoc shells. % C38
+  \item Circuit-breakers reduce wasted spend and wall-clock when a model or provider enters a failure streak. % C39
+  \item Continuous persistence matters: importing and completing results incrementally avoids losing work if a parent process dies. % C40
+  \item Resource caps are necessary for safety: foot-traffic is forced to \texttt{concurrency=1} due to observed instability and memory pressure in prior failures. % C41
+  \item Postmortems are part of the workflow contract: every run ends with a diagnosis artifact before starting the next. % C42
+\end{itemize}

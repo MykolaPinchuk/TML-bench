@@ -1,0 +1,14 @@
+\subsection{Suite, profiles, and evaluation grid}
+This paper evaluates model-assisted tabular ML work over a four-competition suite and three time budgets (240s, 600s, 1200s). The 1200s configuration uses an XGBoost-focused prompt profile.
+
+Reporting is restricted to models that reached complete five-run coverage across all 12 \texttt{(competition, profile)} cells. Under that rule, 10 models are included in the main tables.
+
+\subsection{Prompt strategy and aggregation rule}
+A fixed prompt family is used for all runs in this paper.
+
+For each \texttt{(competition, model, profile)} cell, the reported value is the median of the earliest 5 successful runs ordered by \texttt{created\_at}.
+
+\subsection{Evidence base and reproducibility contract}
+The evidence in this paper is derived from run databases that record outcomes for each run (status, score, runtime, and run configuration). A validation step confirms that all reported cells have the required five successful runs.
+
+At freeze time, coverage checks report \texttt{sources\_found=9/9}, \texttt{models\_in\_scope=10}, and \texttt{missing\_cells=0}.

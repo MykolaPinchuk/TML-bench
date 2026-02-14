@@ -1,0 +1,11 @@
+model_id,provider_in_runs,notes
+Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,chutes,FP8
+openai/gpt-oss-120b-TEE,chutes,TEE
+zai-org/GLM-4.7-FP8,chutes,FP8
+zai-org/GLM-4.7-Flash,chutes,Flash
+MiniMaxAI/MiniMax-M2.1-TEE,chutes,TEE
+zai-org/GLM-4.6-FP8,chutes,FP8
+deepseek-ai/DeepSeek-V3.1-Terminus,chutes,Terminus
+nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,chutes,Nano
+mistralai/Devstral-2-123B-Instruct-2512-TEE,chutes,TEE
+tngtech/DeepSeek-TNG-R1T2-Chimera,chutes,Chimera
