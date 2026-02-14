@@ -24,7 +24,8 @@ A) Documentation and state (must do)
 
 B) Log rotation (must do)
 1) Determine next log filename:
-   - `agent_logs/YYYY-MM-DD_agentNN.md`, where NN is 00, 01, 02, ... chosen as the next unused number for today.
+   - `agent_logs/YYYY-MM-DD_agentNN.md`, where `NN` comes from the kickoff-synced `agent_logs/current.md` `id: agentNN`.
+   - If that file already exists for today, use `agent_logs/YYYY-MM-DD_agentNN_01.md`, then `_02`, etc.
 2) Move `agent_logs/current.md` -> that filename.
 3) Append a one-line entry to `agent_logs/INDEX.md`:
    - `- YYYY-MM-DD_agentNN.md — <short summary> (optional: commit <hash>)`

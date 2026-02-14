@@ -77,7 +77,8 @@ Write an entry:
    - focus area ("hot paths") changed
 3) Ensure `README.md` "For agents" links are still correct.
 4) Rotate logs:
-   - Move `agent_logs/current.md` to `agent_logs/YYYY-MM-DD_agentNN.md` (choose next NN).
+   - Move `agent_logs/current.md` to `agent_logs/YYYY-MM-DD_agentNN.md` where `agentNN` matches `agent_logs/current.md` `id: agentNN`.
+   - If that filename already exists for today, use `agent_logs/YYYY-MM-DD_agentNN_01.md`, then `_02`, etc.
    - Append one line to `agent_logs/INDEX.md`.
    - Create a fresh `agent_logs/current.md`.
 
