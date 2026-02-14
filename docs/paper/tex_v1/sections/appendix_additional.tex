@@ -55,3 +55,41 @@ Rank variability across competitions is summarized via rank standard deviation (
   \includegraphics[width=\linewidth]{result3_monotonicity_rate.png}
   \caption{Monotonicity rate across budgets.}
 \end{figure}
+
+\section{Scoring, aggregation, and normalization details}
+\label{sec:appendix-method}
+
+This appendix defines how scores are computed and how the aggregate leaderboard is constructed.
+
+\subsection{Per-run scoring}
+\begin{itemize}
+  \item Each run produces a submission file.
+  \item The harness validates the submission schema against the competition's expected format.
+  \item The submission is scored on a private holdout set outside the agent workspace to produce \texttt{score\_raw} using the competition's metric (for example, AUC or RMSE).
+\end{itemize}
+
+\subsection{Per-cell aggregation}
+For each \texttt{(competition, model, budget)} cell:
+\begin{itemize}
+  \item Consider the earliest five successful runs.
+  \item Report the median of their \texttt{score\_raw}.
+\end{itemize}
+
+\subsection{Rank-points normalization}
+Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses rank-points.
+
+For each \texttt{(competition, budget)} cell:
+\begin{enumerate}
+  \item Rank models by the median \texttt{score\_raw} after accounting for metric direction (higher-is-better or lower-is-better).
+  \item Assign rank-points linearly so that the best model receives 1.0 and the worst receives 0.0. With $N$ models and rank $r$ (1 = best), points are:
+    \[
+      \mathrm{points} = \frac{N - r}{N - 1}.
+    \]
+\end{enumerate}
+
+\subsection{Headline aggregation}
+The headline aggregation is ``best budget per competition'':
+\begin{itemize}
+  \item For each \texttt{(model, competition)}, take the maximum rank-points across the three budgets.
+  \item Average across the four competitions with equal weights.
+\end{itemize}

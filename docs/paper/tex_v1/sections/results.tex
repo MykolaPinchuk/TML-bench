@@ -54,13 +54,15 @@ Supporting breakdown plots for success rate and stability are included in Append
 \subsection{Scaling with time budget}
 Normalized performance is analyzed as time budget increases from 240s to 600s to 1200s, averaged across the four competitions.
 
+On aggregate, scaling is broadly consistent with the expected monotonic pattern. Across the 10 models, the median model has monotone improvement with budget in 62.5\% of competitions (median monotonicity rate across models). Appendix~\ref{sec:appendix-scaling} reports monotonicity rates and marginal gains.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{result3_scaling_points_lines.png}
   \caption{Scaling with time budget.}
 \end{figure}
 
-Marginal gains (240$\rightarrow$600 and 600$\rightarrow$1200) and a monotonicity rate (share of competitions where median performance is monotone across budgets) are also reported. See Appendix~\ref{sec:appendix-scaling}.
+At the individual model level, scaling can be noisy. Each cell is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix~\ref{sec:appendix-scaling} reports marginal gains and monotonicity rates.
 
 \subsection{Per-competition highlights}
 This subsection highlights a small number of representative cells. Full five-run tables are available in the companion repository materials.

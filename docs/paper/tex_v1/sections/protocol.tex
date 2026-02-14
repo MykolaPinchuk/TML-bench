@@ -12,3 +12,14 @@ For each \texttt{(competition, model, profile)} cell, the reported value is the 
 The evidence in this paper is derived from run databases that record outcomes for each run (status, score, runtime, and run configuration). A validation step confirms that all reported cells have the required five successful runs.
 
 At freeze time, coverage checks report \texttt{sources\_found=9/9}, \texttt{models\_in\_scope=10}, and \texttt{missing\_cells=0}.
+
+\subsection{Agent harness (Kilo Code)}
+Each run is executed in a clean workspace managed by the Kilo Code harness. The harness provides the task files and instructions, enforces the time budget, and records execution metadata. A run is successful if it produces a valid submission file and the private-holdout scoring step completes.
+
+\subsection{Metrics and normalization}
+Each competition has a task-defined metric. This paper reports \texttt{score\_raw} in the task's native direction (for example, AUC where higher is better, and RMSE where lower is better). Aggregate comparisons across competitions use a rank-based normalization.
+
+For each \texttt{(competition, budget)} cell, models are ranked by their five-run median after accounting for metric direction. Rank-points are assigned linearly so that the best model receives 1.0 and the worst receives 0.0. These points are then aggregated across competitions and budgets as described in Section~2. % See main text.
+
+\subsection{Time budgets}
+This paper evaluates three wall-clock time budgets per competition: 240 seconds, 600 seconds, and 1200 seconds. A time budget represents the total end-to-end time available to the agent to read the task, train, iterate, and produce a final submission file. Time budgets are used to measure how agent performance changes as more iteration time becomes available under an otherwise fixed protocol.

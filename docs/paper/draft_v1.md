@@ -9,7 +9,7 @@ Date: 2026-02-14
 
 ## Abstract
 
-Autonomous coding agents can produce strong tabular baselines quickly on Kaggle-style tasks. However, many agent benchmarks do not measure the full workflow under a strict, repeatable protocol. This paper introduces TML-bench, a tabular-only benchmark for evaluating data science agents using a single universal scaffold (Kilo). The benchmark enforces deterministic data preparation, strict submission validation, and private-holdout scoring outside the agent workspace. This paper reports results from a frozen, reproducible evidence base. Reporting is restricted to models that achieved complete five-run coverage across all evaluation cells.
+Autonomous coding agents can produce strong tabular baselines quickly on Kaggle-style tasks. However, many agent benchmarks do not measure the full workflow under a strict, repeatable protocol. This paper introduces TML-bench, a tabular-only benchmark for evaluating data science agents using a single universal harness (Kilo Code). The benchmark enforces deterministic data preparation, strict submission validation, and private-holdout scoring outside the agent workspace. This paper reports results from a frozen, reproducible evidence base. Reporting is restricted to models that achieved complete five-run coverage across all evaluation cells.
 
 ## 1. Introduction
 
@@ -47,6 +47,20 @@ The evidence in this paper is derived from run databases that record outcomes fo
 
 At freeze time, coverage checks report `sources_found=9/9`, `models_in_scope=10`, and `missing_cells=0`.
 
+### 2.4 Agent harness (Kilo Code)
+
+Each run is executed in a clean workspace managed by the Kilo Code harness. The harness provides the task files and instructions, enforces the time budget, and records execution metadata. A run is successful if it produces a valid submission file and the private-holdout scoring step completes.
+
+### 2.5 Metrics and normalization
+
+Each competition has a task-defined metric. This paper reports `score_raw` in the task’s native direction (for example, AUC where higher is better, and RMSE where lower is better). Aggregate comparisons across competitions use a rank-based normalization.
+
+For each `(competition, budget)` cell, models are ranked by their five-run median after accounting for metric direction. Rank-points are assigned linearly so that the best model receives `1.0` and the worst receives `0.0`. These points are then aggregated across competitions and budgets as described below.
+
+### 2.6 Time budgets
+
+This paper evaluates three wall-clock time budgets per competition: 240 seconds, 600 seconds, and 1200 seconds. A time budget represents the total end-to-end time available to the agent to read the task, train, iterate, and produce a final submission file. Time budgets are used to measure how agent performance changes as more iteration time becomes available under an otherwise fixed protocol.
+
 ## 3. Results
 
 This section reports aggregate performance, cross-competition consistency, reliability and stability, scaling with time budget, and per-competition highlights. The headline performance leaderboard uses a normalization that enables comparisons across competitions and time budgets.
@@ -66,7 +80,7 @@ Method:
 - Normalize within each cell by rank: best model gets `1.0`, worst gets `0.0`, with linear spacing in between.
 - Headline aggregation: for each `(model, competition)` take the best normalized cell across the three budgets, then average across the 4 competitions with equal weights.
 
-This rank-based normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better).
+This rank-based normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better). It allows a single aggregate leaderboard across heterogeneous metrics without choosing an arbitrary numeric scaling.
 
 The headline aggregation uses “best budget per competition” to separate modeling capability from budget selection. It also reflects a common practical use case: allocate a fixed wall-clock budget and choose the strongest result the workflow can produce in that budget range.
 
@@ -100,9 +114,11 @@ Supporting breakdown plots for success rate and stability are included in Append
 
 Normalized performance is analyzed as time budget increases from 240s to 600s to 1200s, averaged across the four competitions.
 
+On aggregate, scaling is broadly consistent with the expected monotonic pattern. Across the 10 models, the median model has monotone improvement with budget in `62.5%` of competitions (median monotonicity rate across models). Appendix E reports monotonicity rates and marginal gains.
+
 ![Scaling with time budget](paper_assets_v2/figures/result3_scaling_points_lines.png)
 
-Marginal gains (240→600 and 600→1200) and a monotonicity rate (share of competitions where median performance is monotone across budgets) are also reported. See Appendix E.
+At the individual model level, scaling can be noisy. Each cell is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix E reports marginal gains and monotonicity rates.
 
 ### 3.6 Per-competition highlights
 
@@ -154,7 +170,7 @@ This paper is accompanied by a repository that contains run databases, scripts t
 
 ## References (draft placeholder)
 
-This draft uses placeholder citations. Candidate references include Kilo (scaffold) documentation and related agent benchmark work. This section will be filled in after the narrative stabilizes.
+This draft uses placeholder citations. Candidate references include Kilo Code documentation and related agent benchmark work. This section will be filled in after the narrative stabilizes.
 
 ## Appendix A. Models evaluated in this paper
 
@@ -216,3 +232,34 @@ Rank variability across competitions is summarized via rank standard deviation (
 ![Marginal gains with increasing budget](paper_assets_v2/figures/result3_scaling_marginal_gains.png)
 
 ![Monotonicity rate across budgets](paper_assets_v2/figures/result3_monotonicity_rate.png)
+
+## Appendix F. Scoring, aggregation, and normalization details
+
+This appendix defines how scores are computed and how the aggregate leaderboard is constructed.
+
+### F.1 Per-run scoring
+
+- Each run produces a submission file.
+- The harness validates the submission schema against the competition’s expected format.
+- The submission is scored on a private holdout set outside the agent workspace to produce `score_raw` using the competition’s metric (for example, AUC or RMSE).
+
+### F.2 Per-cell aggregation
+
+For each `(competition, model, budget)` cell:
+- Consider the earliest five successful runs.
+- Report the median of their `score_raw`.
+
+### F.3 Rank-points normalization
+
+Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses rank-points:
+
+For each `(competition, budget)` cell:
+1. Rank models by the median `score_raw` after accounting for metric direction (higher-is-better or lower-is-better).
+2. Assign rank-points linearly so that the best model receives `1.0` and the worst receives `0.0`. With `N` models and rank `r` (1 = best), points are:
+   - `points = (N - r) / (N - 1)`
+
+### F.4 Headline aggregation
+
+The headline aggregation is “best budget per competition”:
+- For each `(model, competition)`, take the maximum rank-points across the three budgets.
+- Average across the four competitions with equal weights.
