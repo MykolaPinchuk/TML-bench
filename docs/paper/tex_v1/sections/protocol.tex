@@ -1,25 +1,48 @@
-\subsection{Suite, profiles, and evaluation grid}
-This paper evaluates model-assisted tabular ML work over a four-competition suite and three time budgets (240s, 600s, 1200s). The 1200s configuration uses an XGBoost-focused prompt profile.
+\subsection{Suite and evaluation grid}
+This paper evaluates model-assisted tabular ML work over a four-competition suite and three time budgets (240s, 600s, 1200s). The 1200s configuration uses an XGBoost-focused instruction set.
 
-Reporting is restricted to models that reached complete five-run coverage across all 12 \texttt{(competition, profile)} cells. Under that rule, 10 models are included in the main tables.
+Each time budget uses a fixed instruction set, so the 240s/600s/1200s settings differ in both available time and the instructions given to the agent.
+
+Reporting is restricted to models that reached complete five-run coverage across all 12 task$\times$budget settings (4 competitions $\times$ 3 time budgets). Under that rule, 10 models are included in the main tables.
 
 \subsection{Prompt strategy and aggregation rule}
-A fixed prompt family is used for all runs in this paper.
+A fixed instruction template is used for all runs in this paper.
 
-For each \texttt{(competition, model, profile)} cell, the reported value is the median of the earliest 5 successful runs ordered by \texttt{created\_at}.
+For each \texttt{(competition, model, budget)} setting, the reported value is the median of the earliest 5 successful runs ordered by \texttt{created\_at}.
 
-\subsection{Evidence base and reproducibility contract}
-The evidence in this paper is derived from run databases that record outcomes for each run (status, score, runtime, and run configuration). A validation step confirms that all reported cells have the required five successful runs.
-
-At freeze time, coverage checks report \texttt{sources\_found=9/9}, \texttt{models\_in\_scope=10}, and \texttt{missing\_cells=0}.
+\subsection{Evaluation logging and reproducibility}
+The evidence in this paper is derived from logged run outcomes (status, score, runtime, and run configuration). To avoid cherry-picking, this paper reports only models with complete coverage: five successful runs for every task$\times$budget setting included in the benchmark.
 
 \subsection{Agent harness (Kilo Code)}
-Each run is executed in a clean workspace managed by the Kilo Code harness. The harness provides the task files and instructions, enforces the time budget, and records execution metadata. A run is successful if it produces a valid submission file and the private-holdout scoring step completes.
+Each run is executed in a clean, per-run workspace managed by the Kilo Code harness. The harness:
+\begin{itemize}
+  \item provides the agent with the task files and instructions,
+  \item enforces a wall-clock time budget,
+  \item validates the submission format.
+\end{itemize}
+
+After the agent finishes (or times out), the submission is scored on hidden holdout labels (not accessible to the agent) to produce the private-holdout metric. A run is counted as \textbf{successful} if: (i) a submission file is produced, (ii) the submission passes validation/normalization, and (iii) private-holdout scoring completes and returns a numeric metric.
 
 \subsection{Metrics and normalization}
-Each competition has a task-defined metric. This paper reports \texttt{score\_raw} in the task's native direction (for example, AUC where higher is better, and RMSE where lower is better). Aggregate comparisons across competitions use a rank-based normalization.
+Each competition has a task-defined metric. This paper reports \texttt{score\_raw} in the task's native direction (for example, AUC where higher is better, and RMSE where lower is better).
 
-For each \texttt{(competition, budget)} cell, models are ranked by their five-run median after accounting for metric direction. Rank-points are assigned linearly so that the best model receives 1.0 and the worst receives 0.0. These points are then aggregated across competitions and budgets as described in Section~2. % See main text.
+Raw metric values are not comparable across competitions because they have different scales and different directions. To build aggregate leaderboards and scaling plots, this paper uses a rank-based normalization:
+\begin{itemize}
+  \item For each \texttt{(competition, budget)} setting, compute each model's five-run median \texttt{score\_raw}.
+  \item Convert to a ``higher is better'' value for ranking only: \texttt{value\_for\_rank = score\_raw} for higher-is-better metrics, and \texttt{value\_for\_rank = -score\_raw} for lower-is-better metrics.
+  \item Rank models by \texttt{value\_for\_rank} within that setting, then assign \textbf{rank-points} linearly so the best model gets 1.0 and the worst gets 0.0.
+\end{itemize}
+
+Appendix~\ref{sec:appendix-method} defines rank-points and the headline aggregation precisely.
 
 \subsection{Time budgets}
-This paper evaluates three wall-clock time budgets per competition: 240 seconds, 600 seconds, and 1200 seconds. A time budget represents the total end-to-end time available to the agent to read the task, train, iterate, and produce a final submission file. Time budgets are used to measure how agent performance changes as more iteration time becomes available under an otherwise fixed protocol.
+This paper evaluates three wall-clock time budgets per competition: 240 seconds, 600 seconds, and 1200 seconds. A time budget represents the total time available to the agent to read the task, train, iterate, and produce a final submission file.
+
+Implementation details (what ``240s'' means in practice):
+\begin{itemize}
+  \item The time budget applies to the agent interaction stage, enforced as a hard timeout by the Kilo Code harness.
+  \item Runtime is measured from run start to the end of the agent stage (or timeout). Validation and private-holdout scoring occur after this stage and do not count against the time budget.
+  \item If the harness observes that the agent exceeded the time budget (with a small grace window for timing granularity), the run is marked as a timeout even if a submission file exists.
+\end{itemize}
+
+Time budgets are included because ``fast baseline'' and ``iterative improvement'' are different capabilities. A strict budget makes these trade-offs visible under a repeatable protocol.

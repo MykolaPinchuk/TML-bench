@@ -1,4 +1,7 @@
 This paper reports results for 10 models with complete coverage under the paper's evaluation grid.
 
 \subsection{Token accounting}
-Token consumption is currently unavailable in the run databases used for this paper (only \texttt{max\_tokens} configuration is present). Token efficiency is deferred to a later revision after token and cost instrumentation is added.
+Token consumption is currently unavailable in the run logs used for this paper (only \texttt{max\_tokens} configuration is present). Token efficiency is deferred to a later revision after token and cost instrumentation is added.
+
+\subsection{Budget scaling and run count}
+Two constraints matter when interpreting scaling with time budget. First, budgets are coupled to instruction sets (the 1200s setting uses an XGBoost-focused instruction set), so scaling reflects both more time and different instructions. Second, each reported setting is based on five successful runs, which is enough to show aggregate patterns but can be noisy at the individual model level.

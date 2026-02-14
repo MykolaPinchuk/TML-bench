@@ -5,13 +5,13 @@ This appendix reports two alternative aggregations of the main leaderboard. Thes
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{leaderboard_overall_all_cells.png}
+  \includegraphics[width=\linewidth]{leaderboard_all_cells.png}
   \caption{Overall aggregation (all competitions and all budgets).}
 \end{figure}
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{leaderboard_sota_only.png}
+  \includegraphics[width=\linewidth]{leaderboard_1200s_only.png}
   \caption{1200s-only aggregation.}
 \end{figure}
 
@@ -22,7 +22,7 @@ Rank variability across competitions is summarized via rank standard deviation (
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{result0_5_consistency_rank_stddev.png}
+  \includegraphics[width=\linewidth]{consistency_rank_stddev.png}
   \caption{Rank standard deviation across competitions.}
 \end{figure}
 
@@ -31,13 +31,13 @@ Rank variability across competitions is summarized via rank standard deviation (
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{result2_reliability_success_rate.png}
+  \includegraphics[width=\linewidth]{reliability_success_rate.png}
   \caption{Run success rate.}
 \end{figure}
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{result2_stability_rel_iqr.png}
+  \includegraphics[width=\linewidth]{stability_relative_iqr.png}
   \caption{Stability via relative IQR.}
 \end{figure}
 
@@ -46,13 +46,13 @@ Rank variability across competitions is summarized via rank standard deviation (
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{result3_scaling_marginal_gains.png}
+  \includegraphics[width=\linewidth]{scaling_marginal_gains.png}
   \caption{Marginal gains with increasing budget.}
 \end{figure}
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{result3_monotonicity_rate.png}
+  \includegraphics[width=\linewidth]{scaling_monotonicity_rate.png}
   \caption{Monotonicity rate across budgets.}
 \end{figure}
 
@@ -68,8 +68,8 @@ This appendix defines how scores are computed and how the aggregate leaderboard 
   \item The submission is scored on a private holdout set outside the agent workspace to produce \texttt{score\_raw} using the competition's metric (for example, AUC or RMSE).
 \end{itemize}
 
-\subsection{Per-cell aggregation}
-For each \texttt{(competition, model, budget)} cell:
+\subsection{Per-setting aggregation}
+For each \texttt{(competition, model, budget)} setting:
 \begin{itemize}
   \item Consider the earliest five successful runs.
   \item Report the median of their \texttt{score\_raw}.
@@ -78,7 +78,7 @@ For each \texttt{(competition, model, budget)} cell:
 \subsection{Rank-points normalization}
 Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses rank-points.
 
-For each \texttt{(competition, budget)} cell:
+For each \texttt{(competition, budget)} setting:
 \begin{enumerate}
   \item Rank models by the median \texttt{score\_raw} after accounting for metric direction (higher-is-better or lower-is-better).
   \item Assign rank-points linearly so that the best model receives 1.0 and the worst receives 0.0. With $N$ models and rank $r$ (1 = best), points are:
