@@ -1,0 +1,11 @@
+model_id,invalid_submission,runtime_error,success,timeout,attempts_total,successes,success_rate,model_label
+Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,0.0,0.0,60.0,0.0,60.0,60.0,1.0,Qwen3-Coder-480B-A35B-Instruct-FP8
+zai-org/GLM-4.6-FP8,0.0,0.0,60.0,3.0,63.0,60.0,0.9523809523809523,GLM-4.6-FP8
+zai-org/GLM-4.7-Flash,1.0,0.0,60.0,3.0,64.0,60.0,0.9375,GLM-4.7-Flash
+mistralai/Devstral-2-123B-Instruct-2512-TEE,0.0,0.0,60.0,6.0,66.0,60.0,0.9090909090909091,Devstral-2-123B-Instruct-2512-TEE
+zai-org/GLM-4.7-FP8,0.0,1.0,60.0,5.0,66.0,60.0,0.9090909090909091,GLM-4.7-FP8
+MiniMaxAI/MiniMax-M2.1-TEE,0.0,0.0,60.0,7.0,67.0,60.0,0.8955223880597015,MiniMax-M2.1-TEE
+deepseek-ai/DeepSeek-V3.1-Terminus,0.0,2.0,60.0,10.0,72.0,60.0,0.8333333333333334,DeepSeek-V3.1-Terminus
+nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,0.0,1.0,60.0,11.0,72.0,60.0,0.8333333333333334,NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
+tngtech/DeepSeek-TNG-R1T2-Chimera,2.0,8.0,60.0,11.0,81.0,60.0,0.7407407407407407,DeepSeek-TNG-R1T2-Chimera
+openai/gpt-oss-120b-TEE,0.0,0.0,71.0,27.0,98.0,71.0,0.7244897959183674,gpt-oss-120b-TEE
