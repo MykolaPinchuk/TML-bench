@@ -23,6 +23,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/paper/claims_matrix_v1.md` — claim-to-evidence mapping for all quantitative draft statements.
 - `docs/paper/repro_appendix_v1.md` — exact regeneration and verification commands for draft reproducibility.
 - `docs/paper/figures/v6/` — committed v6 draft figures (leaderboard + consistency/reliability/scaling).
+- `docs/paper/paper_assets_v1/` — flat staging bundle (figures + tables + manifest) for next-agent paper assembly.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
