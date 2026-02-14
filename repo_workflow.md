@@ -29,6 +29,12 @@ Note: agents are allowed to create **additional** safe checkpoint commits withou
 ## Onboard procedure (trigger: `Onboard`)
 **Goal:** quickly understand current repo state without indiscriminate scanning.
 
+0) Agent identity sync (must do first):
+   - Parse `AgentNN` from the kickoff user message when present (example: `[TML-bench Agent11 2/9 6pm] onboard` -> `agent11`).
+   - Before any logging/commits, ensure `agent_logs/current.md` has `id: agentNN` matching the kickoff tag.
+   - If `agent_logs/current.md` is stale, update it immediately and log that the id was synced from kickoff tag.
+   - If kickoff tag is missing/ambiguous, ask the human to confirm the active agent id before continuing.
+
 1) Read (in order, if present):
    - `onboarding.md`
    - `HANDOFF.md`
@@ -96,3 +102,4 @@ Never commit datasets, submissions, transcripts, or bulky artifacts (see `.gitig
 Commit messages:
 - `agentNN: checkpoint(<area>): <short description>` during work
 - `agentNN: handoff(<area>): <short description>` at wrap-up
+- `agentNN` must match kickoff-synced `agent_logs/current.md` id for the current chat.

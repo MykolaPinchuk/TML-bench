@@ -8,6 +8,7 @@ When invoked (or when the user says `checkpoint`), do this in order.
 ## 1) Preflight (must do; show output)
 - `git status`
 - `git diff --stat`
+- Verify `agent_logs/current.md` `id:` is synced to the kickoff `AgentNN` for this chat. If stale, fix `current.md` before commit.
 
 ## 2) Sanity guardrails (must do)
 - Never run: `git push`, `git commit --amend`, `git rebase`, `git reset --hard`, `git clean -fdx`, or modify git remotes.
@@ -32,7 +33,7 @@ Before committing, show:
 ## 4) Commit (auto message)
 - Create a structured message that includes the agent id:
   - `agentNN: checkpoint(<area>): <short summary>`
-  - Derive `agentNN` from `agent_logs/current.md` (field `id:`). If missing, stop and ask the human.
+  - Derive `agentNN` from kickoff-synced `agent_logs/current.md` (field `id:`). If missing/ambiguous, stop and ask the human.
   - Choose `<area>` from: `workflow`, `docs`, `orchestrator`, `competitions`, `prompts`, `ci`, `misc`.
 - Run `git commit -m "<message>"`.
 

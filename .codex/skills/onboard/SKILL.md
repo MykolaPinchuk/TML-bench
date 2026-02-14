@@ -5,6 +5,12 @@ description: Deterministic onboarding for this repo (read minimal index files fi
 
 When invoked (or when the user says `Onboard`), do this exactly:
 
+0) Agent identity sync (must do first):
+   - If kickoff message contains `AgentNN` (example: `[TML-bench Agent11 ...] onboard`), set active id to `agentNN`.
+   - Ensure `agent_logs/current.md` has matching `id:` before any log writes or commits.
+   - If `current.md` is stale, update it immediately and append a short log note about the sync.
+   - If kickoff message does not expose `AgentNN`, ask the human to confirm the active agent id.
+
 1) Read (in order, if present):
    - `agents.md` (if not already in context)
    - `repo_workflow.md`

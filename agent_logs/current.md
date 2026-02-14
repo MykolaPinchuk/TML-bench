@@ -1,7 +1,7 @@
 # agent_logs/current.md
 
 ## Agent
-- id: agent10
+- id: agent11
 
 ## Timestamp (Pacific)
 - start: 2026-02-14
@@ -15,3 +15,4 @@
 
 ## Log
 - 2026-02-14 08:17:38 PST: Log rotated during handoff. Previous cycle archived at   `agent_logs/2026-02-14_agent00.md`.
+- 2026-02-14 08:23:42 PST: Synced active agent id to `agent11` from kickoff tag format (`[TML-bench Agent11 ...] onboard`).

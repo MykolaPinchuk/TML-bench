@@ -6,6 +6,10 @@ description: Prepare handoff: update HANDOFF/REPO_MAP, rotate logs, update .giti
 When invoked, do this in order.
 
 A) Documentation and state (must do)
+0) Agent identity check (must do first):
+   - Verify `agent_logs/current.md` `id:` matches kickoff `AgentNN` for the current chat.
+   - If stale, sync it before any rotation/commit.
+
 1) Update `HANDOFF.md`:
    - Fill/refresh every section.
    - Include concrete evidence: file paths and (if a commit is created) the commit hash.
@@ -35,5 +39,5 @@ Never commit competition data, runs, artifacts, or secrets (see `.gitignore`).
 
 Commit message:
 - `agentNN: handoff(<area>): <short description>`
-- Derive `agentNN` from `agent_logs/current.md` (field `id:`). If missing, stop and ask the human.
+- Derive `agentNN` from kickoff-synced `agent_logs/current.md` (field `id:`). If missing/ambiguous, stop and ask the human.
 - Choose `<area>` from: `workflow`, `docs`, `orchestrator`, `competitions`, `prompts`, `ci`, `misc`.
