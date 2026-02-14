@@ -9,7 +9,7 @@ Date: 2026-02-14
 
 ## Abstract
 
-Autonomous coding agents can produce strong tabular baselines quickly on Kaggle-style tasks, but practical value depends on end-to-end correctness, reliability, and performance under time limits. This paper introduces TML-bench, a tabular-only benchmark that evaluates the full workflow: producing a valid submission that is scored on hidden holdout labels (not accessible to the agent). We evaluate 10 models across four competitions and three time budgets (240s/600s/1200s), running each model five times per task and budget and reporting median performance plus reliability and stability. Under the paper’s aggregate ranking, MiniMax-M2.1-TEE is rank-1 on all four competitions. We also find meaningful separation in success rates and run-to-run variability among otherwise strong models, and an overall trend of improved normalized performance with larger time budgets, with noisy scaling for individual models at the current run count. Code and materials: https://github.com/MykolaPinchuk/TML-bench/tree/master.
+Autonomous coding agents can produce strong tabular baselines quickly on Kaggle-style tasks, but practical value depends on end-to-end correctness, reliability, and performance under time limits. This paper introduces TML-bench, a tabular-only benchmark that evaluates the full workflow: producing a valid submission that is scored on hidden holdout labels (not accessible to the agent). We evaluate 10 models across four competitions and three time budgets (240s/600s/1200s), running each model five times per task and budget and reporting median performance plus reliability and stability. Under the paper’s aggregate ranking, MiniMax-M2.1-TEE ranks first on all four competitions. We also find meaningful separation in success rates and run-to-run variability among otherwise strong models, and an overall trend of improved normalized performance with larger time budgets, with noisy scaling for individual models at the current run count. Code and materials are available at https://github.com/MykolaPinchuk/TML-bench/tree/master.
 
 ## 1. Introduction
 
@@ -22,10 +22,10 @@ For practitioners, this framing matters for two reasons. First, a good agent mus
 ### 1.1 Contributions
 
 This paper makes the following contributions:
-- A strict benchmark protocol for Kaggle-style tabular tasks with deterministic preparation, strict submission validation, and private-holdout scoring.
-- A reporting policy that emphasizes repeatability: fixed agent instructions, fixed suite, and median-of-five aggregation with explicit coverage requirements.
-- A reproducible evaluation protocol and supporting materials to regenerate figures and tables.
-- Results and analysis that highlight performance, cross-competition consistency, reliability, and scaling with time budget.
+- This paper introduces a strict benchmark protocol for Kaggle-style tabular tasks with deterministic preparation, strict submission validation, and private-holdout scoring.
+- This paper uses a repeatable reporting policy with fixed agent instructions, a fixed suite, and median-of-five aggregation with explicit coverage requirements.
+- This paper provides a reproducible evaluation protocol and supporting materials to regenerate figures and tables.
+- This paper reports results and analysis that highlight performance, cross-competition consistency, reliability, and scaling with time budget.
 
 ## 2. Benchmark and protocol
 
@@ -83,24 +83,24 @@ This section reports aggregate performance, cross-competition consistency, relia
 
 ### 3.1 Key findings
 
-- Under the headline normalization (best budget per competition, averaged across competitions), `MiniMax-M2.1-TEE` is the top performer and is rank-1 in every competition.
+- `MiniMax-M2.1-TEE` ranks first on all four competitions under the paper’s aggregate ranking.
 - Reliability varies meaningfully even among strong performers. Success-rate and stability plots show clear separation between more and less reliable models.
-- Some models gain substantially from extra time budget, while others are relatively flat. Marginal-gain and monotonicity views capture these patterns.
+- Some models improve substantially with larger time budgets, while other models remain relatively flat. Marginal-gain and monotonicity views capture these patterns.
 
 ### 3.2 Aggregate performance leaderboard (headline)
 
 The aggregate leaderboard is derived from five-run medians and normalized via rank-points so that scores from different competitions (AUC vs RMSE) are comparable.
 
-Method:
-- Unit of aggregation: per `(competition, budget)` setting, use the model’s five-run median `score_raw`.
-- Normalize within each setting by rank: best model gets `1.0`, worst gets `0.0`, with linear spacing in between.
-- Headline aggregation: for each `(model, competition)` take the best normalized setting across the three budgets, then average across the 4 competitions with equal weights.
+The method is as follows:
+- The unit of aggregation is the model’s five-run median `score_raw` for each `(competition, budget)` setting.
+- Models are normalized within each setting by rank so that the best model gets `1.0` and the worst model gets `0.0`, with linear spacing in between.
+- For the headline aggregation, this paper takes the best normalized setting across the three budgets for each `(model, competition)` pair and then averages across the four competitions with equal weights.
 
 This rank-based normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better). It allows a single aggregate leaderboard across heterogeneous metrics without choosing an arbitrary numeric scaling.
 
 The headline aggregation uses “best budget per competition” to separate modeling capability from budget selection. It also reflects a common practical use case: allocate a fixed wall-clock budget and choose the strongest result the workflow can produce in that budget range.
 
-Interpretation: rank-points are relative within each `(competition, budget)` setting. They preserve ordering within a setting rather than absolute metric gaps. A small raw-score advantage can translate to the same rank-point change as a larger advantage if both only affect rank.
+These rank-points are relative within each `(competition, budget)` setting. They preserve ordering within a setting rather than absolute metric gaps. A small raw-score advantage can translate to the same rank-point change as a larger advantage if both only affect rank.
 
 ![Headline leaderboard: best budget per competition](figures_public_v1/leaderboard_headline_best_budget.png)
 
@@ -117,8 +117,8 @@ Rank variability across competitions is summarized via rank standard deviation (
 ### 3.4 Reliability and stability
 
 Reliability has two components:
-1. Run success rate (how often a run yields a valid score).
-2. Within-setting stability (how variable a model is across the five runs used for each reported setting).
+1. The first component is run success rate, which measures how often a run yields a valid score.
+2. The second component is within-setting stability, which measures how variable a model is across the five runs used for each reported setting.
 
 The trade-off is summarized via a Pareto-style plot (performance vs stability; color indicates success rate).
 
@@ -131,7 +131,7 @@ Supporting breakdown plots for success rate and stability are included in Append
 Normalized performance is analyzed as time budget increases from 240s to 600s to 1200s, averaged across the four competitions.
 
 On aggregate, scaling is broadly consistent with the expected monotonic pattern. Define a model’s per-competition scaling curve as **monotone** if its direction-corrected five-run medians do not worsen as budget increases (240s → 600s → 1200s). Under this definition:
-- Across all `40` model×competition curves (10 models × 4 competitions), `23/40 = 57.5%` are monotone.
+- Across all `40` model×competition curves (10 models × 4 competitions), `23/40 = 57.5%` of curves are monotone.
 - Across the 10 models, the median model is monotone in `62.5%` of competitions.
 
 ![Scaling with time budget](figures_public_v1/scaling_points_lines.png)
@@ -209,7 +209,7 @@ This paper is accompanied by a repository that contains run logs, scripts to reg
 
 This appendix lists the models included in the 10-model set evaluated in this paper and summarizes metadata that is useful for interpretation. Public release dates, parameter counts, and license fields are taken from public model cards and announcements, as cited below.
 
-Notes:
+The following notes apply to Appendix A:
 - “Type” describes the availability implied by the source (open weights, or API-served). If the source does not clearly specify a release or license, the entry is marked as unknown.
 - “Params” are taken from the source when available. In several cases, the benchmark uses provider-specific identifiers that do not include a public parameter count.
 
@@ -226,7 +226,7 @@ Notes:
 | `mistralai/Devstral-2-123B-Instruct-2512-TEE` | `chutes` | open weights | 125B | 2025-12-09 | Modified MIT | S8, S11 |
 | `tngtech/DeepSeek-TNG-R1T2-Chimera` | `chutes` | open weights | 671B | 2025-07-02 | unknown | S9 |
 
-Sources:
+The sources for Appendix A are as follows:
 - S1: https://openai.com/index/introducing-gpt-oss/
 - S2: https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct
 - S3: https://docs.bigmodel.cn/en/guide/releaseNote/new
@@ -278,7 +278,7 @@ This appendix defines how scores are computed and how the aggregate leaderboard 
 
 ### F.2 Per-setting aggregation
 
-For each `(competition, model, budget)` setting:
+This paper aggregates results for each `(competition, model, budget)` setting as follows:
 - Consider the earliest five successful runs.
 - Report the median of their `score_raw`.
 
@@ -286,10 +286,10 @@ For each `(competition, model, budget)` setting:
 
 Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses rank-points:
 
-For each `(competition, budget)` setting:
+This paper defines rank-points within each `(competition, budget)` setting as follows:
 1. Rank models by the median `score_raw` after accounting for metric direction (higher-is-better or lower-is-better).
 2. Assign rank-points linearly so that the best model receives `1.0` and the worst receives `0.0`. With `N` models and rank `r` (1 = best), points are:
-   - `points = (N - r) / (N - 1)`
+   - The points are computed as `points = (N - r) / (N - 1)`.
 
 ### F.4 Headline aggregation
 
@@ -312,9 +312,9 @@ Kilo Code is also widely used in practice. For example, OpenRouter’s public �
 Many open-source agent harnesses exist, and different harnesses can introduce confounds: differences in tool availability, file access conventions, patch/apply mechanics, retry behavior, and failure handling. This paper standardizes on a single harness to reduce “harness effects” and to make comparisons across models more interpretable.
 
 Kilo Code was chosen for three practical reasons:
-1. Reliability: it is mature enough to run repeatedly under timeouts and produce stable artifacts.
-2. Model breadth: it is extensively used with a wide range of open and API-served models, reducing the risk of harness-model incompatibilities.
-3. Fast sanity checks: because it is available as a VS Code extension, basic end-to-end behavior can be verified quickly outside the benchmark runs.
+1. Kilo Code is reliable, and it is mature enough to run repeatedly under timeouts and produce stable artifacts.
+2. Kilo Code is used with a wide range of open and API-served models, which reduces the risk of harness-model incompatibilities.
+3. Kilo Code enables fast sanity checks, because it is available as a VS Code extension and basic end-to-end behavior can be verified quickly outside benchmark runs.
 
 ### G.3 What the harness enforces (high level)
 

@@ -2,24 +2,24 @@ This section reports aggregate performance, cross-competition consistency, relia
 
 \subsection{Key findings}
 \begin{itemize}
-  \item Under the headline normalization (best budget per competition, averaged across competitions), \texttt{MiniMax-M2.1-TEE} is the top performer and is rank-1 in every competition.
+  \item \texttt{MiniMax-M2.1-TEE} ranks first on all four competitions under the paper's aggregate ranking.
   \item Reliability varies meaningfully even among strong performers. Success-rate and stability plots show clear separation between more and less reliable models.
-  \item Some models gain substantially from extra time budget, while others are relatively flat. Marginal-gain and monotonicity views capture these patterns.
+  \item Some models improve substantially with larger time budgets, while other models remain relatively flat. Marginal-gain and monotonicity views capture these patterns.
 \end{itemize}
 
 \subsection{Aggregate performance leaderboard (headline)}
 The aggregate leaderboard is derived from five-run medians and normalized via rank-points so that scores from different competitions (AUC vs RMSE) are comparable.
 
-Method:
+The method is as follows:
 \begin{itemize}
-  \item Unit of aggregation: per \texttt{(competition, budget)} setting, use the model's five-run median \texttt{score\_raw}.
-  \item Normalize within each setting by rank: best model gets 1.0, worst gets 0.0, with linear spacing in between.
-  \item Headline aggregation: for each \texttt{(model, competition)} take the best normalized setting across the three budgets, then average across the 4 competitions with equal weights.
+  \item The unit of aggregation is the model's five-run median \texttt{score\_raw} for each \texttt{(competition, budget)} setting.
+  \item Models are normalized within each setting by rank so that the best model gets 1.0 and the worst model gets 0.0, with linear spacing in between.
+  \item For the headline aggregation, this paper takes the best normalized setting across the three budgets for each \texttt{(model, competition)} pair and then averages across the four competitions with equal weights.
 \end{itemize}
 
 This rank-based normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better).
 
-Interpretation: rank-points are relative within each \texttt{(competition, budget)} setting. They preserve ordering within a setting rather than absolute metric gaps.
+These rank-points are relative within each \texttt{(competition, budget)} setting. They preserve ordering within a setting rather than absolute metric gaps.
 
 \begin{figure}[t]
   \centering
@@ -54,7 +54,7 @@ Supporting breakdown plots for success rate and stability are included in Append
 \subsection{Scaling with time budget}
 Normalized performance is analyzed as time budget increases from 240s to 600s to 1200s, averaged across the four competitions.
 
-On aggregate, scaling is broadly consistent with the expected monotonic pattern. Define a model's per-competition scaling curve as monotone if its direction-corrected five-run medians do not worsen as budget increases (240s $\rightarrow$ 600s $\rightarrow$ 1200s). Under this definition: (i) across all 40 model$\times$competition curves, 23/40 (57.5\%) are monotone, and (ii) across the 10 models, the median model is monotone in 62.5\% of competitions. Appendix~\ref{sec:appendix-scaling} reports monotonicity rates and marginal gains.
+On aggregate, scaling is broadly consistent with the expected monotonic pattern. This paper defines a model's per-competition scaling curve as monotone if its direction-corrected five-run medians do not worsen as budget increases (240s $\rightarrow$ 600s $\rightarrow$ 1200s). Under this definition, 23/40 (57.5\%) of model$\times$competition curves are monotone, and the median model is monotone in 62.5\% of competitions. Appendix~\ref{sec:appendix-scaling} reports monotonicity rates and marginal gains.
 
 \begin{figure}[t]
   \centering

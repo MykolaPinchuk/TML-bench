@@ -69,7 +69,7 @@ This appendix defines how scores are computed and how the aggregate leaderboard 
 \end{itemize}
 
 \subsection{Per-setting aggregation}
-For each \texttt{(competition, model, budget)} setting:
+This paper aggregates results for each \texttt{(competition, model, budget)} setting as follows:
 \begin{itemize}
   \item Consider the earliest five successful runs.
   \item Report the median of their \texttt{score\_raw}.
@@ -78,7 +78,7 @@ For each \texttt{(competition, model, budget)} setting:
 \subsection{Rank-points normalization}
 Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses rank-points.
 
-For each \texttt{(competition, budget)} setting:
+This paper defines rank-points within each \texttt{(competition, budget)} setting as follows:
 \begin{enumerate}
   \item Rank models by the median \texttt{score\_raw} after accounting for metric direction (higher-is-better or lower-is-better).
   \item Assign rank-points linearly so that the best model receives 1.0 and the worst receives 0.0. With $N$ models and rank $r$ (1 = best), points are:
@@ -107,7 +107,7 @@ Kilo Code is also widely used in practice. For example, OpenRouter's public ``To
 \subsection{Why standardize on a single harness}
 Many open-source agent harnesses exist, and different harnesses can introduce confounds: differences in tool availability, file access conventions, patch/apply mechanics, retry behavior, and failure handling. This paper standardizes on a single harness to reduce ``harness effects'' and to make comparisons across models more interpretable.
 
-Kilo Code was chosen for three practical reasons: reliability (mature enough to run repeatedly under timeouts and produce stable artifacts), model breadth (extensively used with a wide range of open and API-served models), and fast sanity checks (available as a VS Code extension, making basic end-to-end behavior easy to verify).
+Kilo Code was chosen for three practical reasons. First, it is reliable and mature enough to run repeatedly under timeouts and produce stable artifacts. Second, it is used with a wide range of open and API-served models, which reduces the risk of harness-model incompatibilities. Third, it enables fast sanity checks because it is available as a VS Code extension and basic end-to-end behavior can be verified quickly outside benchmark runs.
 
 \subsection{What the harness enforces (high level)}
 At a high level, the harness ensures that: (i) the agent works in a clean per-run workspace with only the agent-visible task inputs, (ii) the agent stage is time-bounded (240s/600s/1200s), (iii) submissions are validated and normalized before scoring, and (iv) the final score is computed on hidden holdout labels outside the agent workspace.
