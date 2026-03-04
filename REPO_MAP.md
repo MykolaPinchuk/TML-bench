@@ -30,7 +30,8 @@ Keep this file short. Update it only when something important changes.
 - `docs/paper/tex_v1/main.tex` — current external-facing manuscript entrypoint (build target for PDF).
 - `docs/paper/tex_v1/sections/` — sectioned LaTeX sources used for reviewer-driven edits.
 - `docs/paper/figures/v6/` — committed v6 draft figures (leaderboard + consistency/reliability/scaling).
-- `docs/paper/paper_assets_v2/` — active staging bundle (figures + tables + manifest) for writing/review passes.
+- `docs/paper/paper_assets_v3/` — active staging bundle (figures + tables + manifest) for writing/review passes.
+- `docs/paper/tex_v1/sections/appendix_competitions.tex` — appendix section with per-competition dataset/problem summaries used in the current draft.
 - `orchestrator/run_one.py` — Phase 2+3 run workflow (manual create/start/finalize; plus `auto` headless runs via Kilo CLI).
 - `orchestrator/sweep.py` — Phase 3 batch runner (supports `--concurrency`).
 - `orchestrator/suite.py` — Phase 5 multi-competition runner (wraps `orchestrator.sweep` across a suite) with per-competition safety caps (currently forces `foot-traffic-wuerzburg-retail-forecasting-2-0` to `concurrency=1`).
@@ -65,6 +66,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/plan/v6.md` — v6 draft-first plan and completion criteria.
 - `docs/paper/` — v6 draft/manuscript assets and evidence traceability.
 - `docs/paper/tex_v1/` — current manuscript editing surface for external-review revisions.
+- `docs/paper/tex_v1/sections/appendix_competitions.tex` — newly added competition-details appendix section.
 - `orchestrator/` — Phase 1 core (prepare/validate/score).
 - `competitions/` — per-task specs and preparation scripts.
 

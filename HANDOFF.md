@@ -1,79 +1,73 @@
 # HANDOFF
 
 ## Current slice
-v6 paper drafting is complete and merged to `master`.
+v6.5 reviewer-driven revision pass is in good shape. The draft now uses score-based leaderboard reporting in the main body, rank-based variants in appendix, expanded related work framing vs MLE-bench, contamination controls, refreshed model metadata, and appendix reorganization.
 
-Current branch initialization for follow-on work is complete:
-- local branch: `v6.5`
-- base commit: `0dc0ece` (`Merge pull request #10 from MykolaPinchuk/v6`)
-
-The next slice is reviewer-driven revision: collect feedback from external reviewer agents, then apply edits to the draft and claims/evidence trace.
-
-## Current state (2026-03-03)
+## Current state (2026-03-04)
 - Branch state:
-  - `origin/master` and local `master` at `0dc0ece`
-  - `origin/v6` at `d91b472`
-  - working branch for next work: `v6.5`
-- Paper artifacts:
+  - active branch: `v6.5`
+  - latest checkpoint commit: `5a8aaa9` (`agent14: checkpoint(docs): update paper appendices and title date`)
+- Paper artifacts (active):
   - markdown draft: `docs/paper/draft_v1.md`
   - claims matrix: `docs/paper/claims_matrix_v1.md`
-  - LaTeX draft entrypoint: `docs/paper/tex_v1/main.tex`
-  - reproducibility appendix: `docs/paper/repro_appendix_v1.md`
+  - LaTeX entrypoint: `docs/paper/tex_v1/main.tex`
+  - LaTeX appendix sections: `docs/paper/tex_v1/sections/`
+  - new competition appendix section: `docs/paper/tex_v1/sections/appendix_competitions.tex`
+- Latest PDF build artifact:
+  - `tmp/paper_build/main.pdf` (rebuilt on 2026-03-04; title page date is March 4, 2026)
 - Paper workflow pointers:
   - contract: `docs/paper/PAPER_WORKFLOW.md`
+  - state pointer: `docs/paper/PAPER_STATE.md`
   - writer prompts: `docs/paper/HUMAN_CHEATSHEET.md`
-  - writer style/evidence rules: `docs/paper/WRITER_PLAYBOOK.md`
-  - active paper state: `docs/paper/PAPER_STATE.md`
-- Active evidence bundle for writing is `docs/paper/paper_assets_v2` (`next_assets_dir` is `docs/paper/paper_assets_v3`).
-- Canonical baseline status remains healthy (`python3 scripts/check_profiled1_canonical_coverage.py`):
-  - `sources_found=9/9`
-  - `canonical_models=10`
-  - `missing_cells=0`
-  - `status=OK`
-- No active async benchmark run is currently live.
+  - writer playbook: `docs/paper/WRITER_PLAYBOOK.md`
+- Active evidence bundle for writing:
+  - `docs/paper/paper_assets_v3/` (`next_assets_dir`: `docs/paper/paper_assets_v4`)
 
-## Canonical reporting policy (unchanged)
-- `results.md` remains complete-model-only canonical reporting (currently 10 models).
-- Do not merge partial 14-model results into canonical tables.
-- Promote canonical scope to 14 only when each remaining model reaches full 5-run coverage across all 12 cells.
+## What changed in this cycle
+- Replaced informal phrasing and normalized terminology around primary model-comparison results.
+- Added and clarified the score normalization method in both LaTeX and markdown drafts.
+- Kept rank-based views as supplementary appendix material (heatmap retained in main body).
+- Expanded related-work comparison and explicit TML-bench advantages over MLE-bench.
+- Added contamination-controls language (internet-off runs + pretraining-cutoff-before-competition framing).
+- Refactored appendix organization to group small figure-only items into coherent appendix subsections.
+- Updated Appendix A model inventory:
+  - renamed headers (`Model`, `Parameters`, `Release date`)
+  - added/updated knowledge cutoff dates (including Nemotron cutoff at 2025-06-25)
+  - improved table layout to avoid text overlap and forced placement under Appendix A heading.
+- Added new appendix with four-competition details:
+  - problem type/target, metric, train/test rows, feature counts.
+- Updated title-page date and verified rendered PDF output text.
 
-## v6 completion evidence
-- Merge to master: `0dc0ece`.
-- Final writer-pass commit on `v6`: `d91b472` (`agent14: checkpoint(docs): update abstract`).
-- External-facing TeX manuscript is present and buildable from `docs/paper/tex_v1/`.
-- Reviewer-facing drafting workflow and playbook are committed (`docs/paper/PAPER_WORKFLOW.md`, `docs/paper/WRITER_PLAYBOOK.md`).
+## Immediate next plan (for next agent)
+1. Run one final editorial consistency pass across LaTeX + markdown + claims matrix.
+2. Check that every figure/table reference in text is explicit and correctly placed.
+3. Validate Appendix A sourcing language for any cutoff entries that are inferred/unofficial.
+4. Build final PDF and do a quick visual pass for table/figure layout warnings.
+5. Prepare first-draft freeze checkpoint if user confirms no further content edits.
 
-## v6.5 immediate plan
-1. Run external reviewer-agent feedback passes on the current draft.
-2. Consolidate feedback into a scoped edit list (content, clarity, evidence consistency).
-3. Apply edits in `docs/paper/tex_v1/` (and keep markdown/claims synchronized where required).
-4. Rebuild PDF and re-validate claims/evidence alignment.
-5. Freeze revised bundle (`paper_assets_v3`) only if evidence assets change.
-
-## Deferred items (not in immediate v6.5 unless explicitly requested)
-- Result 4 token-efficiency analysis (blocked by missing token/cost telemetry in canonical DBs; current schema only exposes `max_tokens`).
-- 14-model backfill promotion into canonical reporting.
-- v7 backlog items (non-agentic baselines, deeper literature review framing).
+## Deferred items (unchanged unless explicitly requested)
+- Token/cost efficiency analysis (blocked by missing token telemetry in canonical DB schema; only `max_tokens` available).
+- Promotion from canonical 10-model reporting to 14-model reporting (requires full 5-run coverage across all 12 cells).
+- Broader v7 expansions (non-agentic baselines, deeper literature sweep).
 
 ## Key evidence paths
-- Canonical results: `results.md`
+- Canonical results snapshot: `results.md`
 - Canonical stability companion: `docs/reports/v5_5_canonical10_stability.md`
-- Canonical refresh/check scripts:
+- Results refresh/check scripts:
   - `scripts/refresh_profiled1_results.py`
   - `scripts/check_profiled1_canonical_coverage.py`
-- Paper draft sources:
+- Paper sources:
   - `docs/paper/draft_v1.md`
   - `docs/paper/claims_matrix_v1.md`
   - `docs/paper/tex_v1/main.tex`
-- Paper workflow and state:
+  - `docs/paper/tex_v1/sections/appendix_competitions.tex`
+- Paper workflow/state:
   - `docs/paper/PAPER_WORKFLOW.md`
   - `docs/paper/PAPER_STATE.md`
   - `docs/paper/HUMAN_CHEATSHEET.md`
   - `docs/paper/WRITER_PLAYBOOK.md`
-- Active writing evidence bundle:
-  - `docs/paper/paper_assets_v2/`
 
 ## Invariants
 - Never commit datasets, run artifacts, sqlite DBs, or secrets.
-- Keep `profiled1` as the canonical baseline unless explicitly changed by user request.
+- Keep `profiled1` canonical reporting policy intact unless user explicitly changes it.
 - Keep suite safety behavior intact (`orchestrator/suite.py`, including foot-traffic concurrency cap).
