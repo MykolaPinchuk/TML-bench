@@ -1,84 +1,98 @@
-\section{Aggregate leaderboard robustness checks}
-\label{sec:appendix-robustness}
+\clearpage
+\section{Additional figures and robustness checks}
+\label{sec:appendix-figures}
 
-This appendix reports two alternative aggregations of the aggregate performance leaderboard. These variants are included as sensitivity checks.
+\subsection{Alternative aggregate score variants}
+\label{sec:appendix-robustness}
+Figure~\ref{fig:appendix-overall-all-cells} and Figure~\ref{fig:appendix-1200-only} provide two alternative aggregate score views that complement the primary leaderboard in the main text.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{leaderboard_all_cells.png}
   \caption{Overall aggregation (all competitions and all budgets).}
+  \label{fig:appendix-overall-all-cells}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{leaderboard_1200s_only.png}
   \caption{1200s-only aggregation.}
+  \label{fig:appendix-1200-only}
 \end{figure}
 
-\section{Rank-based normalization (supplementary)}
+\subsection{Supplementary rank-based views}
 \label{sec:appendix-rank-based}
-
-For comparison, this appendix includes an alternative rank-based normalization that maps models to evenly spaced scores within each setting based on rank. This approach preserves ordering but discards absolute metric gaps within a \texttt{(competition, budget)} setting.
+Figure~\ref{fig:appendix-rank-best-budget}, Figure~\ref{fig:appendix-rank-all-cells}, and Figure~\ref{fig:appendix-rank-1200-only} show the older rank-based normalization for comparison with the score-based normalization used in the main analysis.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{leaderboard_rank_based_best_budget.png}
   \caption{Rank-based aggregation (best budget per competition).}
+  \label{fig:appendix-rank-best-budget}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{leaderboard_rank_based_all_cells.png}
   \caption{Rank-based aggregation (all competitions and all budgets).}
+  \label{fig:appendix-rank-all-cells}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{leaderboard_rank_based_1200s_only.png}
   \caption{Rank-based aggregation (1200s only).}
+  \label{fig:appendix-rank-1200-only}
 \end{figure}
 
-\section{Additional consistency view}
+\subsection{Consistency supplement}
 \label{sec:appendix-consistency}
-
-Rank variability across competitions is summarized via rank standard deviation (lower indicates higher consistency).
+Figure~\ref{fig:appendix-consistency-stddev} reports rank variability across competitions (lower indicates higher consistency).
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{consistency_rank_stddev.png}
   \caption{Rank standard deviation across competitions.}
+  \label{fig:appendix-consistency-stddev}
 \end{figure}
 
-\section{Additional reliability and stability views}
+\subsection{Reliability and stability supplement}
 \label{sec:appendix-reliability}
+Figure~\ref{fig:appendix-success-rate} and Figure~\ref{fig:appendix-stability-iqr} separate reliability into completion rate and within-setting variability views.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{reliability_success_rate.png}
   \caption{Run success rate.}
+  \label{fig:appendix-success-rate}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{stability_relative_iqr.png}
   \caption{Stability via relative IQR.}
+  \label{fig:appendix-stability-iqr}
 \end{figure}
 
-\section{Additional scaling views}
+\subsection{Scaling supplement}
 \label{sec:appendix-scaling}
+Figure~\ref{fig:appendix-scaling-marginal} and Figure~\ref{fig:appendix-scaling-monotonicity} provide supplementary scaling diagnostics.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{scaling_marginal_gains.png}
   \caption{Marginal gains with increasing budget.}
+  \label{fig:appendix-scaling-marginal}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{scaling_monotonicity_rate.png}
   \caption{Monotonicity rate across budgets.}
+  \label{fig:appendix-scaling-monotonicity}
 \end{figure}
 
+\clearpage
 \section{Scoring, aggregation, and normalization details}
 \label{sec:appendix-method}
 
@@ -124,25 +138,26 @@ The primary aggregation is ``best budget per competition'':
   \item Average across the four competitions with equal weights.
 \end{itemize}
 
+\clearpage
 \section{Harness details (Kilo Code)}
 \label{sec:appendix-harness}
 
-This appendix explains what Kilo Code is and why it is used as the single agent harness in this paper.
+This appendix explains what Kilo Code is and why it is used as the single system harness in this paper.
 
 \subsection{What Kilo Code is}
-Kilo Code is an AI coding agent for VS Code. In TML-bench, it is used as the uniform interface between a model and the benchmark task workspace: the agent reads task files, writes code, trains models, and produces a submission file.
+Kilo Code is an AI coding agent for VS Code. In TML-bench, it is used as the uniform interface between a model and the benchmark task workspace: the system reads task files, writes code, trains models, and produces a submission file.
 
 Kilo Code is also widely used in practice. For example, OpenRouter's public ``Top Apps'' leaderboard (weekly tokens, based on opt-in app attribution) lists Kilo Code as \#2 as of 2026-02-14 (and as the highest-usage VS Code coding agent app in that list), see \url{https://openrouter.ai/rankings} and \url{https://openrouter.ai/docs/app-attribution}. This is a point-in-time snapshot; rankings vary over time.
 
 \subsection{Why standardize on a single harness}
-Many open-source agent harnesses exist, and different harnesses can introduce confounds: differences in tool availability, file access conventions, patch/apply mechanics, retry behavior, and failure handling. This paper standardizes on a single harness to reduce ``harness effects'' and to make comparisons across models more interpretable.
+Many open-source harnesses exist, and different harnesses can introduce confounds: differences in tool availability, file access conventions, patch/apply mechanics, retry behavior, and failure handling. This paper standardizes on a single harness to reduce harness effects and make comparisons across models more interpretable.
 
 Kilo Code was chosen for three practical reasons. First, it is reliable and mature enough to run repeatedly under timeouts and produce stable artifacts. Second, it is used with a wide range of open and API-served models, which reduces the risk of harness-model incompatibilities. Third, it enables fast sanity checks because it is available as a VS Code extension and basic end-to-end behavior can be verified quickly outside benchmark runs.
 
 \subsection{What the harness enforces (high level)}
-At a high level, the harness ensures that: (i) the agent works in a clean per-run workspace with only the agent-visible task inputs, (ii) the agent stage is time-bounded (240s/600s/1200s), (iii) submissions are validated and normalized before scoring, and (iv) the final score is computed on hidden holdout labels outside the agent workspace.
+At a high level, the harness ensures that: (i) the system works in a clean per-run workspace with only the system-visible task inputs, (ii) the interaction stage is time-bounded (240s/600s/1200s), (iii) submissions are validated and normalized before scoring, and (iv) the final score is computed on hidden holdout labels outside the system workspace.
 
 \subsection{Limitations of this choice}
-Standardizing on Kilo Code improves comparability, but it also narrows the scope of conclusions: results are about models as used through this harness under this protocol. Other harnesses may yield different absolute performance or failure rates.
+Standardizing on Kilo Code improves comparability, but it narrows the scope of conclusions: results are about models as used through this harness under this protocol. Other harnesses may yield different absolute performance or failure rates.
 
 \input{docs/paper/tex_v1/sections/operational}

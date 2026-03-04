@@ -29,20 +29,22 @@ These scores are relative within each \texttt{(competition, budget)} setting, be
   \centering
   \includegraphics[width=\linewidth]{leaderboard_primary_best_budget.png}
   \caption{Aggregate performance leaderboard (primary aggregation: best budget per competition).}
+  \label{fig:primary-leaderboard}
 \end{figure}
 
-Robustness variants (secondary) include: (i) an overall aggregation that averages all \texttt{(competition, budget)} settings equally, and (ii) a 1200s-only aggregation. See Appendix~\ref{sec:appendix-robustness}.
+Figure~\ref{fig:primary-leaderboard} is the main comparison figure in this paper. Robustness variants (secondary) include: (i) an overall aggregation that averages all \texttt{(competition, budget)} settings equally, and (ii) a 1200s-only aggregation. See Appendix~\ref{sec:appendix-robustness}.
 
 \subsection{Cross-competition consistency}
-Per-competition ranks are computed in the same normalized space as the primary aggregate leaderboard (best budget per competition). The heatmap below shows each model's rank (1=best) per competition.
+Per-competition ranks are computed in the same normalized space as the primary aggregate leaderboard (best budget per competition). Figure~\ref{fig:consistency-heatmap} shows each model's rank (1=best) per competition.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{consistency_ranks_heatmap.png}
   \caption{Per-competition ranks (1=best).}
+  \label{fig:consistency-heatmap}
 \end{figure}
 
-Rank variability across competitions is summarized via rank standard deviation (lower is more consistent). See Appendix~\ref{sec:appendix-consistency}.
+Figure~\ref{fig:consistency-heatmap} keeps rank information as a compact view of cross-competition ordering. Rank variability across competitions is summarized via rank standard deviation (lower is more consistent). See Appendix~\ref{sec:appendix-consistency}.
 
 \subsection{Reliability and stability}
 Reliability has two components: run success rate (how often a run yields a valid score) and within-setting stability (how variable a model is across the five runs used for each reported setting). The trade-off is summarized via a Pareto-style plot (performance vs stability; color indicates success rate).
@@ -51,9 +53,10 @@ Reliability has two components: run success rate (how often a run yields a valid
   \centering
   \includegraphics[width=\linewidth]{reliability_pareto_performance_vs_stability.png}
   \caption{Performance vs stability (color indicates success rate).}
+  \label{fig:reliability-pareto}
 \end{figure}
 
-Supporting breakdown plots for success rate and stability are included in Appendix~\ref{sec:appendix-reliability}.
+Figure~\ref{fig:reliability-pareto} highlights the reliability-performance trade-off. Supporting breakdown plots for success rate and stability are included in Appendix~\ref{sec:appendix-reliability}.
 
 \subsection{Scaling with time budget}
 Normalized performance is analyzed as time budget increases from 240s to 600s to 1200s, averaged across the four competitions.
@@ -64,9 +67,10 @@ On aggregate, scaling is broadly consistent with the expected monotonic pattern.
   \centering
   \includegraphics[width=\linewidth]{scaling_points_lines.png}
   \caption{Scaling with time budget.}
+  \label{fig:scaling-main}
 \end{figure}
 
-At the individual model level, scaling can be noisy. Each task$\times$budget setting is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix~\ref{sec:appendix-scaling} reports marginal gains and monotonicity rates.
+Figure~\ref{fig:scaling-main} summarizes budget scaling in normalized score space. At the individual model level, scaling can be noisy. Each task$\times$budget setting is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix~\ref{sec:appendix-scaling} reports marginal gains and monotonicity rates.
 
 \subsection{Per-competition highlights}
 This subsection highlights a small number of representative task/budget settings. Full five-run tables are available in the companion repository materials.

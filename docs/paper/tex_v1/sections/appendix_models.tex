@@ -1,41 +1,28 @@
 \section{Models evaluated in this paper}
 \label{sec:appendix-models}
 
-This appendix lists the models included in the 10-model set evaluated in this paper and summarizes metadata that is useful for interpretation. Public release dates, parameter counts, and license fields are taken from public model cards and announcements, as cited below.
+Table~\ref{tab:model-inventory} lists the models included in the 10-model set evaluated in this paper and summarizes metadata useful for interpretation. Release dates, parameter counts, knowledge-cutoff disclosures, and license fields are taken from public model cards and announcements. Knowledge cutoff refers to pretraining cutoff.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{6.3cm}p{1.2cm}p{1.8cm}p{2.3cm}p{1.7cm}p{1.2cm}}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{3.7cm}p{1.2cm}p{1.3cm}p{1.55cm}p{1.3cm}p{1.9cm}p{1.45cm}}
 \toprule
-Model ID (as used in runs) & Provider & Type & Params & Public date & License \\
+Model & Provider & Type & Parameters & Release date & Knowledge cutoff & License \\
 \midrule
-\texttt{Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8} & chutes & open weights & 480B total, 35B active & 2025-07-23 & Apache-2.0 \\
-\texttt{openai/gpt-oss-120b-TEE} & chutes & open weights & 120B & 2025-08-05 & Apache-2.0 \\
-\texttt{zai-org/GLM-4.7-FP8} & chutes & open weights & unknown & 2025-12-22 & MIT \\
-\texttt{zai-org/GLM-4.7-Flash} & chutes & open weights & unknown & 2025-12-22 & MIT \\
-\texttt{MiniMaxAI/MiniMax-M2.1-TEE} & chutes & API-served & unknown & 2025-12-23 & unknown \\
-\texttt{zai-org/GLM-4.6-FP8} & chutes & open weights & unknown & 2025-09-30 & MIT \\
-\texttt{deepseek-ai/DeepSeek-V3.1-Terminus} & chutes & API-served & unknown & 2025-09-23 & unknown \\
-\texttt{nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16} & chutes & open weights & 30B total, 3B active & 2025-12-15 & NVIDIA Nemotron OMLA \\
-\texttt{mistralai/Devstral-2-123B-Instruct-2512-TEE} & chutes & open weights & 125B & 2025-12-09 & Modified MIT \\
-\texttt{tngtech/DeepSeek-TNG-R1T2-Chimera} & chutes & open weights & 671B & 2025-07-02 & unknown \\
+Qwen3-Coder-480B-A35B & chutes & open weights & 480B total, 35B active & 2025-07-23 & 2025-01-22 & Apache-2.0 \\
+gpt-oss-120b & chutes & open weights & 120B & 2025-08-05 & 2024-06-01 & Apache-2.0 \\
+GLM-4.7-FP8 & chutes & open weights & unknown & 2025-12-22 & 2025-04 & MIT \\
+GLM-4.7-Flash & chutes & open weights & unknown & 2025-12-22 & 2025-04 & MIT \\
+MiniMax-M2.1-TEE & chutes & API-served & 230B total, 10B active & 2025-12-23 & 2025-06-25 & unknown \\
+GLM-4.6-FP8 & chutes & open weights & 357B & 2025-09-30 & 2025-04 & MIT \\
+DeepSeek-V3.1-Terminus & chutes & API-served & 671B total, 37B active & 2025-09-23 & 2024-07 & unknown \\
+Nemotron-3-Nano-30B & chutes & open weights & 30B total, 3B active & 2025-12-15 & 2025-06-25 & NVIDIA Nemotron OMLA \\
+Devstral-2-123B & chutes & open weights & 125B & 2025-12-09 & 2023-10-01 (alt 2024-02) & Modified MIT \\
+DeepSeek-TNG-R1T2-Chimera & chutes & open weights & 671B & 2025-07-02 & \textasciitilde{}2024-07 & unknown \\
 \bottomrule
 \end{tabular}
 \caption{Model inventory for the 10 models evaluated in this paper.}
+\label{tab:model-inventory}
 \end{table}
-
-\paragraph{Sources.}
-S1: \url{https://openai.com/index/introducing-gpt-oss/}.\\
-S2: \url{https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct}.\\
-S3: \url{https://docs.bigmodel.cn/en/guide/releaseNote/new}.\\
-S4: \url{https://huggingface.co/zai-org/GLM-4.7}.\\
-S5: \url{https://huggingface.co/zai-org/GLM-4.6}.\\
-S6: \url{https://www.minimaxi.com/en/news/minimax-m2.1}.\\
-S7: \url{https://research.nvidia.com/labs/adlr/Nemotron-3/}.\\
-S8: \url{https://mistral.ai/terms/model-lifecycle/}.\\
-S9: \url{https://huggingface.co/tngtech/DeepSeek-TNG-R1T2-Chimera}.\\
-S10: \url{https://technode.com/2025/09/23/deepseek-releases-v3-1-terminus-enhanced-reasoning-in-top-version/}.\\
-S11: \url{https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512}.\\
-S12: \url{https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-Base-BF16}.

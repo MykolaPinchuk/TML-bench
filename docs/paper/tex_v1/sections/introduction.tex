@@ -1,6 +1,6 @@
 Tabular machine learning remains a common practical workload. The workflow includes data loading, feature preparation, model training, evaluation, iteration, and producing a correctly formatted submission artifact. Benchmarks that only test isolated coding tasks miss important failure modes and trade-offs.
 
-This paper evaluates data science agents on a strict tabular benchmark with private-holdout scoring. The target is an auditable leaderboard built from repeatable runs. The benchmark reports distributions across runs rather than a single best attempt.
+This paper evaluates data science agents on a strict tabular benchmark with private-holdout scoring. The target is an auditable leaderboard built from repeatable runs. The benchmark considers score distributions across runs rather than a single best attempt.
 
 For practitioners, this framing matters for two reasons. First, a good agent must be reliable. Capability on a single lucky run is insufficient. Second, comparisons should remain meaningful when tasks use different metrics and when runs are time-bounded.
 
@@ -9,15 +9,16 @@ This paper makes the following contributions:
 \begin{itemize}
   \item This paper introduces a strict benchmark protocol for Kaggle-style tabular tasks with deterministic preparation, strict submission validation, and private-holdout scoring.
   \item This paper uses a repeatable reporting policy with fixed agent instructions, a fixed suite, and median-of-five aggregation with explicit coverage requirements.
+  \item This paper adopts contamination controls and a low-cost evaluation setup intended to be runnable by individual practitioners (internet-off execution and pre-competition knowledge-cutoff model selection).
   \item This paper provides a reproducible evaluation protocol and supporting materials to regenerate figures and tables.
   \item This paper reports results and analysis that highlight performance, cross-competition consistency, reliability, and scaling with time budget.
 \end{itemize}
 
 \subsection*{Related work}
-Several existing benchmarks evaluate language models and language agents on programming and data workflows, but they differ in scope and evaluation philosophy.
+Several existing benchmarks evaluate coding-capable models and autonomous coding systems on programming and data workflows, but they differ in scope and evaluation philosophy.
 
 SWE-bench focuses on real-world software engineering tasks derived from GitHub issues~[7]. It evaluates whether a system can produce code changes that resolve the issue under a test suite.
 
-MLE-bench evaluates agents on ML engineering via Kaggle-style competitions curated from Kaggle~[8]. DSBench evaluates data science agents on a broader set of tasks that includes both data analysis and data modeling, and it introduces a metric designed to normalize heterogeneous task metrics~[9]. MLAgentBench evaluates language agents on a suite of ML experimentation tasks in a controlled environment~[10].
+MLE-bench evaluates autonomous systems on ML engineering via Kaggle-style competitions curated from Kaggle~[8]. DSBench evaluates data science systems on a broader set of tasks that includes both data analysis and data modeling, and it introduces a metric designed to normalize heterogeneous task metrics~[9]. MLAgentBench evaluates autonomous coding systems on a suite of ML experimentation tasks in a controlled environment~[10].
 
-TML-bench is positioned as a strict, tabular-only benchmark for end-to-end competition-style ML tasks. It focuses on a small suite with a repeatable protocol, private-holdout scoring outside the agent workspace, and repeated runs per setting to expose reliability and run-to-run variability.
+Relative to MLE-bench, TML-bench makes a different set of trade-offs. MLE-bench optimizes breadth across many competitions and modalities. TML-bench instead constrains scope to tabular tasks and a fixed small suite, which reduces cross-modality confounding and makes run-to-run comparisons easier to interpret. Constraining to relatively small tabular datasets also keeps evaluation accessible: the marginal cost to run the full suite in the setup used for this paper was on the order of \$10. TML-bench also emphasizes repeatability with fixed instruction sets, explicit complete-coverage requirements, and repeated runs per setting. In addition, TML-bench uses private-holdout scoring outside the system workspace, keeps internet access disabled during runs, and selects evaluated models so their knowledge cutoff predates the start date of the tested Kaggle competitions. These design choices report reliability side by side with performance and reduce contamination risk from post-competition information.

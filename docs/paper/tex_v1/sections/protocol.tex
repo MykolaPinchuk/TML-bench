@@ -18,6 +18,9 @@ Each run is executed in a clean, per-run workspace managed by the Kilo Code harn
 
 Appendix~\ref{sec:appendix-harness} describes what Kilo Code is and why this paper standardizes on it.
 
+\subsection{Contamination controls}
+This paper uses two controls to reduce contamination risk from external information. First, internet access is disabled during benchmark runs. Second, evaluated models are selected so that their pretraining knowledge cutoff predates the start date of each tested Kaggle competition. In this suite, the earliest competition release is in late October 2025, and all listed cutoff dates in Appendix~\ref{sec:appendix-models} precede that date.
+
 \subsection{Metrics and normalization}
 Each competition has a task-defined metric. This paper reports \texttt{score\_raw} in the task's native direction (for example, AUC where higher is better, and RMSE where lower is better).
 
