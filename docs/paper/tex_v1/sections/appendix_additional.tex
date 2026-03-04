@@ -1,7 +1,7 @@
 \section{Aggregate leaderboard robustness checks}
 \label{sec:appendix-robustness}
 
-This appendix reports two alternative aggregations of the main leaderboard. These variants are included as sensitivity checks.
+This appendix reports two alternative aggregations of the aggregate performance leaderboard. These variants are included as sensitivity checks.
 
 \begin{figure}[t]
   \centering
@@ -13,6 +13,29 @@ This appendix reports two alternative aggregations of the main leaderboard. Thes
   \centering
   \includegraphics[width=\linewidth]{leaderboard_1200s_only.png}
   \caption{1200s-only aggregation.}
+\end{figure}
+
+\section{Rank-based normalization (supplementary)}
+\label{sec:appendix-rank-based}
+
+For comparison, this appendix includes an alternative rank-based normalization that maps models to evenly spaced scores within each setting based on rank. This approach preserves ordering but discards absolute metric gaps within a \texttt{(competition, budget)} setting.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{leaderboard_rank_based_best_budget.png}
+  \caption{Rank-based aggregation (best budget per competition).}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{leaderboard_rank_based_all_cells.png}
+  \caption{Rank-based aggregation (all competitions and all budgets).}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{leaderboard_rank_based_1200s_only.png}
+  \caption{Rank-based aggregation (1200s only).}
 \end{figure}
 
 \section{Additional consistency view}
@@ -75,22 +98,29 @@ This paper aggregates results for each \texttt{(competition, model, budget)} set
   \item Report the median of their \texttt{score\_raw}.
 \end{itemize}
 
-\subsection{Rank-points normalization}
-Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses rank-points.
+\subsection{Min-max normalization}
+Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses within-setting min-max normalization.
 
-This paper defines rank-points within each \texttt{(competition, budget)} setting as follows:
+This paper defines the normalized score within each \texttt{(competition, budget)} setting as follows:
 \begin{enumerate}
-  \item Rank models by the median \texttt{score\_raw} after accounting for metric direction (higher-is-better or lower-is-better).
-  \item Assign rank-points linearly so that the best model receives 1.0 and the worst receives 0.0. With $N$ models and rank $r$ (1 = best), points are:
+  \item Convert median metrics to a common ``higher is better'' direction:
     \[
-      \mathrm{points} = \frac{N - r}{N - 1}.
+      \mathrm{value\_hib} =
+      \begin{cases}
+        \mathrm{score\_raw} & \text{if higher is better} \\
+        -\mathrm{score\_raw} & \text{if lower is better.}
+      \end{cases}
+    \]
+  \item Min-max normalize within the setting so that the best model receives 1.0 and the worst receives 0.0:
+    \[
+      \mathrm{score} = \frac{\mathrm{value\_hib} - \min(\mathrm{value\_hib})}{\max(\mathrm{value\_hib}) - \min(\mathrm{value\_hib})}.
     \]
 \end{enumerate}
 
-\subsection{Headline aggregation}
-The headline aggregation is ``best budget per competition'':
+\subsection{Primary aggregation}
+The primary aggregation is ``best budget per competition'':
 \begin{itemize}
-  \item For each \texttt{(model, competition)}, take the maximum rank-points across the three budgets.
+  \item For each \texttt{(model, competition)}, take the maximum normalized score across the three budgets.
   \item Average across the four competitions with equal weights.
 \end{itemize}
 

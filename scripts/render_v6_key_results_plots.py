@@ -214,13 +214,26 @@ def _canonical_medians_from_runs(df_runs: pd.DataFrame) -> pd.DataFrame:
 
 
 def _rank_points(medians: pd.DataFrame) -> pd.DataFrame:
+    raise RuntimeError("_rank_points() is deprecated; use _minmax_points().")
+
+
+def _minmax_points(medians: pd.DataFrame) -> pd.DataFrame:
+    """
+    Min-max normalize within each (competition, budget) cell after converting to 'higher is better'.
+
+    points = (value_hib - min(value_hib)) / (max(value_hib) - min(value_hib))
+    where value_hib = median_score_raw * direction (+1/-1).
+    """
     direction = _competition_direction()
     out = medians.copy()
     out["direction"] = out["competition_id"].map(direction).astype(int)
-    out["value_for_rank"] = out["median_score_raw"] * out["direction"]
-    out["n_models"] = out.groupby("cell_id")["model_id"].transform("count").astype(int)
-    out["rank"] = out.groupby("cell_id")["value_for_rank"].rank(method="first", ascending=False)
-    out["points"] = (out["n_models"] - out["rank"]) / (out["n_models"] - 1)
+    out["value_hib"] = out["median_score_raw"] * out["direction"]
+
+    cell_min = out.groupby("cell_id")["value_hib"].transform("min")
+    cell_max = out.groupby("cell_id")["value_hib"].transform("max")
+    denom = (cell_max - cell_min).astype(float)
+    out["points"] = np.where(denom > 0, (out["value_hib"] - cell_min) / denom, 0.5)
+    out["points"] = out["points"].astype(float)
     return out
 
 
@@ -299,7 +312,7 @@ def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
             va="center",
         )
     ax.set_title(title)
-    ax.set_xlabel("Performance (headline normalized score; 0=worst, 1=best)")
+    ax.set_xlabel("Performance score (0–1; higher is better)")
     ax.set_ylabel("Stability (median relative IQR across cells; lower is better)")
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(bottom=0.0)
@@ -342,7 +355,7 @@ def main() -> int:
 
     df_runs = _load_filtered_runs()
     med = _canonical_medians_from_runs(df_runs)
-    pts = _rank_points(med)
+    pts = _minmax_points(med)
 
     # Headline performance score (best budget per competition; avg over competitions).
     perf = (
@@ -354,9 +367,9 @@ def main() -> int:
     )
     perf["model_label"] = perf["model_id"].map(_short_model_name)
 
-    # Result 0.5: consistency across competitions (use same best-budget-per-comp points as headline, per competition).
+    # Result 0.5: consistency across competitions (use same best-budget-per-comp points as primary aggregation, per competition).
     by_comp = pts.groupby(["model_id", "competition_id"], as_index=False)["points"].max()
-    by_comp["rank"] = by_comp.groupby("competition_id")["points"].rank(method="first", ascending=False)
+    by_comp["rank"] = by_comp.groupby("competition_id")["points"].rank(method="min", ascending=False)
     by_comp["model_label"] = by_comp["model_id"].map(_short_model_name)
     _write_csv(by_comp.sort_values(["competition_id", "rank"]), out_dir / "consistency_ranks_by_competition.csv")
     _plot_rank_heatmap(

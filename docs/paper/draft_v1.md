@@ -57,14 +57,15 @@ Appendix G describes what Kilo Code is and why this paper standardizes on it.
 
 Each competition has a task-defined metric. This paper reports `score_raw` in the task’s native direction (for example, AUC where higher is better, and RMSE where lower is better).
 
-Raw metric values are not comparable across competitions because they have different scales and different directions. To build aggregate leaderboards and scaling plots, this paper uses a rank-based normalization:
+Raw metric values are not comparable across competitions because they have different scales and different directions. To build aggregate leaderboards and scaling plots, this paper uses a within-setting min-max normalization:
 - For each `(competition, budget)` setting, compute each model’s five-run median `score_raw`.
-- Convert to a “higher is better” value for ranking only:
+- Convert to a “higher is better” value:
   - `value_for_rank = score_raw` for higher-is-better metrics.
   - `value_for_rank = -score_raw` for lower-is-better metrics.
-- Rank models by `value_for_rank` within that setting, then assign **rank-points** linearly so the best model gets `1.0` and the worst gets `0.0`.
+- Min-max normalize within that setting so the best model gets `1.0` and the worst gets `0.0`:
+  - `score = (value_for_rank - min(value_for_rank)) / (max(value_for_rank) - min(value_for_rank))`.
 
-Appendix F defines rank-points and the headline aggregation precisely.
+Appendix F defines the normalization and the primary aggregation precisely.
 
 ### 2.6 Time budgets
 
@@ -79,38 +80,39 @@ Time budgets are included because “fast baseline” and “iterative improveme
 
 ## 3. Results
 
-This section reports aggregate performance, cross-competition consistency, reliability and stability, scaling with time budget, and per-competition highlights. The headline performance leaderboard uses a normalization that enables comparisons across competitions and time budgets.
+This section reports aggregate performance, cross-competition consistency, reliability and stability, scaling with time budget, and per-competition highlights. The primary aggregate leaderboard uses a normalization that enables comparisons across competitions and time budgets.
 
 ### 3.1 Key findings
 
-- `MiniMax-M2.1-TEE` ranks first on all four competitions under the paper’s aggregate ranking.
+- `MiniMax-M2.1-TEE` achieves the best aggregate performance score on all four competitions under the paper’s primary aggregation.
 - Reliability varies meaningfully even among strong performers. Success-rate and stability plots show clear separation between more and less reliable models.
 - Some models improve substantially with larger time budgets, while other models remain relatively flat. Marginal-gain and monotonicity views capture these patterns.
 
-### 3.2 Aggregate performance leaderboard (headline)
+### 3.2 Aggregate performance leaderboard
 
-The aggregate leaderboard is derived from five-run medians and normalized via rank-points so that scores from different competitions (AUC vs RMSE) are comparable.
+The aggregate leaderboard is derived from five-run medians and normalized via within-setting min-max scaling so that scores from different competitions (AUC vs RMSE) are comparable.
 
 The method is as follows:
 - The unit of aggregation is the model’s five-run median `score_raw` for each `(competition, budget)` setting.
-- Models are normalized within each setting by rank so that the best model gets `1.0` and the worst model gets `0.0`, with linear spacing in between.
-- For the headline aggregation, this paper takes the best normalized setting across the three budgets for each `(model, competition)` pair and then averages across the four competitions with equal weights.
+- Convert to a “higher is better” value (`value_for_rank`) by flipping the sign for lower-is-better metrics.
+- Min-max normalize within each setting so the best model gets `1.0` and the worst model gets `0.0`.
+- The paper’s performance score (the leaderboard value) uses the “best budget per competition” aggregation: for each `(model, competition)`, take the best normalized score across the three budgets, then average across the four competitions with equal weights.
 
-This rank-based normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better). It allows a single aggregate leaderboard across heterogeneous metrics without choosing an arbitrary numeric scaling.
+This normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better). It allows a single aggregate leaderboard across heterogeneous metrics without choosing an arbitrary numeric scaling.
 
-The headline aggregation uses “best budget per competition” to separate modeling capability from budget selection. It also reflects a common practical use case: allocate a fixed wall-clock budget and choose the strongest result the workflow can produce in that budget range.
+The primary aggregation uses “best budget per competition” to separate modeling capability from budget selection. It also reflects a common practical use case: allocate a fixed wall-clock budget and choose the strongest result the workflow can produce in that budget range.
 
-These rank-points are relative within each `(competition, budget)` setting. They preserve ordering within a setting rather than absolute metric gaps. A small raw-score advantage can translate to the same rank-point change as a larger advantage if both only affect rank.
+These scores are relative within each `(competition, budget)` setting, because they depend on the observed range of model performance in that setting. Unlike rank-based scoring, min-max normalization preserves absolute metric gaps linearly within the setting.
 
-![Headline leaderboard: best budget per competition](figures_public_v1/leaderboard_headline_best_budget.png)
+![Aggregate performance leaderboard (primary aggregation: best budget per competition)](figures_public_v2/leaderboard_primary_best_budget.png)
 
 Robustness variants (secondary) include: (i) an overall aggregation that averages all `(competition, budget)` settings equally, and (ii) a 1200s-only aggregation. See Appendix B.
 
 ### 3.3 Cross-competition consistency
 
-Per-competition ranks are computed in the same normalized space as the headline leaderboard (best budget per competition). The heatmap below shows each model’s rank (1=best) per competition.
+Per-competition ranks are computed in the same normalized space as the primary aggregate leaderboard (best budget per competition). The heatmap below shows each model’s rank (1=best) per competition.
 
-![Per-competition ranks (1=best)](figures_public_v1/consistency_ranks_heatmap.png)
+![Per-competition ranks (1=best)](figures_public_v2/consistency_ranks_heatmap.png)
 
 Rank variability across competitions is summarized via rank standard deviation (lower is more consistent). See Appendix C.
 
@@ -122,7 +124,7 @@ Reliability has two components:
 
 The trade-off is summarized via a Pareto-style plot (performance vs stability; color indicates success rate).
 
-![Performance vs stability (color=success rate)](figures_public_v1/reliability_pareto_performance_vs_stability.png)
+![Performance vs stability (color=success rate)](figures_public_v2/reliability_pareto_performance_vs_stability.png)
 
 Supporting breakdown plots for success rate and stability are included in Appendix D.
 
@@ -134,7 +136,7 @@ On aggregate, scaling is broadly consistent with the expected monotonic pattern.
 - Across all `40` model×competition curves (10 models × 4 competitions), `23/40 = 57.5%` of curves are monotone.
 - Across the 10 models, the median model is monotone in `62.5%` of competitions.
 
-![Scaling with time budget](figures_public_v1/scaling_points_lines.png)
+![Scaling with time budget](figures_public_v2/scaling_points_lines.png)
 
 At the individual model level, scaling can be noisy. Each task×budget setting is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix E reports marginal gains and monotonicity rates.
 
@@ -239,27 +241,27 @@ The sources for Appendix A are as follows:
 
 This appendix reports two alternative aggregations of the main leaderboard. These variants are included as sensitivity checks.
 
-![Overall aggregation (all competitions and all budgets)](figures_public_v1/leaderboard_all_cells.png)
+![Overall aggregation (all competitions and all budgets)](figures_public_v2/leaderboard_all_cells.png)
 
-![1200s-only aggregation](figures_public_v1/leaderboard_1200s_only.png)
+![1200s-only aggregation](figures_public_v2/leaderboard_1200s_only.png)
 
 ## Appendix C. Additional consistency view
 
 Rank variability across competitions is summarized via rank standard deviation (lower indicates higher consistency).
 
-![Rank standard deviation across competitions](figures_public_v1/consistency_rank_stddev.png)
+![Rank standard deviation across competitions](figures_public_v2/consistency_rank_stddev.png)
 
 ## Appendix D. Additional reliability and stability views
 
-![Run success rate](figures_public_v1/reliability_success_rate.png)
+![Run success rate](figures_public_v2/reliability_success_rate.png)
 
-![Stability via relative IQR](figures_public_v1/stability_relative_iqr.png)
+![Stability via relative IQR](figures_public_v2/stability_relative_iqr.png)
 
 ## Appendix E. Additional scaling views
 
-![Marginal gains with increasing budget](figures_public_v1/scaling_marginal_gains.png)
+![Marginal gains with increasing budget](figures_public_v2/scaling_marginal_gains.png)
 
-![Monotonicity rate across budgets](figures_public_v1/scaling_monotonicity_rate.png)
+![Monotonicity rate across budgets](figures_public_v2/scaling_monotonicity_rate.png)
 
 ## Appendix F. Scoring, aggregation, and normalization details
 
@@ -277,20 +279,32 @@ This paper aggregates results for each `(competition, model, budget)` setting as
 - Consider the earliest five successful runs.
 - Report the median of their `score_raw`.
 
-### F.3 Rank-points normalization
+### F.3 Min-max normalization
 
-Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses rank-points:
+Raw metrics are not directly comparable across competitions because they have different scales and directions. To build a single aggregate leaderboard, this paper uses within-setting min-max normalization:
 
-This paper defines rank-points within each `(competition, budget)` setting as follows:
-1. Rank models by the median `score_raw` after accounting for metric direction (higher-is-better or lower-is-better).
-2. Assign rank-points linearly so that the best model receives `1.0` and the worst receives `0.0`. With `N` models and rank `r` (1 = best), points are:
-   - The points are computed as `points = (N - r) / (N - 1)`.
+This paper defines the normalized score within each `(competition, budget)` setting as follows:
+1. Convert to a “higher is better” value:
+   - `value_for_rank = score_raw` for higher-is-better metrics.
+   - `value_for_rank = -score_raw` for lower-is-better metrics.
+2. Min-max normalize within the setting so that the best model receives `1.0` and the worst receives `0.0`:
+   - `score = (value_for_rank - min(value_for_rank)) / (max(value_for_rank) - min(value_for_rank))`.
 
-### F.4 Headline aggregation
+### F.4 Primary aggregation
 
-The headline aggregation is “best budget per competition”:
-- For each `(model, competition)`, take the maximum rank-points across the three budgets.
+The primary aggregation is “best budget per competition”:
+- For each `(model, competition)`, take the maximum normalized score across the three budgets.
 - Average across the four competitions with equal weights.
+
+### F.5 Rank-based normalization (supplementary)
+
+For comparison, this appendix includes an alternative rank-based normalization that maps models to evenly spaced scores within each setting based on rank. This approach preserves ordering but discards absolute metric gaps within a `(competition, budget)` setting.
+
+![Rank-based aggregation (best budget per competition)](figures_public_v2/leaderboard_rank_based_best_budget.png)
+
+![Rank-based aggregation (all competitions and all budgets)](figures_public_v2/leaderboard_rank_based_all_cells.png)
+
+![Rank-based aggregation (1200s only)](figures_public_v2/leaderboard_rank_based_1200s_only.png)
 
 ## Appendix G. Harness details (Kilo Code)
 

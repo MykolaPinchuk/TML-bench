@@ -195,14 +195,32 @@ def _load_canonical_medians() -> pd.DataFrame:
 
 
 def _rank_points(df: pd.DataFrame) -> pd.DataFrame:
+    raise RuntimeError("_rank_points() is deprecated; use _minmax_points().")
+
+
+def _minmax_points(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalize within each (competition, budget) cell using absolute metric gaps.
+
+    Steps:
+    1) Convert metrics to a common 'higher is better' direction:
+       value_hib = median_score_raw * direction, where direction is +1 or -1.
+    2) Min-max normalize within the cell:
+       points = (value_hib - min(value_hib)) / (max(value_hib) - min(value_hib)).
+
+    This preserves absolute gaps linearly (within each cell), unlike rank-based points.
+    """
     direction = _competition_direction()
     out = df.copy()
     out["direction"] = out["competition_id"].map(direction).astype(int)
-    # Convert to "higher is better" for ranking only.
-    out["value_for_rank"] = out["median_score_raw"] * out["direction"]
-    out["n_models"] = out.groupby("cell_id")["model_id"].transform("count").astype(int)
-    out["rank"] = out.groupby("cell_id")["value_for_rank"].rank(method="first", ascending=False)
-    out["points"] = (out["n_models"] - out["rank"]) / (out["n_models"] - 1)
+    out["value_hib"] = out["median_score_raw"] * out["direction"]
+
+    cell_min = out.groupby("cell_id")["value_hib"].transform("min")
+    cell_max = out.groupby("cell_id")["value_hib"].transform("max")
+    denom = (cell_max - cell_min).astype(float)
+
+    out["points"] = (out["value_hib"] - cell_min) / denom.replace(0.0, pd.NA)
+    out["points"] = out["points"].fillna(0.5).astype(float)
     return out
 
 
@@ -250,7 +268,7 @@ def _plot_bar(df_scores: pd.DataFrame, out_path: Path, title: str) -> None:
     plt.figure(figsize=(11, max(4.5, 0.45 * len(dfp) + 1.0)))
     ax = sns.barplot(data=dfp, y="label", x="score", color="#2C7FB8")
     ax.set_title(title)
-    ax.set_xlabel("Aggregate score (normalized rank points; 0=worst, 1=best)")
+    ax.set_xlabel("Aggregate score (min-max normalized within each setting; 0=worst, 1=best)")
     ax.set_ylabel("")
     ax.set_xlim(0.0, 1.0)
 
@@ -275,14 +293,14 @@ def main() -> int:
 
     out_dir = Path(args.out_dir)
     med = _load_canonical_medians()
-    pts = _rank_points(med)
+    pts = _minmax_points(med)
 
     scores = pd.concat([_agg_overall(pts), _agg_sota_only(pts), _agg_best_budget_per_comp(pts)], ignore_index=True)
 
     for variant, title in [
-        ("overall_all_cells", "Headline Leaderboard Candidate A: Overall (all competitions, all budgets)"),
-        ("sota_only", "Headline Leaderboard Candidate B: SOTA only (1200s budgets)"),
-        ("best_budget_per_comp", "Headline Leaderboard Candidate C: Best budget per competition"),
+        ("overall_all_cells", "Aggregate performance leaderboard (all competitions, all budgets)"),
+        ("sota_only", "Aggregate performance leaderboard (1200s only)"),
+        ("best_budget_per_comp", "Aggregate performance leaderboard (best budget per competition)"),
     ]:
         dfv = scores[scores["variant"] == variant][["model_id", "score"]].copy()
         _plot_bar(dfv, out_dir / f"leaderboard_{variant}.png", title)

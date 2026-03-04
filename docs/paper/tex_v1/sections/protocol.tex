@@ -21,14 +21,17 @@ Appendix~\ref{sec:appendix-harness} describes what Kilo Code is and why this pap
 \subsection{Metrics and normalization}
 Each competition has a task-defined metric. This paper reports \texttt{score\_raw} in the task's native direction (for example, AUC where higher is better, and RMSE where lower is better).
 
-Raw metric values are not comparable across competitions because they have different scales and different directions. To build aggregate leaderboards and scaling plots, this paper uses a rank-based normalization:
+Raw metric values are not comparable across competitions because they have different scales and different directions. To build aggregate leaderboards and scaling plots, this paper uses a within-setting min-max normalization:
 \begin{itemize}
   \item For each \texttt{(competition, budget)} setting, compute each model's five-run median \texttt{score\_raw}.
-  \item Convert to a ``higher is better'' value for ranking only: \texttt{value\_for\_rank = score\_raw} for higher-is-better metrics, and \texttt{value\_for\_rank = -score\_raw} for lower-is-better metrics.
-  \item Rank models by \texttt{value\_for\_rank} within that setting, then assign \textbf{rank-points} linearly so the best model gets 1.0 and the worst gets 0.0.
+  \item Convert to a common ``higher is better'' value: \texttt{value\_hib = score\_raw} for higher-is-better metrics, and \texttt{value\_hib = -score\_raw} for lower-is-better metrics.
+  \item Min-max normalize within that setting so the best model gets 1.0 and the worst gets 0.0:
+    \[
+      \mathrm{score} = \frac{\mathrm{value\_hib} - \min(\mathrm{value\_hib})}{\max(\mathrm{value\_hib}) - \min(\mathrm{value\_hib})}.
+    \]
 \end{itemize}
 
-Appendix~\ref{sec:appendix-method} defines rank-points and the headline aggregation precisely.
+Appendix~\ref{sec:appendix-method} defines the normalization and the primary aggregation precisely.
 
 \subsection{Time budgets}
 This paper evaluates three wall-clock time budgets per competition: 240 seconds, 600 seconds, and 1200 seconds. A time budget represents the total time available to the agent to read the task, train, iterate, and produce a final submission file.

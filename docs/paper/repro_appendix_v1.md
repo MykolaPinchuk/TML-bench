@@ -17,9 +17,9 @@ python scripts/check_profiled1_canonical_coverage.py
 
 ## Plot generation (leaderboard variants)
 
-The v6 draft uses normalized rank-point aggregations computed from canonical 5-run medians.
+The v6 draft uses within-setting min-max normalized scores computed from canonical 5-run medians.
 
-Generate all three leaderboard variants (headline + robustness checks):
+Generate all three leaderboard variants (primary + robustness checks):
 
 ```bash
 python scripts/render_v6_leaderboard_plots.py --out-dir docs/paper/figures/v6
@@ -28,7 +28,7 @@ python scripts/render_v6_leaderboard_plots.py --out-dir docs/paper/figures/v6
 Draft figures are committed under: `docs/paper/figures/v6/`
 
 Expected files:
-- `docs/paper/figures/v6/leaderboard_best_budget_per_comp.png` (headline: best budget per competition)
+- `docs/paper/figures/v6/leaderboard_best_budget_per_comp.png` (primary: best budget per competition)
 - `docs/paper/figures/v6/leaderboard_overall_all_cells.png` (robustness: overall across all competitions and budgets)
 - `docs/paper/figures/v6/leaderboard_sota_only.png` (robustness: sota-only)
 - `docs/paper/figures/v6/leaderboard_scores.csv` (raw aggregate scores for all variants)
