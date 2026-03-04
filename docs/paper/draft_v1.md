@@ -27,6 +27,16 @@ This paper makes the following contributions:
 - This paper provides a reproducible evaluation protocol and supporting materials to regenerate figures and tables.
 - This paper reports results and analysis that highlight performance, cross-competition consistency, reliability, and scaling with time budget.
 
+### 1.2 Related work
+
+Several existing benchmarks evaluate language models and language agents on programming and data workflows, but they differ in scope and evaluation philosophy.
+
+SWE-bench focuses on real-world software engineering tasks derived from GitHub issues [7]. It evaluates whether a system can produce code changes that resolve the issue under a test suite.
+
+MLE-bench evaluates agents on ML engineering via Kaggle-style competitions curated from Kaggle [8]. DSBench evaluates data science agents on a broader set of tasks that includes both data analysis and data modeling, and it introduces a metric designed to normalize heterogeneous task metrics [9]. MLAgentBench evaluates language agents on a suite of ML experimentation tasks in a controlled environment [10].
+
+TML-bench is positioned as a strict, tabular-only benchmark for end-to-end competition-style ML tasks. It focuses on a small suite with a repeatable protocol, private-holdout scoring outside the agent workspace, and repeated runs per setting to expose reliability and run-to-run variability.
+
 ## 2. Benchmark and protocol
 
 ### 2.1 Suite and evaluation grid
@@ -201,6 +211,9 @@ This paper is accompanied by a repository that contains run logs, scripts to reg
 5. OpenRouter documentation: App attribution and rankings. https://openrouter.ai/docs/app-attribution (accessed 2026-02-14).  
 6. Chen, T., and Guestrin, C. XGBoost: A Scalable Tree Boosting System. KDD 2016. https://doi.org/10.1145/2939672.2939785  
 7. Jimenez, C., Yang, J., Wettig, A., et al. SWE-bench: Can Language Models Resolve Real-World GitHub Issues? (2023). https://arxiv.org/abs/2310.06770
+8. Chan, J., Jain, N., Karampatziakis, N., et al. MLE-bench: Evaluating Machine Learning Agents on Machine Learning Engineering. (2024). https://arxiv.org/abs/2410.07095  
+9. Martínez-González, B., Sehgal, A., Gupta, A., et al. DSBench: How Far Are Data Science Agents to Becoming Data Science Experts? (2024). https://arxiv.org/abs/2409.07703  
+10. Huang, Z., Yang, S., Zhou, J., et al. MLAgentBench: Evaluating Language Agents on Machine Learning Experimentation. (2023). https://arxiv.org/abs/2310.03302
 
 ## Appendix A. Models evaluated in this paper
 

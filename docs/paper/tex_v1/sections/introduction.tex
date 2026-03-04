@@ -12,3 +12,12 @@ This paper makes the following contributions:
   \item This paper provides a reproducible evaluation protocol and supporting materials to regenerate figures and tables.
   \item This paper reports results and analysis that highlight performance, cross-competition consistency, reliability, and scaling with time budget.
 \end{itemize}
+
+\subsection*{Related work}
+Several existing benchmarks evaluate language models and language agents on programming and data workflows, but they differ in scope and evaluation philosophy.
+
+SWE-bench focuses on real-world software engineering tasks derived from GitHub issues~[7]. It evaluates whether a system can produce code changes that resolve the issue under a test suite.
+
+MLE-bench evaluates agents on ML engineering via Kaggle-style competitions curated from Kaggle~[8]. DSBench evaluates data science agents on a broader set of tasks that includes both data analysis and data modeling, and it introduces a metric designed to normalize heterogeneous task metrics~[9]. MLAgentBench evaluates language agents on a suite of ML experimentation tasks in a controlled environment~[10].
+
+TML-bench is positioned as a strict, tabular-only benchmark for end-to-end competition-style ML tasks. It focuses on a small suite with a repeatable protocol, private-holdout scoring outside the agent workspace, and repeated runs per setting to expose reliability and run-to-run variability.
