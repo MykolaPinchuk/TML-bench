@@ -1,111 +1,79 @@
 # HANDOFF
 
 ## Current slice
-v6 draft-first execution complete for asset prep (canonical 10-model milestone).
+v6 paper drafting is complete and merged to `master`.
 
-v5.5 closeout is complete; v6 now has a ready handoff bundle plus a lightweight single-repo paper drafting workflow so the next agent can produce the first full draft efficiently (research↔writer loop via files).
+Current branch initialization for follow-on work is complete:
+- local branch: `v6.5`
+- base commit: `0dc0ece` (`Merge pull request #10 from MykolaPinchuk/v6`)
 
-## Current state (2026-02-14)
-- Latest top-up run: `v5_5_topup_remaining5_r5_20260209_r2`.
-- Terminal status: `completed` at `2026-02-09 22:36:24 PST`.
-- `final_missing`: 0 active missing cells for all profiles.
-- `final_deferred`: `simple=52`, `good=45`, `sota=46` runs.
-- No active async run is currently live.
-- v5.5 canonical reporting artifacts are reproducible and frozen for draft usage.
-- v6 drafting artifacts prepared and committed:
-  - manuscript + claim tracing: `docs/paper/draft_v1.md`, `docs/paper/claims_matrix_v1.md`
+The next slice is reviewer-driven revision: collect feedback from external reviewer agents, then apply edits to the draft and claims/evidence trace.
+
+## Current state (2026-03-03)
+- Branch state:
+  - `origin/master` and local `master` at `0dc0ece`
+  - `origin/v6` at `d91b472`
+  - working branch for next work: `v6.5`
+- Paper artifacts:
+  - markdown draft: `docs/paper/draft_v1.md`
+  - claims matrix: `docs/paper/claims_matrix_v1.md`
+  - LaTeX draft entrypoint: `docs/paper/tex_v1/main.tex`
   - reproducibility appendix: `docs/paper/repro_appendix_v1.md`
-  - committed figures/tables for Result 0.5/1/2/3: `docs/paper/figures/v6/`
-  - flat staging bundle for next-agent writing pass: `docs/paper/paper_assets_v1/`
-- Lightweight paper workflow added (single repo; no cross-repo copy/paste):
-  - repo kickoff/operator notes: `HUMAN_CHEATSHEET.md`
-  - paper workflow contract: `docs/paper/PAPER_WORKFLOW.md`
-  - paper state pointer (active assets/draft/claims): `docs/paper/PAPER_STATE.md`
-  - paper session prompts: `docs/paper/HUMAN_CHEATSHEET.md`
-- Result 4 (token efficiency) is explicitly deferred for draft2 (not required for draft1) pending token/cost instrumentation.
-- Workflow hardening landed: onboarding/checkpoint/handoff now require kickoff `AgentNN` sync into `agent_logs/current.md` before commit flows (commit `c9845e9`).
+- Paper workflow pointers:
+  - contract: `docs/paper/PAPER_WORKFLOW.md`
+  - writer prompts: `docs/paper/HUMAN_CHEATSHEET.md`
+  - writer style/evidence rules: `docs/paper/WRITER_PLAYBOOK.md`
+  - active paper state: `docs/paper/PAPER_STATE.md`
+- Active evidence bundle for writing is `docs/paper/paper_assets_v2` (`next_assets_dir` is `docs/paper/paper_assets_v3`).
+- Canonical baseline status remains healthy (`python3 scripts/check_profiled1_canonical_coverage.py`):
+  - `sources_found=9/9`
+  - `canonical_models=10`
+  - `missing_cells=0`
+  - `status=OK`
+- No active async benchmark run is currently live.
 
-Combined14 completion snapshot:
-- complete models: `10/14`
-- remaining missing runs: `143`
-- incomplete models:
-  - `chutes::microsoft/Phi-3.5-mini-instruct` (`56`)
-  - `chutes::meta-llama/Meta-Llama-3.1-8B-Instruct` (`50`)
-  - `openrouter::x-ai/grok-4.1-fast` (`29`)
-  - `chutes::moonshotai/Kimi-K2-Instruct-0905` (`8`)
-
-## Canonical reporting policy (v5.5)
-- `results.md` publishes complete-model-only canonical tables (currently 10 models).
+## Canonical reporting policy (unchanged)
+- `results.md` remains complete-model-only canonical reporting (currently 10 models).
 - Do not merge partial 14-model results into canonical tables.
 - Promote canonical scope to 14 only when each remaining model reaches full 5-run coverage across all 12 cells.
 
-## v6 plan
-- v5.5 closeout plan (completed): `docs/plan/v5_5_closeout.md`.
-- v6 draft-first plan (active): `docs/plan/v6.md`.
-- Completed deliverables:
-  1. D1 draft skeleton and first-pass prose (`docs/paper/draft_v1.md`).
-  2. D2 claim-evidence matrix (`docs/paper/claims_matrix_v1.md`).
-  3. D3 reproducibility appendix (`docs/paper/repro_appendix_v1.md`).
-- D4 narrative pass status:
-  1. Key findings section added and linked to figures/claims.
-  2. Result 0.5/2/3 figure stack generated and checked in.
-  3. Result 4 token note added: deferred to draft2.
-- Immediate next item (for next agent):
-  1. Start writer pass using `docs/paper/PAPER_WORKFLOW.md` + `docs/paper/PAPER_STATE.md`.
-  2. Produce first full draft manuscript using `docs/paper/paper_assets_v1/` as evidence input.
-  3. Preserve claim-evidence traceability (`docs/paper/claims_matrix_v1.md`) while moving material into publication structure.
+## v6 completion evidence
+- Merge to master: `0dc0ece`.
+- Final writer-pass commit on `v6`: `d91b472` (`agent14: checkpoint(docs): update abstract`).
+- External-facing TeX manuscript is present and buildable from `docs/paper/tex_v1/`.
+- Reviewer-facing drafting workflow and playbook are committed (`docs/paper/PAPER_WORKFLOW.md`, `docs/paper/WRITER_PLAYBOOK.md`).
 
-## Deferred expansion gate (non-canonical track)
-Retry 14-model backfill only when:
-1. circuit-breaker windows for blocked models have aged out, and
-2. provider/model health shows acceptable success behavior in fresh attempts.
+## v6.5 immediate plan
+1. Run external reviewer-agent feedback passes on the current draft.
+2. Consolidate feedback into a scoped edit list (content, clarity, evidence consistency).
+3. Apply edits in `docs/paper/tex_v1/` (and keep markdown/claims synchronized where required).
+4. Rebuild PDF and re-validate claims/evidence alignment.
+5. Freeze revised bundle (`paper_assets_v3`) only if evidence assets change.
 
-Until both are true, treat 14-model backfill as deferred work and keep 10-model tables canonical.
-
-## Recommended v6 starting point
-1. Use `results.md` canonical 10-model tables as the primary result source.
-2. Use `docs/reports/v5_5_canonical10_stability.md` for variability narrative (median + IQR).
-3. Use `scripts/refresh_profiled1_results.py` and `scripts/check_profiled1_canonical_coverage.py` as reproducibility commands to cite in the draft appendix.
-4. Follow `docs/plan/v6.md` execution order for draft deliverables and exit criteria.
-5. Use `docs/paper/PAPER_STATE.md` as the source-of-truth pointer for active paper assets while iterating.
-6. Use `docs/paper/HUMAN_CHEATSHEET.md` for copy/paste session-boundary prompts (writer and research).
+## Deferred items (not in immediate v6.5 unless explicitly requested)
+- Result 4 token-efficiency analysis (blocked by missing token/cost telemetry in canonical DBs; current schema only exposes `max_tokens`).
+- 14-model backfill promotion into canonical reporting.
+- v7 backlog items (non-agentic baselines, deeper literature review framing).
 
 ## Key evidence paths
-- Canonical report: `results.md`
-- Legacy snapshots archive: `docs/archive/results_legacy_snapshots_2026-02-10.md`
-- Canonical refresh+verify flow: `scripts/refresh_profiled1_results.py`
-- Canonical coverage checker: `scripts/check_profiled1_canonical_coverage.py`
-- Stability supplement: `docs/reports/v5_5_canonical10_stability.md`
-- v6 plan: `docs/plan/v6.md`
-- Repo operator kickoff templates: `HUMAN_CHEATSHEET.md`
-- Paper workflow contract: `docs/paper/PAPER_WORKFLOW.md`
-- Paper state pointer: `docs/paper/PAPER_STATE.md`
-- Paper session prompts: `docs/paper/HUMAN_CHEATSHEET.md`
-- Draft v1: `docs/paper/draft_v1.md`
-- Claims matrix: `docs/paper/claims_matrix_v1.md`
-- Repro appendix: `docs/paper/repro_appendix_v1.md`
-- Committed figures: `docs/paper/figures/v6/`
-- Staging bundle for paper assembly: `docs/paper/paper_assets_v1/`
-- Leaderboard plot generator: `scripts/render_v6_leaderboard_plots.py`
-- Key-result plot generator (Result 0.5/2/3): `scripts/render_v6_key_results_plots.py`
-- Workflow trigger + identity sync policy: `repo_workflow.md`, `onboarding.md`, `.codex/skills/{onboard,checkpoint,handoff}/SKILL.md`
-- Closeout plan: `docs/plan/v5_5_closeout.md`
-- Latest run status: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/status.json`
-- Latest run events: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/events.jsonl`
-- Latest run postmortem: `tmp/async_runs/v5_5_topup_remaining5_r5_20260209_r2/postmortem.md`
-- Recent closeout commits:
-  - `a2a25cb` — canonical refresh/check/stability tooling
-  - `b95e907` — v5.5 closeout plan + handoff refresh
-  - `6f53a21` — explicit 10-model reporting policy
-- Recent v6 drafting commits:
-  - `bc8f8dd` — key findings + narrative tightening
-  - `9a57073` — defer Result 4 tokens to draft2
-  - `0bd616c` — add consolidated `paper_assets_v1` bundle
-  - `c9845e9` — enforce kickoff AgentNN id sync for checkpoint/handoff safety
-  - `f4e9e5c` — add paper drafting workflow + human cheat sheets (repo-wide + paper)
+- Canonical results: `results.md`
+- Canonical stability companion: `docs/reports/v5_5_canonical10_stability.md`
+- Canonical refresh/check scripts:
+  - `scripts/refresh_profiled1_results.py`
+  - `scripts/check_profiled1_canonical_coverage.py`
+- Paper draft sources:
+  - `docs/paper/draft_v1.md`
+  - `docs/paper/claims_matrix_v1.md`
+  - `docs/paper/tex_v1/main.tex`
+- Paper workflow and state:
+  - `docs/paper/PAPER_WORKFLOW.md`
+  - `docs/paper/PAPER_STATE.md`
+  - `docs/paper/HUMAN_CHEATSHEET.md`
+  - `docs/paper/WRITER_PLAYBOOK.md`
+- Active writing evidence bundle:
+  - `docs/paper/paper_assets_v2/`
 
 ## Invariants
 - Never commit datasets, run artifacts, sqlite DBs, or secrets.
-- Keep `profiled1` as the baseline default unless explicitly changed by user request.
-- Use `scripts/async_suite_runner.py` for long async runs.
-- Keep suite safety behavior intact (`orchestrator/suite.py`, including foot-traffic cap).
+- Keep `profiled1` as the canonical baseline unless explicitly changed by user request.
+- Keep suite safety behavior intact (`orchestrator/suite.py`, including foot-traffic concurrency cap).
