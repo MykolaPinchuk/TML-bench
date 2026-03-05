@@ -214,13 +214,26 @@ def _canonical_medians_from_runs(df_runs: pd.DataFrame) -> pd.DataFrame:
 
 
 def _rank_points(medians: pd.DataFrame) -> pd.DataFrame:
+    raise RuntimeError("_rank_points() is deprecated; use _minmax_points().")
+
+
+def _minmax_points(medians: pd.DataFrame) -> pd.DataFrame:
+    """
+    Min-max normalize within each (competition, budget) cell after converting to 'higher is better'.
+
+    points = (value_hib - min(value_hib)) / (max(value_hib) - min(value_hib))
+    where value_hib = median_score_raw * direction (+1/-1).
+    """
     direction = _competition_direction()
     out = medians.copy()
     out["direction"] = out["competition_id"].map(direction).astype(int)
-    out["value_for_rank"] = out["median_score_raw"] * out["direction"]
-    out["n_models"] = out.groupby("cell_id")["model_id"].transform("count").astype(int)
-    out["rank"] = out.groupby("cell_id")["value_for_rank"].rank(method="first", ascending=False)
-    out["points"] = (out["n_models"] - out["rank"]) / (out["n_models"] - 1)
+    out["value_hib"] = out["median_score_raw"] * out["direction"]
+
+    cell_min = out.groupby("cell_id")["value_hib"].transform("min")
+    cell_max = out.groupby("cell_id")["value_hib"].transform("max")
+    denom = (cell_max - cell_min).astype(float)
+    out["points"] = np.where(denom > 0, (out["value_hib"] - cell_min) / denom, 0.5)
+    out["points"] = out["points"].astype(float)
     return out
 
 
@@ -233,6 +246,87 @@ def _short_model_name(model_id: str) -> str:
 def _write_csv(df: pd.DataFrame, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False)
+
+
+def _bbox_overlap_area(a, b) -> float:
+    x0 = max(a.x0, b.x0)
+    x1 = min(a.x1, b.x1)
+    y0 = max(a.y0, b.y0)
+    y1 = min(a.y1, b.y1)
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    return float((x1 - x0) * (y1 - y0))
+
+
+def _place_non_overlapping_labels(
+    ax,
+    *,
+    xs: pd.Series,
+    ys: pd.Series,
+    labels: pd.Series,
+    fontsize: int = 8,
+) -> None:
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    axes_bbox = ax.get_window_extent(renderer).expanded(0.98, 0.98)
+    placed_bboxes = []
+    directions = [
+        (1, 0),
+        (1, 1),
+        (0, 1),
+        (-1, 1),
+        (-1, 0),
+        (-1, -1),
+        (0, -1),
+        (1, -1),
+    ]
+    rings = [12, 18, 24, 32, 40, 50, 62]
+    offsets = [(dx * r, dy * r) for r in rings for (dx, dy) in directions]
+
+    for x, y, label in zip(xs.tolist(), ys.tolist(), labels.tolist()):
+        best_artist = None
+        best_bbox = None
+        best_score = None
+        for dx, dy in offsets:
+            artist = ax.annotate(
+                str(label),
+                xy=(float(x), float(y)),
+                xytext=(dx, dy),
+                textcoords="offset points",
+                ha="left" if dx >= 0 else "right",
+                va="center",
+                fontsize=fontsize,
+                arrowprops={
+                    "arrowstyle": "-",
+                    "color": "#666666",
+                    "lw": 0.7,
+                    "shrinkA": 2.0,
+                    "shrinkB": 2.0,
+                },
+                bbox={"boxstyle": "round,pad=0.14", "facecolor": "white", "edgecolor": "none", "alpha": 0.86},
+            )
+            fig.canvas.draw()
+            bbox = artist.get_window_extent(renderer).expanded(1.03, 1.16)
+
+            overlap = sum(_bbox_overlap_area(bbox, prev) for prev in placed_bboxes)
+            outside = not axes_bbox.contains(bbox.x0, bbox.y0) or not axes_bbox.contains(bbox.x1, bbox.y1)
+            dist = float((dx * dx + dy * dy) ** 0.5)
+            score = overlap + (1e9 if outside else 0.0) + dist * 0.02
+
+            if best_score is None or score < best_score:
+                if best_artist is not None:
+                    best_artist.remove()
+                best_artist = artist
+                best_bbox = bbox
+                best_score = score
+                if overlap == 0.0 and not outside and dist <= 18:
+                    break
+            else:
+                artist.remove()
+
+        if best_bbox is not None:
+            placed_bboxes.append(best_bbox)
 
 
 def _plot_rank_heatmap(df: pd.DataFrame, out_path: Path, title: str) -> None:
@@ -275,8 +369,8 @@ def _plot_bar(df: pd.DataFrame, out_path: Path, title: str, x_col: str, x_label:
 def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
     # Expect columns: performance_score, stability_rel_iqr, success_rate
     sns.set_theme(style="whitegrid")
-    dfp = df.copy()
-    plt.figure(figsize=(10.5, 6.5))
+    dfp = df.copy().sort_values("performance_score", ascending=False).reset_index(drop=True)
+    plt.figure(figsize=(10.5, 6.4))
     ax = plt.gca()
     sc = ax.scatter(
         dfp["performance_score"],
@@ -290,16 +384,15 @@ def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
         linewidths=0.5,
         alpha=0.9,
     )
-    for _, r in dfp.iterrows():
-        ax.text(
-            float(r["performance_score"]) + 0.01,
-            float(r["stability_rel_iqr"]),
-            str(r["model_label"]),
-            fontsize=8,
-            va="center",
-        )
+    _place_non_overlapping_labels(
+        ax,
+        xs=dfp["performance_score"],
+        ys=dfp["stability_rel_iqr"],
+        labels=dfp["model_label"],
+        fontsize=8,
+    )
     ax.set_title(title)
-    ax.set_xlabel("Performance (headline normalized score; 0=worst, 1=best)")
+    ax.set_xlabel("Performance score (0–1; higher is better)")
     ax.set_ylabel("Stability (median relative IQR across cells; lower is better)")
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(bottom=0.0)
@@ -342,7 +435,7 @@ def main() -> int:
 
     df_runs = _load_filtered_runs()
     med = _canonical_medians_from_runs(df_runs)
-    pts = _rank_points(med)
+    pts = _minmax_points(med)
 
     # Headline performance score (best budget per competition; avg over competitions).
     perf = (
@@ -354,9 +447,9 @@ def main() -> int:
     )
     perf["model_label"] = perf["model_id"].map(_short_model_name)
 
-    # Result 0.5: consistency across competitions (use same best-budget-per-comp points as headline, per competition).
+    # Result 0.5: consistency across competitions (use same best-budget-per-comp points as primary aggregation, per competition).
     by_comp = pts.groupby(["model_id", "competition_id"], as_index=False)["points"].max()
-    by_comp["rank"] = by_comp.groupby("competition_id")["points"].rank(method="first", ascending=False)
+    by_comp["rank"] = by_comp.groupby("competition_id")["points"].rank(method="min", ascending=False)
     by_comp["model_label"] = by_comp["model_id"].map(_short_model_name)
     _write_csv(by_comp.sort_values(["competition_id", "rank"]), out_dir / "consistency_ranks_by_competition.csv")
     _plot_rank_heatmap(

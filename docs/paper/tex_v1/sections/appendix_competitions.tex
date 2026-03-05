@@ -1,0 +1,23 @@
+\clearpage
+\section{Competition details}
+\label{sec:appendix-competition-details}
+
+This appendix summarizes the four benchmark competitions and their canonical public-input sizes used in this paper. Table~\ref{tab:competition-details} reports problem type, target, metric, and dataset dimensions from the generated \texttt{public/train\_public.csv} and \texttt{public/test\_public.csv} files.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{4.15cm}p{3.05cm}p{0.95cm}p{1.1cm}p{1.1cm}p{1.35cm}}
+\toprule
+Competition & Problem and target & Metric & Train rows & Test rows & Features \\
+\midrule
+bank-customer-churn-ict-u-ai & Binary classification: predict customer churn (\texttt{Exited}) & AUC & 12,000 & 3,000 & 12 \\
+foot-traffic-wuerzburg-retail-forecasting-2-0 & Regression: forecast foot traffic (\texttt{target}) & RMSE & 41,155 & 10,289 & 4 \\
+playground-series-s5e10 & Regression: predict road accident risk (\texttt{accident\_risk}) & RMSE & 414,203 & 103,551 & 12 \\
+playground-series-s6e1 & Regression: predict exam scores (\texttt{exam\_score}) & RMSE & 504,000 & 126,000 & 11 \\
+\bottomrule
+\end{tabular}
+\caption{Competition summary for the four tasks used in TML-bench. Feature counts exclude the \texttt{id} column and target column.}
+\label{tab:competition-details}
+\end{table}

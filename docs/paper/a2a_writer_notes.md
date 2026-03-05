@@ -12,7 +12,7 @@ This file captures recurring feedback for writer agents working on `docs/paper/d
 ## What the reader wants
 
 - What was evaluated: tasks, time budgets, number of models, repeated runs, and what “success” means.
-- What was found: headline winners, reliability differences, stability differences, and how performance changes with more time.
+- What was found: top performers, reliability differences, stability differences, and how performance changes with more time.
 - How to use it: practical takeaways (for example, “reliability varies even among top performers”).
 
 ## Kilo Code / harness guidance

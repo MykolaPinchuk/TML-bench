@@ -1,0 +1,11 @@
+model_id,stability_rel_iqr,model_label
+MiniMaxAI/MiniMax-M2.1-TEE,0.001657115528542261,MiniMax-M2.1-TEE
+zai-org/GLM-4.7-FP8,0.0032773608535776443,GLM-4.7-FP8
+Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,0.003929312758730267,Qwen3-Coder-480B-A35B-Instruct-FP8
+openai/gpt-oss-120b-TEE,0.003933626344673001,gpt-oss-120b-TEE
+deepseek-ai/DeepSeek-V3.1-Terminus,0.004944574536371319,DeepSeek-V3.1-Terminus
+zai-org/GLM-4.6-FP8,0.006333750067941138,GLM-4.6-FP8
+zai-org/GLM-4.7-Flash,0.008436723965279117,GLM-4.7-Flash
+mistralai/Devstral-2-123B-Instruct-2512-TEE,0.012849817094625342,Devstral-2-123B-Instruct-2512-TEE
+nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16,0.05562274397566226,NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
+tngtech/DeepSeek-TNG-R1T2-Chimera,0.05892064663500309,DeepSeek-TNG-R1T2-Chimera

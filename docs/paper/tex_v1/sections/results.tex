@@ -1,55 +1,62 @@
-This section reports aggregate performance, cross-competition consistency, reliability and stability, scaling with time budget, and per-competition highlights. The headline performance leaderboard uses a normalization that enables comparisons across competitions and time budgets.
+This section reports aggregate performance, cross-competition consistency, reliability and stability, scaling with time budget, and per-competition highlights. The primary aggregate leaderboard uses a normalization that enables comparisons across competitions and time budgets.
 
 \subsection{Key findings}
 \begin{itemize}
-  \item \texttt{MiniMax-M2.1-TEE} ranks first on all four competitions under the paper's aggregate ranking.
+  \item \texttt{MiniMax-M2.1-TEE} achieves the best aggregate performance score on all four competitions under the paper's primary aggregation.
   \item Reliability varies meaningfully even among strong performers. Success-rate and stability plots show clear separation between more and less reliable models.
   \item Some models improve substantially with larger time budgets, while other models remain relatively flat. Marginal-gain and monotonicity views capture these patterns.
 \end{itemize}
 
-\subsection{Aggregate performance leaderboard (headline)}
-The aggregate leaderboard is derived from five-run medians and normalized via rank-points so that scores from different competitions (AUC vs RMSE) are comparable.
+\subsection{Aggregate performance leaderboard}
+The aggregate leaderboard is derived from five-run medians and normalized via within-setting min-max scaling so that scores from different competitions (AUC vs RMSE) are comparable.
 
 The method is as follows:
 \begin{itemize}
   \item The unit of aggregation is the model's five-run median \texttt{score\_raw} for each \texttt{(competition, budget)} setting.
-  \item Models are normalized within each setting by rank so that the best model gets 1.0 and the worst model gets 0.0, with linear spacing in between.
-  \item For the headline aggregation, this paper takes the best normalized setting across the three budgets for each \texttt{(model, competition)} pair and then averages across the four competitions with equal weights.
+  \item Convert each setting to a common ``higher is better'' direction: \texttt{value\_hib = score\_raw} for higher-is-better metrics and \texttt{value\_hib = -score\_raw} for lower-is-better metrics.
+  \item Within each setting, apply min-max normalization so that the best model gets 1.0 and the worst model gets 0.0:
+    \[
+      \mathrm{score} = \frac{\mathrm{value\_hib} - \min(\mathrm{value\_hib})}{\max(\mathrm{value\_hib}) - \min(\mathrm{value\_hib})}.
+    \]
+  \item The paper's performance score (the leaderboard value) uses the ``best budget per competition'' aggregation: for each \texttt{(model, competition)}, take the best normalized score across the three budgets, then average across the four competitions with equal weights.
 \end{itemize}
 
-This rank-based normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better).
+This normalization is applied after accounting for metric direction (for example, AUC is higher-is-better, while RMSE is lower-is-better). Unlike rank-based scoring, min-max normalization preserves absolute metric gaps linearly within each \texttt{(competition, budget)} setting.
 
-These rank-points are relative within each \texttt{(competition, budget)} setting. They preserve ordering within a setting rather than absolute metric gaps.
+These scores are relative within each \texttt{(competition, budget)} setting, because they depend on the observed range of model performance in that setting.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{leaderboard_headline_best_budget.png}
-  \caption{Headline leaderboard: best budget per competition.}
+  \includegraphics[width=\linewidth]{leaderboard_primary_best_budget.png}
+  \caption{Aggregate performance leaderboard (primary aggregation: best budget per competition).}
+  \label{fig:primary-leaderboard}
 \end{figure}
 
-Robustness variants (secondary) include: (i) an overall aggregation that averages all \texttt{(competition, budget)} settings equally, and (ii) a 1200s-only aggregation. See Appendix~\ref{sec:appendix-robustness}.
+Figure~\ref{fig:primary-leaderboard} is the main comparison figure in this paper. Robustness variants (secondary) include: (i) an overall aggregation that averages all \texttt{(competition, budget)} settings equally, and (ii) a 1200s-only aggregation. See Appendix~\ref{sec:appendix-robustness}.
 
 \subsection{Cross-competition consistency}
-Per-competition ranks are computed in the same normalized space as the headline leaderboard (best budget per competition). The heatmap below shows each model's rank (1=best) per competition.
+Per-competition ranks are computed in the same normalized space as the primary aggregate leaderboard (best budget per competition). Figure~\ref{fig:consistency-heatmap} shows each model's rank (1=best) per competition.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{consistency_ranks_heatmap.png}
   \caption{Per-competition ranks (1=best).}
+  \label{fig:consistency-heatmap}
 \end{figure}
 
-Rank variability across competitions is summarized via rank standard deviation (lower is more consistent). See Appendix~\ref{sec:appendix-consistency}.
+Figure~\ref{fig:consistency-heatmap} keeps rank information as a compact view of cross-competition ordering. Rank variability across competitions is summarized via rank standard deviation (lower is more consistent). See Appendix~\ref{sec:appendix-consistency}.
 
 \subsection{Reliability and stability}
-Reliability has two components: run success rate (how often a run yields a valid score) and within-setting stability (how variable a model is across the five runs used for each reported setting). The trade-off is summarized via a Pareto-style plot (performance vs stability; color indicates success rate).
+Reliability has two components: run success rate (how often a run yields a valid score) and within-setting stability (how variable a model is across the five runs used for each reported setting). The trade-off is summarized via a Pareto-style plot (performance vs stability; dot fill color indicates success rate). Each dot corresponds to one model and is labeled near the point.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{reliability_pareto_performance_vs_stability.png}
-  \caption{Performance vs stability (color indicates success rate).}
+  \caption{Performance vs stability (each dot is one model; fill color indicates success rate).}
+  \label{fig:reliability-pareto}
 \end{figure}
 
-Supporting breakdown plots for success rate and stability are included in Appendix~\ref{sec:appendix-reliability}.
+Figure~\ref{fig:reliability-pareto} highlights the reliability-performance trade-off. Supporting breakdown plots for success rate and stability are included in Appendix~\ref{sec:appendix-reliability}.
 
 \subsection{Scaling with time budget}
 Normalized performance is analyzed as time budget increases from 240s to 600s to 1200s, averaged across the four competitions.
@@ -60,9 +67,10 @@ On aggregate, scaling is broadly consistent with the expected monotonic pattern.
   \centering
   \includegraphics[width=\linewidth]{scaling_points_lines.png}
   \caption{Scaling with time budget.}
+  \label{fig:scaling-main}
 \end{figure}
 
-At the individual model level, scaling can be noisy. Each task$\times$budget setting is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix~\ref{sec:appendix-scaling} reports marginal gains and monotonicity rates.
+Figure~\ref{fig:scaling-main} summarizes budget scaling in normalized score space. At the individual model level, scaling can be noisy. Each task$\times$budget setting is summarized by five successful runs. More runs are likely required for stable model-level scaling curves. Appendix~\ref{sec:appendix-scaling} reports marginal gains and monotonicity rates.
 
 \subsection{Per-competition highlights}
 This subsection highlights a small number of representative task/budget settings. Full five-run tables are available in the companion repository materials.

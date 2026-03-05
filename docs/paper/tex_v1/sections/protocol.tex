@@ -11,24 +11,30 @@ A fixed instruction template is used for all runs in this paper.
 For each \texttt{(competition, model, budget)} setting, the reported value is the median of the earliest 5 successful runs ordered by \texttt{created\_at}.
 
 \subsection{Evaluation logging and reproducibility}
-The evidence in this paper is derived from logged run outcomes (status, score, runtime, and run configuration). To avoid cherry-picking, this paper reports only models with complete coverage: five successful runs for every task$\times$budget setting included in the benchmark.
+The evidence in this paper is derived from logged run outcomes (status, score, runtime, and run configuration). I focus only on models with complete coverage: five successful runs for every task$\times$budget setting included in the benchmark.
 
 \subsection{Agent harness (Kilo Code)}
 Each run is executed in a clean, per-run workspace managed by the Kilo Code harness. The harness enforces the time budget, validates the submission format, and scores submissions on hidden holdout labels (not accessible to the agent).
 
 Appendix~\ref{sec:appendix-harness} describes what Kilo Code is and why this paper standardizes on it.
 
+\subsection{Contamination controls}
+This paper uses two controls to reduce contamination risk from external information. First, internet access is disabled during benchmark runs. Second, evaluated models are selected so that their pretraining knowledge cutoff predates the start date of each tested Kaggle competition. In this suite, the earliest competition release is in late October 2025, and all listed cutoff dates in Appendix~\ref{sec:appendix-models} precede that date.
+
 \subsection{Metrics and normalization}
 Each competition has a task-defined metric. This paper reports \texttt{score\_raw} in the task's native direction (for example, AUC where higher is better, and RMSE where lower is better).
 
-Raw metric values are not comparable across competitions because they have different scales and different directions. To build aggregate leaderboards and scaling plots, this paper uses a rank-based normalization:
+Raw metric values are not comparable across competitions because they have different scales and different directions. To build aggregate leaderboards and scaling plots, this paper uses a within-setting min-max normalization:
 \begin{itemize}
   \item For each \texttt{(competition, budget)} setting, compute each model's five-run median \texttt{score\_raw}.
-  \item Convert to a ``higher is better'' value for ranking only: \texttt{value\_for\_rank = score\_raw} for higher-is-better metrics, and \texttt{value\_for\_rank = -score\_raw} for lower-is-better metrics.
-  \item Rank models by \texttt{value\_for\_rank} within that setting, then assign \textbf{rank-points} linearly so the best model gets 1.0 and the worst gets 0.0.
+  \item Convert to a common ``higher is better'' value: \texttt{value\_hib = score\_raw} for higher-is-better metrics, and \texttt{value\_hib = -score\_raw} for lower-is-better metrics.
+  \item Min-max normalize within that setting so the best model gets 1.0 and the worst gets 0.0:
+    \[
+      \mathrm{score} = \frac{\mathrm{value\_hib} - \min(\mathrm{value\_hib})}{\max(\mathrm{value\_hib}) - \min(\mathrm{value\_hib})}.
+    \]
 \end{itemize}
 
-Appendix~\ref{sec:appendix-method} defines rank-points and the headline aggregation precisely.
+Appendix~\ref{sec:appendix-method} defines the normalization and the primary aggregation precisely.
 
 \subsection{Time budgets}
 This paper evaluates three wall-clock time budgets per competition: 240 seconds, 600 seconds, and 1200 seconds. A time budget represents the total time available to the agent to read the task, train, iterate, and produce a final submission file.

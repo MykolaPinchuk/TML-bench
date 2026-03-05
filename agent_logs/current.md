@@ -1,23 +1,21 @@
 # agent_logs/current.md
 
 ## Agent
-- id: agent14
+- id: agent15
 
 ## Timestamp (Pacific)
-- start: 2026-02-14
+- start: 2026-03-04
 
 ## Intent
-- Onboarding as `agent14` (writer) for v6 draft-first slice; prepare to run the writer pass on `docs/paper/draft_v1.md` with strict claim→evidence discipline.
+- Await next assignment.
 
 ## Notes
 - Sync `id:` from kickoff tag (AgentNN) before any logging or commits.
 
 ## Log
-- 2026-02-14 10:05:28 PST: Log created during handoff rotation; ready for next agent/chat.
-- 2026-02-14 10:07:49 PST: Synced active agent id from kickoff tag `Agent13` -> `agent13` before onboarding.
-- 2026-02-14 10:08:33 PST: Completed onboarding for v6 draft-first slice; next step is writer-pass execution using `docs/paper/PAPER_WORKFLOW.md` + `docs/paper/PAPER_STATE.md`, with claims/evidence consistency preserved and canonical scope fixed to complete-model 10.
-- 2026-02-14 10:17:55 PST: Created frozen evidence bundle `docs/paper/paper_assets_v2` for writer kickoff (11 plots, 13 table artifacts), and advanced `docs/paper/PAPER_STATE.md` (`active_assets_dir=v2`, `next_assets_dir=v3`).
-- 2026-02-14 10:57:00 PST: Synced active agent id from kickoff tag `Agent14` -> `agent14` before onboarding.
-- 2026-02-14 10:59:33 PST: Onboarded writer context: `active_assets_dir=docs/paper/paper_assets_v2`, `next_assets_dir=docs/paper/paper_assets_v3`, `active_draft=docs/paper/draft_v1.md`, `active_claims=docs/paper/claims_matrix_v1.md`. Next: run writer pass on `active_draft`, keeping every quantitative edit mapped in `active_claims` with evidence paths inside `active_assets_dir` (or file a request under `docs/paper/requests/` targeting `next_assets_dir`).
-- 2026-02-14 11:46:25 PST: Writer pass (second revision): tightened `docs/paper/draft_v1.md` per updated playbook (practitioner framing, fewer internal/version references), added Appendix A model inventory with sourced metadata, and synced `docs/paper/claims_matrix_v1.md` (added C44). Added TeX source appendix under `docs/paper/tex_v1/` and rebuilt PDF to `tmp/paper_build/main.pdf`.
-- 2026-02-14 12:13:44 PST: External-audience cleanup: removed internal result numbering and internal workflow/phase references, removed deferred-model discussion, replaced internal profile IDs with explicit budgets (240/600/1200s), added external-facing appendices B–E (robustness/consistency/reliability/scaling), synced `docs/paper/claims_matrix_v1.md`, and rebuilt PDF (`tmp/paper_build/main.pdf`).
+- 2026-03-04 15:57:00 PST: Log created during handoff rotation; ready for next agent/chat.
+- 2026-03-04 16:00:00 PST: Synced active agent id from kickoff tag to `agent15`.
+- 2026-03-04 16:04:24 PST: Completed deterministic onboarding pass (index files + bounded paper-slice discovery). Intent: continue v6.5 paper final editorial consistency checks across LaTeX, markdown draft, and claims matrix; next step is user-selected review/fix slice.
+- 2026-03-04 16:08:00 PST: Read remaining manuscript files (all `docs/paper/tex_v1/sections/*.tex` + `docs/paper/draft_v1.md`) to prep for full-draft feedback cycle before ArXiv submission.
+- 2026-03-05 14:41:57 PST: Implemented paper-feedback edits: clarified Figure 3 semantics (one dot per model), added model-color legend + color-matched labels in Pareto plotting pipeline, regenerated public Pareto figure, and added primary leaderboard plot to README landing section.
+- 2026-03-05 14:43:54 PST: Rebuilt `tmp/paper_build/main.pdf` from `docs/paper/tex_v1/main.tex` (2-pass pdflatex) and prepared safe checkpoint commit for current paper updates.

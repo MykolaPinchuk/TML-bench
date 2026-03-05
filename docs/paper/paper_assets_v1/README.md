@@ -5,7 +5,7 @@ This directory is a staging bundle of table/figure assets for the paper draft.
 ## Figures
 - Source: `docs/paper/figures/v6/`
 - Copied into: `figures/`
-- Includes headline leaderboard, robustness variants, Result 0.5/2/3 plots.
+- Includes primary leaderboard, robustness variants, Result 0.5/2/3 plots.
 
 ## Tables
 - `tables/canonical_5run_tables_from_results.md`
