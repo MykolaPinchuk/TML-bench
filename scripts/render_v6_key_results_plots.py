@@ -6,6 +6,7 @@ import math
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from matplotlib.lines import Line2D
 from pathlib import Path
 from statistics import median
 
@@ -288,8 +289,11 @@ def _plot_bar(df: pd.DataFrame, out_path: Path, title: str, x_col: str, x_label:
 def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
     # Expect columns: performance_score, stability_rel_iqr, success_rate
     sns.set_theme(style="whitegrid")
-    dfp = df.copy()
-    plt.figure(figsize=(10.5, 6.5))
+    dfp = df.copy().sort_values("performance_score", ascending=False).reset_index(drop=True)
+    model_colors = {
+        label: color for label, color in zip(dfp["model_label"].tolist(), sns.color_palette("tab10", n_colors=len(dfp)))
+    }
+    plt.figure(figsize=(11.5, 6.8))
     ax = plt.gca()
     sc = ax.scatter(
         dfp["performance_score"],
@@ -299,15 +303,20 @@ def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
         cmap="viridis",
         vmin=0.0,
         vmax=1.0,
-        edgecolors="black",
-        linewidths=0.5,
+        edgecolors=[model_colors[label] for label in dfp["model_label"]],
+        linewidths=1.0,
         alpha=0.9,
     )
-    for _, r in dfp.iterrows():
+    x_span = max(float(dfp["performance_score"].max() - dfp["performance_score"].min()), 1e-9)
+    y_span = max(float(dfp["stability_rel_iqr"].max() - dfp["stability_rel_iqr"].min()), 1e-9)
+    x_offset = x_span * 0.02
+    y_jitter = y_span * 0.008
+    for idx, r in dfp.iterrows():
         ax.text(
-            float(r["performance_score"]) + 0.01,
-            float(r["stability_rel_iqr"]),
+            float(r["performance_score"]) + x_offset,
+            float(r["stability_rel_iqr"]) + ((-1 if idx % 2 else 1) * y_jitter),
             str(r["model_label"]),
+            color=model_colors[str(r["model_label"])],
             fontsize=8,
             va="center",
         )
@@ -317,6 +326,21 @@ def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(bottom=0.0)
     plt.colorbar(sc, ax=ax, label="Success rate (all attempts; profiled1)")
+    handles = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            linestyle="",
+            markerfacecolor="white",
+            markeredgecolor=model_colors[label],
+            markeredgewidth=1.2,
+            markersize=6,
+            label=label,
+        )
+        for label in dfp["model_label"].tolist()
+    ]
+    ax.legend(handles=handles, title="Model label colors", loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=True)
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path, dpi=200)

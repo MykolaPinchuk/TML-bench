@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import pandas as pd
 import seaborn as sns
 
@@ -84,24 +85,59 @@ def _plot_rank_stddev(stddev: pd.DataFrame, *, out_path: Path) -> None:
 def _plot_pareto(pareto: pd.DataFrame, *, out_path: Path) -> None:
     df = pareto.copy()
     df["model_label"] = df["model_label"].fillna(df["model_id"].map(_short_model_label))
+    df = df.sort_values("performance_score", ascending=False).reset_index(drop=True)
+
+    model_colors = {
+        label: color for label, color in zip(df["model_label"].tolist(), sns.color_palette("tab10", n_colors=len(df)))
+    }
 
     sns.set_theme(style="whitegrid")
-    fig, ax = plt.subplots(figsize=(9.5, 6))
+    fig, ax = plt.subplots(figsize=(11.5, 6.5))
     sc = ax.scatter(
         df["stability_rel_iqr"],
         df["performance_score"],
         c=df["success_rate"],
         cmap="viridis",
         s=90,
-        edgecolors="black",
-        linewidths=0.3,
+        edgecolors=[model_colors[label] for label in df["model_label"]],
+        linewidths=1.0,
     )
+    x_span = max(float(df["stability_rel_iqr"].max() - df["stability_rel_iqr"].min()), 1e-9)
+    y_span = max(float(df["performance_score"].max() - df["performance_score"].min()), 1e-9)
+    x_offset = x_span * 0.03
+    y_jitter = y_span * 0.008
+    for idx, row in df.iterrows():
+        ax.text(
+            float(row["stability_rel_iqr"]) + x_offset,
+            float(row["performance_score"]) + ((-1 if idx % 2 else 1) * y_jitter),
+            str(row["model_label"]),
+            color=model_colors[str(row["model_label"])],
+            fontsize=8,
+            va="center",
+        )
+
     cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label("Success rate")
     ax.set_xlabel("Stability (relative IQR; lower is better)")
     ax.set_ylabel("Performance score (0–1; higher is better)")
     ax.set_xlim(left=0)
     ax.set_ylim(0, 1.02)
+
+    handles = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            linestyle="",
+            markerfacecolor="white",
+            markeredgecolor=model_colors[label],
+            markeredgewidth=1.2,
+            markersize=6,
+            label=label,
+        )
+        for label in df["model_label"].tolist()
+    ]
+    ax.legend(handles=handles, title="Model label colors", loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=True)
     _save(fig, out_path)
 
 

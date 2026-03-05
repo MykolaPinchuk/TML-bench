@@ -11,7 +11,7 @@ A fixed instruction template is used for all runs in this paper.
 For each \texttt{(competition, model, budget)} setting, the reported value is the median of the earliest 5 successful runs ordered by \texttt{created\_at}.
 
 \subsection{Evaluation logging and reproducibility}
-The evidence in this paper is derived from logged run outcomes (status, score, runtime, and run configuration). To avoid cherry-picking, this paper reports only models with complete coverage: five successful runs for every task$\times$budget setting included in the benchmark.
+The evidence in this paper is derived from logged run outcomes (status, score, runtime, and run configuration). I focus only on models with complete coverage: five successful runs for every task$\times$budget setting included in the benchmark.
 
 \subsection{Agent harness (Kilo Code)}
 Each run is executed in a clean, per-run workspace managed by the Kilo Code harness. The harness enforces the time budget, validates the submission format, and scores submissions on hidden holdout labels (not accessible to the agent).

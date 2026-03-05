@@ -141,11 +141,11 @@ Reliability has two components:
 1. The first component is run success rate, which measures how often a run yields a valid score.
 2. The second component is within-setting stability, which measures how variable a model is across the five runs used for each reported setting.
 
-The trade-off is summarized via a Pareto-style plot (performance vs stability; color indicates success rate).
+The trade-off is summarized via a Pareto-style plot (performance vs stability; dot fill color indicates success rate). Each dot corresponds to one model, and label colors match the model-outline colors in the legend.
 
 Figure 3 highlights the reliability-performance trade-off.
 
-![Figure 3. Performance vs stability (color=success rate)](figures_public_v2/reliability_pareto_performance_vs_stability.png)
+![Figure 3. Performance vs stability (each dot is one model; fill color=success rate)](figures_public_v2/reliability_pareto_performance_vs_stability.png)
 
 Supporting breakdown plots for success rate and stability are included in Appendix B.
 
