@@ -4,7 +4,7 @@ TML-bench is a **small, strict, tabular-only benchmark** for evaluating autonomo
 
 This repo’s end goal is an auditable leaderboard with per-run artifacts and private-holdout scoring. In early phases, the focus is correctness and repeatable automation (not security).
 
-## Headline result (paper draft)
+## TML-bench leaderboard 
 
 Primary aggregate leaderboard from the current paper draft (best budget per competition, score-normalized):
 

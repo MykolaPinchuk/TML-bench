@@ -6,7 +6,6 @@ import math
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from matplotlib.lines import Line2D
 from pathlib import Path
 from statistics import median
 
@@ -249,6 +248,87 @@ def _write_csv(df: pd.DataFrame, out_path: Path) -> None:
     df.to_csv(out_path, index=False)
 
 
+def _bbox_overlap_area(a, b) -> float:
+    x0 = max(a.x0, b.x0)
+    x1 = min(a.x1, b.x1)
+    y0 = max(a.y0, b.y0)
+    y1 = min(a.y1, b.y1)
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    return float((x1 - x0) * (y1 - y0))
+
+
+def _place_non_overlapping_labels(
+    ax,
+    *,
+    xs: pd.Series,
+    ys: pd.Series,
+    labels: pd.Series,
+    fontsize: int = 8,
+) -> None:
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    axes_bbox = ax.get_window_extent(renderer).expanded(0.98, 0.98)
+    placed_bboxes = []
+    directions = [
+        (1, 0),
+        (1, 1),
+        (0, 1),
+        (-1, 1),
+        (-1, 0),
+        (-1, -1),
+        (0, -1),
+        (1, -1),
+    ]
+    rings = [12, 18, 24, 32, 40, 50, 62]
+    offsets = [(dx * r, dy * r) for r in rings for (dx, dy) in directions]
+
+    for x, y, label in zip(xs.tolist(), ys.tolist(), labels.tolist()):
+        best_artist = None
+        best_bbox = None
+        best_score = None
+        for dx, dy in offsets:
+            artist = ax.annotate(
+                str(label),
+                xy=(float(x), float(y)),
+                xytext=(dx, dy),
+                textcoords="offset points",
+                ha="left" if dx >= 0 else "right",
+                va="center",
+                fontsize=fontsize,
+                arrowprops={
+                    "arrowstyle": "-",
+                    "color": "#666666",
+                    "lw": 0.7,
+                    "shrinkA": 2.0,
+                    "shrinkB": 2.0,
+                },
+                bbox={"boxstyle": "round,pad=0.14", "facecolor": "white", "edgecolor": "none", "alpha": 0.86},
+            )
+            fig.canvas.draw()
+            bbox = artist.get_window_extent(renderer).expanded(1.03, 1.16)
+
+            overlap = sum(_bbox_overlap_area(bbox, prev) for prev in placed_bboxes)
+            outside = not axes_bbox.contains(bbox.x0, bbox.y0) or not axes_bbox.contains(bbox.x1, bbox.y1)
+            dist = float((dx * dx + dy * dy) ** 0.5)
+            score = overlap + (1e9 if outside else 0.0) + dist * 0.02
+
+            if best_score is None or score < best_score:
+                if best_artist is not None:
+                    best_artist.remove()
+                best_artist = artist
+                best_bbox = bbox
+                best_score = score
+                if overlap == 0.0 and not outside and dist <= 18:
+                    break
+            else:
+                artist.remove()
+
+        if best_bbox is not None:
+            placed_bboxes.append(best_bbox)
+
+
 def _plot_rank_heatmap(df: pd.DataFrame, out_path: Path, title: str) -> None:
     # df columns: model_label, competition_id, rank (1=best)
     pivot = df.pivot(index="model_label", columns="competition_id", values="rank")
@@ -290,10 +370,7 @@ def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
     # Expect columns: performance_score, stability_rel_iqr, success_rate
     sns.set_theme(style="whitegrid")
     dfp = df.copy().sort_values("performance_score", ascending=False).reset_index(drop=True)
-    model_colors = {
-        label: color for label, color in zip(dfp["model_label"].tolist(), sns.color_palette("tab10", n_colors=len(dfp)))
-    }
-    plt.figure(figsize=(11.5, 6.8))
+    plt.figure(figsize=(10.5, 6.4))
     ax = plt.gca()
     sc = ax.scatter(
         dfp["performance_score"],
@@ -303,44 +380,23 @@ def _plot_scatter(df: pd.DataFrame, out_path: Path, title: str) -> None:
         cmap="viridis",
         vmin=0.0,
         vmax=1.0,
-        edgecolors=[model_colors[label] for label in dfp["model_label"]],
-        linewidths=1.0,
+        edgecolors="black",
+        linewidths=0.5,
         alpha=0.9,
     )
-    x_span = max(float(dfp["performance_score"].max() - dfp["performance_score"].min()), 1e-9)
-    y_span = max(float(dfp["stability_rel_iqr"].max() - dfp["stability_rel_iqr"].min()), 1e-9)
-    x_offset = x_span * 0.02
-    y_jitter = y_span * 0.008
-    for idx, r in dfp.iterrows():
-        ax.text(
-            float(r["performance_score"]) + x_offset,
-            float(r["stability_rel_iqr"]) + ((-1 if idx % 2 else 1) * y_jitter),
-            str(r["model_label"]),
-            color=model_colors[str(r["model_label"])],
-            fontsize=8,
-            va="center",
-        )
+    _place_non_overlapping_labels(
+        ax,
+        xs=dfp["performance_score"],
+        ys=dfp["stability_rel_iqr"],
+        labels=dfp["model_label"],
+        fontsize=8,
+    )
     ax.set_title(title)
     ax.set_xlabel("Performance score (0–1; higher is better)")
     ax.set_ylabel("Stability (median relative IQR across cells; lower is better)")
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(bottom=0.0)
     plt.colorbar(sc, ax=ax, label="Success rate (all attempts; profiled1)")
-    handles = [
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="",
-            markerfacecolor="white",
-            markeredgecolor=model_colors[label],
-            markeredgewidth=1.2,
-            markersize=6,
-            label=label,
-        )
-        for label in dfp["model_label"].tolist()
-    ]
-    ax.legend(handles=handles, title="Model label colors", loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=True)
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path, dpi=200)

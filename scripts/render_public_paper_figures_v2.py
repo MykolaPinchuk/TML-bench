@@ -5,7 +5,6 @@ import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import pandas as pd
 import seaborn as sns
 
@@ -29,6 +28,87 @@ def _save(fig: plt.Figure, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=200, bbox_inches="tight")
     plt.close(fig)
+
+
+def _bbox_overlap_area(a, b) -> float:
+    x0 = max(a.x0, b.x0)
+    x1 = min(a.x1, b.x1)
+    y0 = max(a.y0, b.y0)
+    y1 = min(a.y1, b.y1)
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    return float((x1 - x0) * (y1 - y0))
+
+
+def _place_non_overlapping_labels(
+    ax,
+    *,
+    xs: pd.Series,
+    ys: pd.Series,
+    labels: pd.Series,
+    fontsize: int = 8,
+) -> None:
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    axes_bbox = ax.get_window_extent(renderer).expanded(0.98, 0.98)
+    placed_bboxes = []
+    directions = [
+        (1, 0),
+        (1, 1),
+        (0, 1),
+        (-1, 1),
+        (-1, 0),
+        (-1, -1),
+        (0, -1),
+        (1, -1),
+    ]
+    rings = [12, 18, 24, 32, 40, 50, 62]
+    offsets = [(dx * r, dy * r) for r in rings for (dx, dy) in directions]
+
+    for x, y, label in zip(xs.tolist(), ys.tolist(), labels.tolist()):
+        best_artist = None
+        best_bbox = None
+        best_score = None
+        for dx, dy in offsets:
+            artist = ax.annotate(
+                str(label),
+                xy=(float(x), float(y)),
+                xytext=(dx, dy),
+                textcoords="offset points",
+                ha="left" if dx >= 0 else "right",
+                va="center",
+                fontsize=fontsize,
+                arrowprops={
+                    "arrowstyle": "-",
+                    "color": "#666666",
+                    "lw": 0.7,
+                    "shrinkA": 2.0,
+                    "shrinkB": 2.0,
+                },
+                bbox={"boxstyle": "round,pad=0.14", "facecolor": "white", "edgecolor": "none", "alpha": 0.86},
+            )
+            fig.canvas.draw()
+            bbox = artist.get_window_extent(renderer).expanded(1.03, 1.16)
+
+            overlap = sum(_bbox_overlap_area(bbox, prev) for prev in placed_bboxes)
+            outside = not axes_bbox.contains(bbox.x0, bbox.y0) or not axes_bbox.contains(bbox.x1, bbox.y1)
+            dist = float((dx * dx + dy * dy) ** 0.5)
+            score = overlap + (1e9 if outside else 0.0) + dist * 0.02
+
+            if best_score is None or score < best_score:
+                if best_artist is not None:
+                    best_artist.remove()
+                best_artist = artist
+                best_bbox = bbox
+                best_score = score
+                if overlap == 0.0 and not outside and dist <= 18:
+                    break
+            else:
+                artist.remove()
+
+        if best_bbox is not None:
+            placed_bboxes.append(best_bbox)
 
 
 def _plot_leaderboard(scores: pd.DataFrame, *, variant: str, out_path: Path) -> None:
@@ -87,34 +167,24 @@ def _plot_pareto(pareto: pd.DataFrame, *, out_path: Path) -> None:
     df["model_label"] = df["model_label"].fillna(df["model_id"].map(_short_model_label))
     df = df.sort_values("performance_score", ascending=False).reset_index(drop=True)
 
-    model_colors = {
-        label: color for label, color in zip(df["model_label"].tolist(), sns.color_palette("tab10", n_colors=len(df)))
-    }
-
     sns.set_theme(style="whitegrid")
-    fig, ax = plt.subplots(figsize=(11.5, 6.5))
+    fig, ax = plt.subplots(figsize=(10.5, 6.2))
     sc = ax.scatter(
         df["stability_rel_iqr"],
         df["performance_score"],
         c=df["success_rate"],
         cmap="viridis",
         s=90,
-        edgecolors=[model_colors[label] for label in df["model_label"]],
-        linewidths=1.0,
+        edgecolors="black",
+        linewidths=0.5,
     )
-    x_span = max(float(df["stability_rel_iqr"].max() - df["stability_rel_iqr"].min()), 1e-9)
-    y_span = max(float(df["performance_score"].max() - df["performance_score"].min()), 1e-9)
-    x_offset = x_span * 0.03
-    y_jitter = y_span * 0.008
-    for idx, row in df.iterrows():
-        ax.text(
-            float(row["stability_rel_iqr"]) + x_offset,
-            float(row["performance_score"]) + ((-1 if idx % 2 else 1) * y_jitter),
-            str(row["model_label"]),
-            color=model_colors[str(row["model_label"])],
-            fontsize=8,
-            va="center",
-        )
+    _place_non_overlapping_labels(
+        ax,
+        xs=df["stability_rel_iqr"],
+        ys=df["performance_score"],
+        labels=df["model_label"],
+        fontsize=8,
+    )
 
     cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label("Success rate")
@@ -122,22 +192,6 @@ def _plot_pareto(pareto: pd.DataFrame, *, out_path: Path) -> None:
     ax.set_ylabel("Performance score (0–1; higher is better)")
     ax.set_xlim(left=0)
     ax.set_ylim(0, 1.02)
-
-    handles = [
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="",
-            markerfacecolor="white",
-            markeredgecolor=model_colors[label],
-            markeredgewidth=1.2,
-            markersize=6,
-            label=label,
-        )
-        for label in df["model_label"].tolist()
-    ]
-    ax.legend(handles=handles, title="Model label colors", loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=True)
     _save(fig, out_path)
 
 
