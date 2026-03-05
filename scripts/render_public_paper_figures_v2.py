@@ -30,17 +30,35 @@ def _save(fig: plt.Figure, out: Path) -> None:
     plt.close(fig)
 
 
-def _bbox_overlap_area(a, b) -> float:
-    x0 = max(a.x0, b.x0)
-    x1 = min(a.x1, b.x1)
-    y0 = max(a.y0, b.y0)
-    y1 = min(a.y1, b.y1)
-    if x1 <= x0 or y1 <= y0:
-        return 0.0
-    return float((x1 - x0) * (y1 - y0))
+def _spread_targets(targets: list[float], lower: float, upper: float, min_gap: float) -> list[float]:
+    n = len(targets)
+    if n == 0:
+        return []
+    if n == 1:
+        return [min(max(targets[0], lower), upper)]
+    usable_gap = max((upper - lower) / (n - 1), 1e-9)
+    gap = min(min_gap, usable_gap * 0.95)
+
+    vals = sorted(targets)
+    vals[0] = min(max(vals[0], lower), upper)
+    for i in range(1, n):
+        vals[i] = max(vals[i], vals[i - 1] + gap)
+
+    overflow = vals[-1] - upper
+    if overflow > 0:
+        vals = [v - overflow for v in vals]
+
+    vals[0] = max(vals[0], lower)
+    for i in range(1, n):
+        vals[i] = max(vals[i], vals[i - 1] + gap)
+
+    if vals[-1] > upper:
+        shift = vals[-1] - upper
+        vals = [v - shift for v in vals]
+    return vals
 
 
-def _place_non_overlapping_labels(
+def _add_column_callouts(
     ax,
     *,
     xs: pd.Series,
@@ -48,67 +66,67 @@ def _place_non_overlapping_labels(
     labels: pd.Series,
     fontsize: int = 8,
 ) -> None:
-    fig = ax.figure
-    fig.canvas.draw()
-    renderer = fig.canvas.get_renderer()
-    axes_bbox = ax.get_window_extent(renderer).expanded(0.98, 0.98)
-    placed_bboxes = []
-    directions = [
-        (1, 0),
-        (1, 1),
-        (0, 1),
-        (-1, 1),
-        (-1, 0),
-        (-1, -1),
-        (0, -1),
-        (1, -1),
-    ]
-    rings = [12, 18, 24, 32, 40, 50, 62]
-    offsets = [(dx * r, dy * r) for r in rings for (dx, dy) in directions]
+    data = pd.DataFrame({"x": xs.astype(float), "y": ys.astype(float), "label": labels.astype(str)})
+    if data.empty:
+        return
 
-    for x, y, label in zip(xs.tolist(), ys.tolist(), labels.tolist()):
-        best_artist = None
-        best_bbox = None
-        best_score = None
-        for dx, dy in offsets:
-            artist = ax.annotate(
-                str(label),
-                xy=(float(x), float(y)),
-                xytext=(dx, dy),
-                textcoords="offset points",
-                ha="left" if dx >= 0 else "right",
+    x_min = float(data["x"].min())
+    x_max = float(data["x"].max())
+    y_min = float(data["y"].min())
+    y_max = float(data["y"].max())
+    x_span = max(x_max - x_min, 1e-9)
+    y_span = max(y_max - y_min, 1e-9)
+
+    split_x = float(data["x"].median())
+    left = data[data["x"] <= split_x].copy()
+    right = data[data["x"] > split_x].copy()
+    if left.empty or right.empty:
+        left = data.copy()
+        right = data.iloc[0:0].copy()
+
+    y_lo = y_min - 0.04 * y_span
+    y_hi = y_max + 0.04 * y_span
+    min_gap = 0.08 * y_span
+    manual_y_shift = {
+        "NVIDIA-Nemotron-3-Nano-30B-A3B-BF16": -0.095 * y_span,
+        "DeepSeek-TNG-R1T2-Chimera": -0.085 * y_span,
+    }
+
+    x_pad = 0.12 * x_span
+    x_left = x_min - x_pad
+    x_right = x_max + x_pad
+
+    def _draw_side(df_side: pd.DataFrame, x_text: float, align: str, bend: float) -> None:
+        if df_side.empty:
+            return
+        order = df_side.sort_values("y").index.tolist()
+        targets = df_side.loc[order, "y"].tolist()
+        placed = _spread_targets(targets, y_lo, y_hi, min_gap)
+        for idx, y_text in zip(order, placed):
+            row = df_side.loc[idx]
+            y_text = float(y_text) + float(manual_y_shift.get(str(row["label"]), 0.0))
+            ax.annotate(
+                row["label"],
+                xy=(float(row["x"]), float(row["y"])),
+                xytext=(x_text, float(y_text)),
+                textcoords="data",
+                ha=align,
                 va="center",
                 fontsize=fontsize,
                 arrowprops={
                     "arrowstyle": "-",
                     "color": "#666666",
-                    "lw": 0.7,
+                    "lw": 0.8,
                     "shrinkA": 2.0,
                     "shrinkB": 2.0,
+                    "connectionstyle": f"arc3,rad={bend}",
                 },
-                bbox={"boxstyle": "round,pad=0.14", "facecolor": "white", "edgecolor": "none", "alpha": 0.86},
+                bbox={"boxstyle": "round,pad=0.16", "facecolor": "white", "edgecolor": "none", "alpha": 0.90},
+                clip_on=False,
             )
-            fig.canvas.draw()
-            bbox = artist.get_window_extent(renderer).expanded(1.03, 1.16)
 
-            overlap = sum(_bbox_overlap_area(bbox, prev) for prev in placed_bboxes)
-            outside = not axes_bbox.contains(bbox.x0, bbox.y0) or not axes_bbox.contains(bbox.x1, bbox.y1)
-            dist = float((dx * dx + dy * dy) ** 0.5)
-            score = overlap + (1e9 if outside else 0.0) + dist * 0.02
-
-            if best_score is None or score < best_score:
-                if best_artist is not None:
-                    best_artist.remove()
-                best_artist = artist
-                best_bbox = bbox
-                best_score = score
-                if overlap == 0.0 and not outside and dist <= 18:
-                    break
-            else:
-                artist.remove()
-
-        if best_bbox is not None:
-            placed_bboxes.append(best_bbox)
+    _draw_side(left, x_left, "right", -0.08)
+    _draw_side(right, x_right, "right", 0.08)
 
 
 def _plot_leaderboard(scores: pd.DataFrame, *, variant: str, out_path: Path) -> None:
@@ -178,7 +196,7 @@ def _plot_pareto(pareto: pd.DataFrame, *, out_path: Path) -> None:
         edgecolors="black",
         linewidths=0.5,
     )
-    _place_non_overlapping_labels(
+    _add_column_callouts(
         ax,
         xs=df["stability_rel_iqr"],
         ys=df["performance_score"],
@@ -186,7 +204,8 @@ def _plot_pareto(pareto: pd.DataFrame, *, out_path: Path) -> None:
         fontsize=8,
     )
 
-    cbar = fig.colorbar(sc, ax=ax)
+    fig.subplots_adjust(right=0.80)
+    cbar = fig.colorbar(sc, ax=ax, pad=0.12)
     cbar.set_label("Success rate")
     ax.set_xlabel("Stability (relative IQR; lower is better)")
     ax.set_ylabel("Performance score (0–1; higher is better)")
