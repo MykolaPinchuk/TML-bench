@@ -19,3 +19,4 @@
 - 2026-02-14_agent12.md — agent12: paper workflow finalized (paper state pointer + cheat sheets) and Onboard capitalization documented
 - 2026-03-03_agent14.md — v6 complete + merged to master; v6.5 initialized; next: external reviewer feedback then draft revisions
 - 2026-03-04_agent14.md — v6.5 draft revisions + appendix/model-metadata updates; ready for final first-draft polish
+- 2026-03-08_agent15.md — v7 kickoff finalized: context sync fixed, branch corrected to origin/master, v7 plan + handoff docs prepared
