@@ -2,6 +2,8 @@
 
 TML-bench is a **small, strict, tabular-only benchmark** for evaluating autonomous “ML agents” (run via **Kilo**) on Kaggle-style tasks under standardized scaffolding.
 
+Arxiv paper: https://arxiv.org/abs/2603.05764 
+
 This repo’s end goal is an auditable leaderboard with per-run artifacts and private-holdout scoring. In early phases, the focus is correctness and repeatable automation (not security).
 
 ## TML-bench leaderboard 

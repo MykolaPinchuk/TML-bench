@@ -141,7 +141,7 @@ Reliability has two components:
 1. The first component is run success rate, which measures how often a run yields a valid score.
 2. The second component is within-setting stability, which measures how variable a model is across the five runs used for each reported setting.
 
-The trade-off is summarized via a Pareto-style plot (performance vs stability; dot fill color indicates success rate). Each dot corresponds to one model and is labeled near the point.
+The trade-off is summarized via a Pareto-style plot (performance vs stability; dot fill color indicates success rate). Each dot corresponds to one model and is labeled with a callout pointer.
 
 Figure 3 highlights the reliability-performance trade-off.
 
@@ -233,7 +233,7 @@ This paper is accompanied by a repository that contains run logs, scripts to reg
 Table A1 lists the models included in the 10-model set evaluated in this paper and summarizes metadata useful for interpretation. Release dates, parameter counts, knowledge-cutoff disclosures, and license fields are taken from public model cards and announcements. Knowledge cutoff refers to pretraining cutoff.
 
 The following notes apply to Appendix A:
-- “Type” describes the availability implied by the source (open weights, or API-served). If the source does not clearly specify a release or license, the entry is marked as unknown.
+- “Type” is reported as open weights for all listed models in this revision. If the source does not clearly specify a release or license, the entry is marked as unknown.
 - “Knowledge cutoff” is marked “not disclosed” when no explicit public cutoff date is provided by the model source.
 
 Table A1. Model inventory for the 10 models evaluated in this paper.
@@ -242,11 +242,11 @@ Table A1. Model inventory for the 10 models evaluated in this paper.
 |---|---|---|---|---|---|---|
 | `Qwen3-Coder-480B-A35B` | `chutes` | open weights | 480B total, 35B active | 2025-07-23 | 2025-01-22 | Apache-2.0 |
 | `gpt-oss-120b` | `chutes` | open weights | 120B | 2025-08-05 | 2024-06-01 | Apache-2.0 |
-| `GLM-4.7-FP8` | `chutes` | open weights | unknown | 2025-12-22 | 2025-04 | MIT |
-| `GLM-4.7-Flash` | `chutes` | open weights | unknown | 2025-12-22 | 2025-04 | MIT |
-| `MiniMax-M2.1-TEE` | `chutes` | API-served (weights unknown) | 230B total, 10B active | 2025-12-23 | 2025-06-25 | unknown |
+| `GLM-4.7-FP8` | `chutes` | open weights | 358B | 2025-12-22 | 2025-04 | MIT |
+| `GLM-4.7-Flash` | `chutes` | open weights | 30B | 2025-12-22 | 2025-04 | MIT |
+| `MiniMax-M2.1-TEE` | `chutes` | open weights | 230B total, 10B active | 2025-12-23 | 2025-06-25 | unknown |
 | `GLM-4.6-FP8` | `chutes` | open weights | 357B | 2025-09-30 | 2025-04 | MIT |
-| `DeepSeek-V3.1-Terminus` | `chutes` | API-served (weights unknown) | 671B total, 37B active | 2025-09-23 | 2024-07 | unknown |
+| `DeepSeek-V3.1-Terminus` | `chutes` | open weights | 671B total, 37B active | 2025-09-23 | 2024-07 | unknown |
 | `Nemotron-3-Nano-30B` | `chutes` | open weights | 30B total, 3B active | 2025-12-15 | 2025-06-25 | NVIDIA Nemotron Open Model License Agreement |
 | `Devstral-2-123B` | `chutes` | open weights | 125B | 2025-12-09 | 2023-10-01 (alt 2024-02) | Modified MIT |
 | `DeepSeek-TNG-R1T2-Chimera` | `chutes` | open weights | 671B | 2025-07-02 | ~2024-07 | unknown |
