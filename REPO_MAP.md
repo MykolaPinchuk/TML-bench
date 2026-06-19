@@ -20,6 +20,7 @@ Keep this file short. Update it only when something important changes.
 - `docs/plan/v3.md` — Phase 3+ plan (v3 onwards), including Kilo CLI spike and fallbacks.
 - `docs/plan/v5_5_closeout.md` — v5.5 closeout goals, acceptance criteria, and execution order for canonical 10-model reporting.
 - `docs/plan/v6.md` — active v6 draft-first plan (deliverables, claim discipline, repro appendix, and exit criteria).
+- `docs/plan/v7.md` — post-arXiv improvement plan (AutoGluon baseline candidate + focused paper revision scope).
 - `docs/paper/PAPER_WORKFLOW.md` — lightweight research↔writer paper drafting workflow (session-boundary prompts + requests-as-files).
 - `docs/paper/PAPER_STATE.md` — paper workflow state pointer (active assets/draft/claims; read first when writing).
 - `docs/paper/HUMAN_CHEATSHEET.md` — minimal “what I do” operator notes + copy/paste prompts.
@@ -64,6 +65,7 @@ Keep this file short. Update it only when something important changes.
 ## Hot paths (last 1–2 cycles)
 - `prd.md` — PRD updates and phase definitions.
 - `docs/plan/v6.md` — v6 draft-first plan and completion criteria.
+- `docs/plan/v7.md` — active v7 plan for post-arXiv improvements.
 - `docs/paper/` — v6 draft/manuscript assets and evidence traceability.
 - `docs/paper/tex_v1/` — current manuscript editing surface for external-review revisions.
 - `docs/paper/tex_v1/sections/appendix_competitions.tex` — newly added competition-details appendix section.
