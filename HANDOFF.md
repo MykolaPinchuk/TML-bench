@@ -49,3 +49,13 @@ v7 post-arXiv improvement planning is now active. Focus is a moderate-effort pap
 - Never commit datasets, run artifacts, sqlite DBs, or secrets.
 - Keep claims-to-evidence discipline strict (`docs/paper/claims_matrix_v1.md`).
 - Keep `profiled1` canonical reporting policy intact unless user explicitly changes it.
+
+### Human notes
+
+Posisble things for the next steps:
+- build some nonagentic baseline like AutoML or smth.
+- Add 3 more cheap models using OR API:
+-- grok4.1fast
+-- mimo v2-flash
+-- gemini 3.1 flash0lite
+
